@@ -7,6 +7,8 @@ import util.logging
 logger = util.logging.logger
 
 
+## file extension
+
 def has_file_ext(file, ext):
     actual_ext = os.path.splitext(file)[1]
     if not ext.startswith('.'):
@@ -21,7 +23,6 @@ def add_file_ext_if_needed(file, ext):
         if not ext.startswith('.'):
             ext = '.' + ext
         return file + ext
-        
 
 
 ## get files
@@ -62,6 +63,7 @@ def get_files(path=os.getcwd(), regular_expression=None):
 
 
 ## permissions
+
 def make_read_only(*files, not_exist_ok=False):
     for file in files:
         logger.debug('Making {} read-only.'.format(file))
@@ -109,6 +111,7 @@ def get_file_permission(file):
 
 
 ## remove
+
 def remove_dir(path, force=False):
     if force:
         make_writable(path)
@@ -126,10 +129,14 @@ def remove_recursively(path, force=False, exclude_dir=False):
     walk_path_bottom_up(path, os.remove, os.rmdir, exclude_dir=exclude_dir)
 
 
+# ## extend
+# def extend_filename(file):
+#     file = os.path.expanduser(file)
+#     file = os.path.expandvars(file)
+#     if 
+
 
 ##
-
-
 
 def flush_and_close(file):
     file.flush()

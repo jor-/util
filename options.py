@@ -8,7 +8,7 @@ logger = util.logging.logger
 
 class Options():
     
-    def __init__(self, file, mode='a'):
+    def __init__(self, file, mode='a', replace_environment_vars_at_set=False, replace_environment_vars_at_get=False, ):
         ## prepare file name
         if os.path.isdir(file):
             file = os.path.join(file, 'options.hdf5')
@@ -16,8 +16,11 @@ class Options():
             (root, ext) = os.path.splitext(file)
             if ext == '':
                 file += '.hdf5'
-        
+        ## open
         self.open(file, mode)
+        ## save replace variable
+        self.replace_environment_vars_at_set = replace_environment_vars_at_set
+        self.replace_environment_vars_at_get = replace_environment_vars_at_get
     
     
     def __del__(self):
@@ -32,10 +35,12 @@ class Options():
     
     
     def __setitem__(self, key, value):
+        ## replace env
+        value = self._replace_environment_vars(value, self.replace_environment_vars_at_set)
+        
         ## check if writable
         if not self.is_writable():
             raise IOError('Option file is not writable.')
-        
         
         ## if dict insert each item since dict is not supported in HDF5
         if isinstance(value, dict):
@@ -56,13 +61,17 @@ class Options():
             ## set if key not exists
             except KeyError:
                 f[key] = value
-        
+    
     
     def __getitem__(self, name):
+        ## get value
         try:
             item = self.__hdf5_file[name]
         except KeyError as e:
             raise KeyError('The key {} is not in the option file {}.'.format(name, self.filename)) from e
+        ## replace env
+        value = self._replace_environment_vars(value, self.replace_environment_vars_at_get)
+        ## return
         return item.value
     
     
@@ -89,9 +98,8 @@ class Options():
         try:
             f = h5py.File(file, mode=mode)
         except (OSError, IOError):
-            logger.debug('File {} could not been open. Trying read_only mode.'.format(file))
+            logger.warning('File {} could not been open. Trying read_only mode.'.format(file))
             f = h5py.File(file, mode='r')
-        
         
         logger.debug('File {} opened.'.format(file))
         self.__hdf5_file_object = f
@@ -109,9 +117,12 @@ class Options():
             self.__hdf5_file_object = None
     
     
-    # def insert_dict(self, key, value):
-    #     for
-        
+    @staticmethod
+    def _replace_environment_vars(value, replace=True):
+        if replace and (isinstance(value, str) or isinstance(value, bytes)):
+            value = os.path.expanduser(value)
+            value = os.path.expandvars(value)
+        return value
     
     
     ## permissions

@@ -29,15 +29,14 @@ class Job():
         
         ## load option file if existing or forced
         if force_load or os.path.exists(option_file):
-            self.__options = util.options.Options(option_file, mode='r+')
-            
+            self.__options = util.options.Options(option_file, mode='r+', replace_environment_vars_at_get=True)
             logger.debug('Job {} loaded.'.format(option_file))
         
         ## make new job options file otherwise
         else:
             os.makedirs(output_dir, exist_ok=True)
             
-            self.__options = util.options.Options(option_file, mode='w-')
+            self.__options = util.options.Options(option_file, mode='w-', replace_environment_vars_at_get=True)
             
             self.__options['/job/output_dir'] = output_dir
             self.__options['/job/option_file'] = os.path.join(output_dir, 'job_options.txt')
