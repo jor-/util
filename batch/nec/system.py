@@ -87,7 +87,7 @@ class Job(util.batch.general.system.Job):
 
 ## node setups
 
-from util.batch.general.system.NodeSetup import NodeSetup
+from util.batch.general.system import NodeSetup
 # class NodeSetup(util.batch.general.system.NodeSetup):
 #     def __init__(self, *args, **kargs):
 #         super().__init__()
