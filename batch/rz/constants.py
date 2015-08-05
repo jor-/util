@@ -1,13 +1,7 @@
 QUEUES = ('f_ocean', 'f_ocean2', 'express', 'small', 'medium', 'long', 'para_low')
-
-# NODES_KIND = ('westmere', 'shanghai', 'f_ocean', 'f_ocean2', 'amd256')
-# NODES_CPU_POWER = (2.67/4, 2.4/4, 2.1/4, 2.6, 2.1)
-# NODES_MAX = (12, 26, 12, 12, 1)
-# NODES_LEFT_FREE = (0, 0, 0, 0, 1)
+MAX_WALLTIME = {'express': 3, 'small': 24, 'medium': 240, 'long': 480, 'para_low': 1000}
 
 NODE_INFOS = {'westmere': (2.67/4, 18, 0), 'shanghai': (2.4/4, 26, 0), 'f_ocean': (2.1/4, 12, 0), 'f_ocean2': (2.6, 12, 0), 'amd128': (2.4/4, 1, 1), 'amd256': (2.1/4, 1, 1), 'fobigmem': (2.6, 2, 2)}
-
-MAX_WALLTIME = {'express': 3, 'small': 24, 'medium': 240, 'long': 480, 'para_low': 1000}
 
 # Westmere nodes (12 CPUs per node, 2.67 GHz)
 # f_ocean Barcelona nodes (8 CPUs per node, 2.1 GHz) (f_ocean queue)
@@ -19,6 +13,8 @@ MAX_WALLTIME = {'express': 3, 'small': 24, 'medium': 240, 'long': 480, 'para_low
 # Shanghai Ethernet nodes (8 CPUs per node, 2.4 GHz) (bio_ocean queue)
 # Shanghai Infiniband nodes (8 CPUs per node, 2.4 GHz) (math queue)
 
-QNODES_COMMAND = '/usr/local/bin/qnodes'
+MODEL_RENAMING = {'python':'Python-3.3.2', 'python3':'Python-3.3.2', 'hdf5':'hdf5_1.8.11', 'matlab':'matlab2014a', 'petsc':'petsc-intel14'}
+
 QSUB_COMMAND = '/opt/pbs/default/bin/qsub'
+QNODES_COMMAND = '/usr/local/bin/qnodes'
 QSTAT_COMMAND = '/opt/pbs/default/bin/qstat'

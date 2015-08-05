@@ -120,7 +120,7 @@ def remove_file(file, force=False, not_exist_okay=False):
             make_writable(file)
         os.remove(file)  
 
-def remove_recursively(path, force=False, exclude_dir=True):
+def remove_recursively(path, force=False, exclude_dir=False):
     if force:
         make_writable_recursively(path, exclude_dir=exclude_dir)
     walk_path_bottom_up(path, os.remove, os.rmdir, exclude_dir=exclude_dir)
