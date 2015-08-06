@@ -181,121 +181,116 @@ def get_best_cpu_configurations_for_kind(kind, memory_required, nodes=None, cpus
         if nodes * cpus > total_cpus_max:
             raise ValueError('total_cpus_max {} has to be greater or equal to nodes {} multiplied with cpus {}.'.format(total_cpus_max, nodes, cpus))
     
-    ## calculate best configuration
-    if nodes is None or cpus is None:
-        ## grep free nodes
-        def grep_qnodes(expression):
-            command = '{} | grep -E {}'.format(QNODES_COMMAND, expression)
-            # command = '/usr/local/bin/qnodes | grep -E ' + expression
-            try:
-                grep_result = subprocess.check_output(command, shell=True).decode("utf-8")
-            except subprocess.CalledProcessError as e:
-                logger.warning('Command {} returns with exit code {} and output "{}"'.format(command, e.returncode, e.output.decode("utf-8")))
-                grep_result = 'offline'
-            
-            return grep_result
-        
-        # 24 f_ocean Barcelona nodes (8 CPUs per node, 2.1 GHz) (f_ocean queue)
-        if kind == 'f_ocean' or  kind == 'barcelona':
-            grep_result = grep_qnodes('"rzcl05[1-9]|rzcl06[0-9]|rzcl07[0-4]"')
-        # 12 f_ocean2 nodes (16 CPUs per node, 2.6 GHz) (f_ocean2 queue)
-        elif kind == 'f_ocean2':
-            grep_result = grep_qnodes('"rzcl26[2-9]|rzcl27[0-3]"')
-        # 2 fobigmem nodes (32 CPUs per node, 2.6 GHz) (fobigmem queue)
-        elif kind == 'fobigmem':
-            grep_result = grep_qnodes('"rzcl28[7-8]"')
-        # 18 Westmere-nodes (12 CPUs per node, 2.67 GHz)
-        elif kind == 'westmere':
-            grep_result = grep_qnodes('"rzcl17[8-9]|rzcl18[0-9]|rzcl19[0-5]"')
-        # 26 AMD-Shanghai nodes (8 CPUs per node, 2.4 GHz)
-        elif kind == 'shanghai':
-            grep_result = grep_qnodes('"rzcl11[8-9]|rzcl1[2-3][0-9]|rzcl14[0-3]"')
-        # 1 AMD-Shanghai nodes (16 CPUs per node, 2.4 GHz)
-        elif kind == 'amd128':
-            grep_result = grep_qnodes('"rzcl116"')
-        # 1 AMD-Magny node (48 CPUs per node, 2.1 GHz)
-        elif kind == 'amd256':
-            grep_result = grep_qnodes('"rzcl200"')    
-        # Shanghai Ethernet nodes (8 CPUs per node, 2.4 GHz) (bio_ocean queue)
-        elif kind == 'bio_ocean' or kind == 'shanghai-ethernet':
-            grep_result = grep_qnodes('"rzcl07[5-9]|rzcl0[8-9][0-9]|rzcl10[0-9]|rzcl11[0-4]"')
-        # Shanghai Infiniband nodes (8 CPUs per node, 2.4 GHz) (math queue)
-        elif kind == 'math' or kind == 'shanghai-infiniband':
-            grep_result = grep_qnodes('"rzcl11[8-9]|rzcl1[2-3][0-9]|rzcl14[0-3]"')
-        else:
-            raise ValueError('Unknown CPU kind: ' + kind)
-        
-        logger.debug(grep_result)
-        
-        
-        ## extract free cpus and memory from grep result
-        grep_result_lines = grep_result.splitlines()
-        
-        number_of_nodes = len(grep_result_lines)
-        free_cpus = np.empty(number_of_nodes, dtype=np.int)
-        free_memory = np.empty(number_of_nodes, dtype=np.int)
-        
-        # format: "rzcl179 (7/12) (41943040kb/49449316kb) (free) (1285234.rzcluster/6)"
-        for i in range(number_of_nodes):
-            grep_result_line = grep_result_lines[i]
-            
-            # check if node down
-            if 'down' in grep_result_line or 'state-unknown' in grep_result_line or 'offline' in grep_result_line:
-                free_cpus[i] = 0
-                free_memory[i] = 0
-            # calculte free cpus and memory
-            else:
-                grep_result_line_split = grep_result_line.split()
-                
-                grep_cpus = [int(int_str) for int_str in re.findall('\d+', grep_result_line_split[1])]
-                grep_memory = [int(int_str) for int_str in re.findall('\d+', grep_result_line_split[2])]
-                
-                free_cpus[i] = grep_cpus[1] - grep_cpus[0]
-                free_memory[i] = int(np.floor((grep_memory[1] - grep_memory[0]) / (1024**2)))
-        
-        ## get only nodes with required memory
-        free_cpus = free_cpus[free_memory >= memory_required]
-        
-        ## calculate best configuration
-        best_nodes = 0
-        best_cpus = 0
-        
-        if len(free_cpus) > 0:
-            ## chose numbers of cpus to check
-            if cpus is not None:
-                cpus_to_check = (cpus,)
-            else:
-                cpus_to_check = range(max(free_cpus), 0, -1)
-            
-            ## get number of nodes for each number of cpus
-            for cpus_to_check_i in cpus_to_check:
-                ## calculate useable nodes (respect max nodes and left free nodes)
-                free_nodes = free_cpus[free_cpus >= cpus_to_check_i].size
-                free_nodes = free_nodes - nodes_left_free
-                free_nodes = min(free_nodes, nodes_max)
-                
-                ## respect fix number of nodes if passed
-                if nodes is not None:
-                    if free_nodes >= nodes:
-                        free_nodes = nodes
-                    else:
-                        free_nodes = 0
-                
-                ## respect total max cpus
-                while free_nodes * cpus_to_check_i > total_cpus_max:
-                    if free_nodes > 1:
-                        free_nodes -=1
-                    else:
-                        cpus -= 1
-                
-                ## check if best configuration
-                if free_nodes * cpus_to_check_i > best_nodes * best_cpus:
-                    best_nodes = free_nodes
-                    best_cpus = cpus_to_check_i
     
+    ## grep free nodes
+    def grep_qnodes(expression):
+        command = '{} | grep -E {}'.format(QNODES_COMMAND, expression)
+        # command = '/usr/local/bin/qnodes | grep -E ' + expression
+        try:
+            grep_result = subprocess.check_output(command, shell=True).decode("utf-8")
+        except subprocess.CalledProcessError as e:
+            logger.warning('Command {} returns with exit code {} and output "{}"'.format(command, e.returncode, e.output.decode("utf-8")))
+            grep_result = 'offline'
+        
+        return grep_result
+    
+    # 24 f_ocean Barcelona nodes (8 CPUs per node, 2.1 GHz) (f_ocean queue)
+    if kind == 'f_ocean' or  kind == 'barcelona':
+        grep_result = grep_qnodes('"rzcl05[1-9]|rzcl06[0-9]|rzcl07[0-4]"')
+    # 12 f_ocean2 nodes (16 CPUs per node, 2.6 GHz) (f_ocean2 queue)
+    elif kind == 'f_ocean2':
+        grep_result = grep_qnodes('"rzcl26[2-9]|rzcl27[0-3]"')
+    # 2 fobigmem nodes (32 CPUs per node, 2.6 GHz) (fobigmem queue)
+    elif kind == 'fobigmem':
+        grep_result = grep_qnodes('"rzcl28[7-8]"')
+    # 18 Westmere-nodes (12 CPUs per node, 2.67 GHz)
+    elif kind == 'westmere':
+        grep_result = grep_qnodes('"rzcl17[8-9]|rzcl18[0-9]|rzcl19[0-5]"')
+    # 26 AMD-Shanghai nodes (8 CPUs per node, 2.4 GHz)
+    elif kind == 'shanghai':
+        grep_result = grep_qnodes('"rzcl11[8-9]|rzcl1[2-3][0-9]|rzcl14[0-3]"')
+    # 1 AMD-Shanghai nodes (16 CPUs per node, 2.4 GHz)
+    elif kind == 'amd128':
+        grep_result = grep_qnodes('"rzcl116"')
+    # 1 AMD-Magny node (48 CPUs per node, 2.1 GHz)
+    elif kind == 'amd256':
+        grep_result = grep_qnodes('"rzcl200"')    
+    # Shanghai Ethernet nodes (8 CPUs per node, 2.4 GHz) (bio_ocean queue)
+    elif kind == 'bio_ocean' or kind == 'shanghai-ethernet':
+        grep_result = grep_qnodes('"rzcl07[5-9]|rzcl0[8-9][0-9]|rzcl10[0-9]|rzcl11[0-4]"')
+    # Shanghai Infiniband nodes (8 CPUs per node, 2.4 GHz) (math queue)
+    elif kind == 'math' or kind == 'shanghai-infiniband':
+        grep_result = grep_qnodes('"rzcl11[8-9]|rzcl1[2-3][0-9]|rzcl14[0-3]"')
     else:
-        best_nodes = nodes
-        best_cpus = cpus
+        raise ValueError('Unknown CPU kind: ' + kind)
+    
+    logger.debug(grep_result)
+    
+    
+    ## extract free cpus and memory from grep result
+    grep_result_lines = grep_result.splitlines()
+    
+    number_of_nodes = len(grep_result_lines)
+    free_cpus = np.empty(number_of_nodes, dtype=np.int)
+    free_memory = np.empty(number_of_nodes, dtype=np.int)
+    
+    # format: "rzcl179 (7/12) (41943040kb/49449316kb) (free) (1285234.rzcluster/6)"
+    for i in range(number_of_nodes):
+        grep_result_line = grep_result_lines[i]
+        
+        # check if node down
+        if 'down' in grep_result_line or 'state-unknown' in grep_result_line or 'offline' in grep_result_line:
+            free_cpus[i] = 0
+            free_memory[i] = 0
+        # calculte free cpus and memory
+        else:
+            grep_result_line_split = grep_result_line.split()
+            
+            grep_cpus = [int(int_str) for int_str in re.findall('\d+', grep_result_line_split[1])]
+            grep_memory = [int(int_str) for int_str in re.findall('\d+', grep_result_line_split[2])]
+            
+            free_cpus[i] = grep_cpus[1] - grep_cpus[0]
+            free_memory[i] = int(np.floor((grep_memory[1] - grep_memory[0]) / (1024**2)))
+    
+    ## get only nodes with required memory
+    free_cpus = free_cpus[free_memory >= memory_required]
+    
+    ## calculate best configuration
+    best_nodes = 0
+    best_cpus = 0
+    
+    if len(free_cpus) > 0:
+        ## chose numbers of cpus to check
+        if cpus is not None:
+            cpus_to_check = (cpus,)
+        else:
+            cpus_to_check = range(max(free_cpus), 0, -1)
+        
+        ## get number of nodes for each number of cpus
+        for cpus_to_check_i in cpus_to_check:
+            ## calculate useable nodes (respect max nodes and left free nodes)
+            free_nodes = free_cpus[free_cpus >= cpus_to_check_i].size
+            free_nodes = free_nodes - nodes_left_free
+            free_nodes = min(free_nodes, nodes_max)
+            
+            ## respect fix number of nodes if passed
+            if nodes is not None:
+                if free_nodes >= nodes:
+                    free_nodes = nodes
+                else:
+                    free_nodes = 0
+            
+            ## respect total max cpus
+            while free_nodes * cpus_to_check_i > total_cpus_max:
+                if free_nodes > 1:
+                    free_nodes -=1
+                else:
+                    cpus -= 1
+            
+            ## check if best configuration
+            if free_nodes * cpus_to_check_i > best_nodes * best_cpus:
+                best_nodes = free_nodes
+                best_cpus = cpus_to_check_i
     
     logger.debug('Best CPU configuration is for this kind: {}'.format((best_nodes, best_cpus)))
     
