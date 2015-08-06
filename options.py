@@ -69,10 +69,11 @@ class Options():
             item = self.__hdf5_file[name]
         except KeyError as e:
             raise KeyError('The key {} is not in the option file {}.'.format(name, self.filename)) from e
+        value = item.value
         ## replace env
         value = self._replace_environment_vars(value, self.replace_environment_vars_at_get)
         ## return
-        return item.value
+        return value
     
     
     @property
@@ -98,7 +99,7 @@ class Options():
         try:
             f = h5py.File(file, mode=mode)
         except (OSError, IOError):
-            logger.warning('File {} could not been open. Trying read_only mode.'.format(file))
+            logger.debug('File {} could not been open. Trying read_only mode.'.format(file))
             f = h5py.File(file, mode='r')
         
         logger.debug('File {} opened.'.format(file))
