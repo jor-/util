@@ -10,9 +10,24 @@ logger = util.logging.logger
 ## batch setup
 
 class BatchSystem(util.batch.general.system.BatchSystem):
+    
     def __init__(self):
-        from util.batch.nec.constants import QSUB_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
-        super().__init__(QSUB_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
+        from util.batch.nec.constants import QSUB_COMMAND, MPI_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
+        super().__init__(QSUB_COMMAND, MPI_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
+    
+    
+    def __str__(self):
+        return 'NEC batch system'
+    
+    
+    def _get_job_id_from_submit_output(self, submit_output):
+        # Output form: "Request 130530.ace-ssiox submitted to queue: clmedium."
+        submit_output_splitted = submit_output.split(' ')
+        assert len(submit_output_splitted) == 6
+        assert submit_output_splitted[5][:-1] in self.queues
+        job_id = submit_output_splitted[1]
+        return job_id
+
 
 BATCH_SYSTEM = BatchSystem()
 
@@ -25,15 +40,17 @@ class Job(util.batch.general.system.Job):
         super().__init__(BATCH_SYSTEM, output_dir, force_load=force_load)
     
 
-    def init_job_file(self, job_name, nodes_setup, walltime_hours=None, write_output_file=True):
+    def init_job_file(self, job_name, nodes_setup, queue=None, walltime_hours=None, write_output_file=True):
         ## set queue if missing
+        if queue is not None and queue != nodes_setup.node_kind:
+            logger.warn('Queue {} and cpu kind {} have to be the same. Setting Queue to cpu kind.'.format(queue, nodes_setup.node_kind))
         queue = nodes_setup.node_kind
         
         ## super
         super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=None, walltime_hours=walltime_hours, write_output_file=write_output_file)
     
     
-    def _make_job_file_header(self, use_mpi=False):
+    def _make_job_file_header(self, use_mpi):
         content = []
         ## shell
         content.append('#!/bin/bash')
@@ -65,8 +82,8 @@ class Job(util.batch.general.system.Job):
     def _make_job_file_modules(self, modules):
         content = []
         if len(modules) > 0:
-            ## init module system
-            content.append('. /usr/share/Modules/init/bash')
+            # ## init module system
+            # content.append('. /usr/share/Modules/init/bash')
             ## system modules
             for module in modules:
                 content.append('module load {}'.format(module))
@@ -74,14 +91,8 @@ class Job(util.batch.general.system.Job):
             content.append('')
             content.append('')
         return os.linesep.join(content)
-
     
-    def write_job_file(self, run_command, modules=()):
-        with open(self.opt['/job/option_file'], mode='w') as file:
-            file.write(self._make_job_file_header(use_mpi=intelmpi in modules))
-            file.write(self._make_job_file_modules(modules))
-            file.write(self._make_job_file_command(run_command))
-
+    
 
 
 

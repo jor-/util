@@ -1,14 +1,15 @@
-import os
+import os.path
 import stat
 
 import h5py
 
+import util.io.fs
 import util.logging
 logger = util.logging.logger
 
 class Options():
     
-    def __init__(self, file, mode='a', replace_environment_vars_at_set=False, replace_environment_vars_at_get=False, ):
+    def __init__(self, file, mode='a', replace_environment_vars_at_set=False, replace_environment_vars_at_get=False):
         ## prepare file name
         if os.path.isdir(file):
             file = os.path.join(file, 'options.hdf5')
@@ -40,7 +41,7 @@ class Options():
         
         ## check if writable
         if not self.is_writable():
-            raise IOError('Option file is not writable.')
+            raise OSError('Option file is not writable.')
         
         ## if dict insert each item since dict is not supported in HDF5
         if isinstance(value, dict):
@@ -98,7 +99,7 @@ class Options():
         
         try:
             f = h5py.File(file, mode=mode)
-        except (OSError, IOError):
+        except OSError:
             logger.debug('File {} could not been open. Trying read_only mode.'.format(file))
             f = h5py.File(file, mode='r')
         
@@ -137,19 +138,41 @@ class Options():
         return f.mode == 'r'
     
     
-    def make_read_only(self):
-        file = self.filename
-        
-        if not self.is_read_only():
-            logger.debug('Opening {} read_only.'.format(file))
-            
+    # def make_read_only(self):
+    #     file = self.filename
+    #     
+    #     if not self.is_read_only():
+    #         logger.debug('Opening {} read_only.'.format(file))
+    #         
+    #         self.close()
+    #         os.chmod(file, stat.S_IRUSR)
+    #         self.open(file, 'r')
+    #         
+    #         logger.debug('File {} is now read_only.'.format(file))
+    #     else:
+    #         logger.debug('File {} is read_only.'.format(file))
+    
+    def make_writable(self):
+        if not self.is_writable():
+            logger.debug('Opening {} writable.'.format(self.filename))
+            file = self.filename
             self.close()
-            os.chmod(file, stat.S_IRUSR)
-            self.open(file, 'r')
-            
-            logger.debug('File {} is now read_only.'.format(file))
+            util.io.fs.make_writable(file)
+            self.open(file)
         else:
-            logger.debug('File {} is read_only.'.format(file))
+            logger.debug('File {} is writable.'.format(self.filename))
+        assert self.is_writable
+    
+    def make_read_only(self):
+        if not self.is_read_only():
+            logger.debug('Opening {} read_only.'.format(self.filename))
+            file = self.filename
+            self.close()
+            util.io.fs.make_read_only(file)
+            self.open(file, 'r')
+        else:
+            logger.debug('File {} is read_only.'.format(self.filename))
+        assert self.is_read_only
     
     
     ## print
@@ -166,8 +189,7 @@ class Options():
             
             ## check type
             if value is not None:
-                print(name)
-                print(value)
+                print('{}: {}'.format(name, value))
         
         f.visititems(print_option)
     

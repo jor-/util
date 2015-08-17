@@ -11,11 +11,122 @@ import util.logging
 logger = util.logging.logger
 
 
+
+class BatchSystem():
+    
+    def __init__(self, submit_command, mpi_command, queues, max_walltime={}, module_renaming={}):
+        self.submit_command = submit_command
+        self.mpi_command = mpi_command
+        self.queues = queues
+        self.max_walltime = max_walltime
+        self.module_renaming = module_renaming    
+            
+        logger.debug('{} initiated with submit_command {}, queues {}, max_walltime {} and module_renaming {}.'.format(self, submit_command, queues, max_walltime, module_renaming))
+    
+    
+    def __str__(self):
+        return 'General batch system'
+    
+    ## check methods
+    
+    def check_queue(self, queue):
+        if queue is not None and queue not in self.queues:
+            raise ValueError('Unknown queue {}.'.format(queue))
+        return queue
+    
+    
+    def check_walltime(self, queue, walltime_hours):
+        ## get max walltime
+        try:
+            max_walltime_for_queue = self.max_walltime[queue]
+        except KeyError:
+            max_walltime_for_queue = float('inf')
+        ## check walltime
+        if walltime_hours is not None:
+            if walltime_hours <= max_walltime_for_queue:
+                walltime_hours = math.ceil(walltime_hours)
+            else:
+                raise ValueError('Max walltime {} is greater than max walltime for queue {}.'.format(walltime_hours, max_walltime_for_queue))
+        else:
+            if max_walltime_for_queue < float('inf'):
+                walltime_hours = max_walltime_for_queue
+        ## return
+        assert (walltime_hours is None and max_walltime_for_queue == float('inf')) or walltime_hours <= max_walltime_for_queue
+        return walltime_hours
+    
+    
+    def check_modules(self, modules):
+        if len(modules) > 0:
+            modules = list(modules)
+            
+            ## add required modules
+            for module_requested, modules_required in [('petsc', ('intelmpi', 'intel')), ('intelmpi', ('intel',)), ('hdf5', ('intel',))]:
+                if module_requested in modules:
+                    for module_required in modules_required:
+                        if module_required not in modules:
+                            logger.warning('Module "{}" needs module "{}" to be loaded first.'.format(module_requested, module_required))
+                            modules = [module_required] + modules
+            
+            ## check positions
+            first_index = 0
+            for module in  ('intel', 'intelmpi'):
+                if module in modules and modules[first_index] != module:
+                    logger.warning('Module "{}" has to be at position {}.'.format(module, first_index))
+                    modules.remove(module)
+                    modules = [module] + modules
+                first_index += 1
+        
+            ## rename modules
+            for i in range(len(modules)):
+                module = modules[i]
+                try:
+                    module_new = self.module_renaming[module]
+                except KeyError:
+                    module_new = module
+                modules[i] = module_new
+        return modules
+    
+    
+    ## other methods
+
+    def start_job(self, job_file):
+        logger.debug('Starting job with option file {}.'.format(job_file))
+        
+        if not os.path.exists(job_file):
+            raise FileNotFoundError(job_file)
+    
+        submit_output = subprocess.check_output((self.submit_command, job_file)).decode("utf-8")
+        submit_output = submit_output.strip()
+        job_id = self._get_job_id_from_submit_output(submit_output)
+        
+        logger.debug('Started job has ID {}.'.format(job_id))
+        
+        return job_id
+    
+    
+    def is_mpi_used(self, modules):
+        return 'intelmpi' in modules
+    
+    
+    def add_mpi_to_command(self, command, cpus, use_mpi=True):
+        if use_mpi:
+            command = self.mpi_command.format(command=command, cpus=cpus)
+        return command
+    
+    
+    ## abstract methods
+    
+    @abc.abstractmethod
+    def _get_job_id_from_submit_output(self, submit_output):
+        raise NotImplementedError()
+
+
 class Job():
     
-    def __init__(self, batch_system, output_dir, force_load=False):
+    def __init__(self, batch_system, output_dir, force_load=False, max_job_name_len=80):
         ## batch system
         self.batch_system = batch_system
+        self.max_job_name_len = max_job_name_len
         
         ## check input
         if output_dir is None:
@@ -78,6 +189,16 @@ class Job():
     
     ## option properties
     
+    def option_value(self, name, not_exist_okay=True):
+        if not_exist_okay:
+            try:
+                return self.options[name]
+            except KeyError:
+                return None
+        else:
+            return self.options[name]
+
+    
     @property
     def id(self):
         try:
@@ -87,33 +208,28 @@ class Job():
     
     @property
     def output_dir(self):
-        return self.options['/job/output_dir']
+        return self.option_value('/job/output_dir', False)
     
-    @property
-    def id_file(self):
-        try:
-            return self.options['/job/id_file']
-        except KeyError:
-            return None
     
     @property
     def option_file(self):
-        return self.options['/job/option_file']
-    
-    @property
-    def output_file(self):
-        try:
-            return self.options['/job/output_file']
-        except KeyError:
-            return None
+        return self.option_value('/job/option_file', False)
     
     @property
     def unfinished_file(self):
-        return self.options['/job/unfinished_file']
+        return self.option_value('/job/unfinished_file', False)
     
     @property
     def finished_file(self):
-        return self.options['/job/finished_file']
+        return self.option_value('/job/finished_file', False)  
+    
+    @property
+    def id_file(self):
+        return self.option_value('/job/id_file', True)    
+    
+    @property
+    def output_file(self):
+        return self.option_value('/job/output_file', True)
     
     @property
     def exit_code(self):
@@ -132,30 +248,23 @@ class Job():
     
     @property
     def cpu_kind(self):
-        try:
-            cpu_kind = self.options['/job/cpu_kind']
-        except KeyError:
-            cpu_kind = None
-        
-        return cpu_kind  
+        return self.option_value('/job/cpu_kind', True)
+    
+    @property
+    def nodes(self):
+        return self.option_value('/job/nodes', True)   
+    
+    @property
+    def cpus(self):
+        return self.option_value('/job/cpus', True)
     
     @property
     def queue(self):
-        try:
-            queue = self.options['/job/queue']
-        except KeyError:
-            queue = None
-        
-        return queue   
+        return self.option_value('/job/queue', True)
     
     @property
     def walltime_hours(self):
-        try:
-            walltime_hours = self.options['/job/walltime_hours']
-        except KeyError:
-            walltime_hours = None
-        
-        return walltime_hours
+        return self.option_value('/job/walltime_hours', True)
     
     
     
@@ -193,7 +302,7 @@ class Job():
         self.options['/job/nodes'] = nodes_setup.nodes
         self.options['/job/cpus'] = nodes_setup.cpus
         self.options['/job/queue'] = queue
-        self.options['/job/name'] = job_name[:15]
+        self.options['/job/name'] = job_name[:self.max_job_name_len]
         if cpu_kind is not None:
             self.options['/job/cpu_kind'] = cpu_kind
         if walltime_hours is not None:
@@ -205,14 +314,17 @@ class Job():
     
     
     @abc.abstractmethod
-    def _make_job_file_header(self):
+    def _make_job_file_header(self, use_mpi):
         raise NotImplementedError()
     
     @abc.abstractmethod
     def _make_job_file_modules(self, modules):
-        raise NotImplementedError()
+        raise NotImplementedError()   
+    
 
-    def _make_job_file_command(self, run_command):
+    def _make_job_file_command(self, run_command, add_timing=True):
+        if add_timing:
+            run_command = 'time {}'.format(run_command)
         content = []
         content.append('touch {}'.format(self.options['/job/unfinished_file']))
         content.append('echo "Job started."')
@@ -220,53 +332,23 @@ class Job():
         content.append(run_command)
         content.append('')
         content.append('EXIT_CODE=$?')
-        content.append('echo "Job finished."')
+        content.append('echo "Job finished with exit code $EXIT_CODE."')
         content.append('rm {}'.format(self.options['/job/unfinished_file']))
         content.append('echo $EXIT_CODE > {}'.format(self.options['/job/finished_file']))
-        content.append('')
-        content.append('qstat -f $PBS_JOBID')
+        # content.append('')
+        # content.append('qstat -f $PBS_JOBID')
         content.append('exit')
         content.append('')
         return os.linesep.join(content)
     
     
-    # def _check_modules(self, modules):
-    #     if len(modules) > 0:
-    #         modules = list(modules)
-    #         
-    #         ## add required modules
-    #         # for module_required, modules_requested in [('intelmpi', ('petsc',)), ('intel', ('intelmpi', 'petsc', 'hdf5'))]:
-    #         for module_requested, modules_required in [('petsc', ('intelmpi', 'intel')), ('intelmpi', ('intel',)), ('hdf5', ('intel',))]:
-    #             if module_requested in modules:
-    #                 for module_required in modules_required:
-    #                     if module_required not in modules:
-    #                         logger.warning('Module "{}" needs module "{}" to be loaded first.'.format(module_requested, module_required))
-    #                         modules = [module_required] + modules
-    #         
-    #         ## check positions
-    #         first_index = 0
-    #         for module in  ('intel', 'intelmpi'):
-    #             if module in modules and modules[first_index] != module:
-    #                 logger.warning('Module "{}" has to be at position {}.'.format(module, first_index))
-    #                 modules.remove(module)
-    #                 modules = [module] + modules
-    #                 first_index += 1
-    #     
-    #         ## rename modules
-    #         for i in range(len(modules)):
-    #             module = modules[i]
-    #             try:
-    #                 module_new = self.module_rename_dict[module]
-    #             except KeyError:
-    #                 module_new = module
-    #             modules[i] = module_new
-    #     return modules
-    
-    
     def write_job_file(self, run_command, modules=()):
         modules = self.batch_system.check_modules(modules)
-        with open(self.options['/job/option_file'], mode='w') as file:
-            file.write(self._make_job_file_header())
+        use_mpi = self.batch_system.is_mpi_used(modules)
+        cpus = self.options['/job/nodes'] * self.options['/job/cpus']
+        run_command = self.batch_system.add_mpi_to_command(run_command, cpus, use_mpi=use_mpi)
+        with open(self.option_file, mode='w') as file:
+            file.write(self._make_job_file_header(use_mpi=use_mpi))
             file.write(self._make_job_file_modules(modules))
             file.write(self._make_job_file_command(run_command))
     
@@ -360,88 +442,6 @@ class JobError(Exception):
     def __init__(self, id, exit_code, output_path):
         error_message = 'The command of job {} at {} exited with code {}.'.format(id, output_path, exit_code)
         super().__init__(error_message)
-
-
-class BatchSystem():
-    
-    def __init__(self, submit_command, queues, max_walltime={}, module_renaming={}):
-        self.submit_command = submit_command
-        self.queues = queues
-        self.max_walltime = max_walltime
-        self.module_renaming = module_renaming
-    
-    
-    def check_queue(self, queue):
-        if queue is not None and queue not in self.queues:
-            raise ValueError('Unknown queue {}.'.format(queue))
-        return queue
-    
-    
-    def check_walltime(self, queue, walltime_hours):
-        ## get max walltime
-        try:
-            max_walltime_for_queue = self.max_walltime[queue]
-        except KeyError:
-            max_walltime_for_queue = float('inf')
-        ## check walltime
-        if walltime_hours is not None:
-            if walltime_hours <= max_walltime_for_queue:
-                walltime_hours = math.ceil(walltime_hours)
-            else:
-                raise ValueError('Max walltime {} is greater than max walltime for queue {}.'.format(walltime_hours, max_walltime_for_queue))
-        else:
-            if max_walltime_for_queue < float('inf'):
-                walltime_hours = max_walltime_for_queue
-        ## return
-        assert walltime_hours <= max_walltime_for_queue
-        return walltime_hours
-    
-    
-    def check_modules(self, modules):
-        if len(modules) > 0:
-            modules = list(modules)
-            
-            ## add required modules
-            for module_requested, modules_required in [('petsc', ('intelmpi', 'intel')), ('intelmpi', ('intel',)), ('hdf5', ('intel',))]:
-                if module_requested in modules:
-                    for module_required in modules_required:
-                        if module_required not in modules:
-                            logger.warning('Module "{}" needs module "{}" to be loaded first.'.format(module_requested, module_required))
-                            modules = [module_required] + modules
-            
-            ## check positions
-            first_index = 0
-            for module in  ('intel', 'intelmpi'):
-                if module in modules and modules[first_index] != module:
-                    logger.warning('Module "{}" has to be at position {}.'.format(module, first_index))
-                    modules.remove(module)
-                    modules = [module] + modules
-                first_index += 1
-        
-            ## rename modules
-            for i in range(len(modules)):
-                module = modules[i]
-                try:
-                    module_new = self.module_renaming[module]
-                except KeyError:
-                    module_new = module
-                modules[i] = module_new
-        return modules
-    
-
-    def start_job(self, job_file):
-        logger.debug('Starting job with option file {}.'.format(job_file))
-        
-        if not os.path.exists(job_file):
-            raise FileNotFoundError(job_file)
-    
-        job_id = subprocess.check_output((self.submit_command, job_file)).decode("utf-8")
-        job_id = job_id.rstrip()
-        
-        logger.debug('Started job has ID {}.'.format(job_id))
-        
-        return job_id
-    
 
 
 

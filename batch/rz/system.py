@@ -17,9 +17,17 @@ logger = util.logging.logger
 class BatchSystem(util.batch.general.system.BatchSystem):
     
     def __init__(self):
-        from util.batch.rz.constants import QSUB_COMMAND, QSTAT_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
-        super().__init__(QSUB_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
+        from util.batch.rz.constants import QSUB_COMMAND, MPI_COMMAND, QSTAT_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
+        super().__init__(QSUB_COMMAND, MPI_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
         self.status_command = QSTAT_COMMAND
+    
+    
+    def __str__(self):
+        return 'RZ batch system'
+    
+
+    def _get_job_id_from_submit_output(self, submit_output):
+        return submit_output
     
 
     def job_state(self, job_id):
@@ -50,6 +58,10 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def is_job_finished(self, job_id):
         qstat_returncode = self.job_state(job_id)
         return qstat_returncode == 35 or qstat_returncode == 153
+    
+    
+
+
 
 BATCH_SYSTEM = BatchSystem()
 
@@ -59,10 +71,7 @@ BATCH_SYSTEM = BatchSystem()
 class Job(util.batch.general.system.Job):
     
     def __init__(self, output_dir, force_load=False):
-        # module_rename_dict = {'python':'Python-3.3.2', 'python3':'Python-3.3.2', 'hdf5':'hdf5_1.8.11', 'matlab':'matlab2014a', 'petsc':'petsc-intel14'}
-        # super().__init__(output_dir, force_load=force_load, module_rename_dict=module_rename_dict)
-        super().__init__(BATCH_SYSTEM, output_dir, force_load=force_load)
-    
+        super().__init__(BATCH_SYSTEM, output_dir, force_load=force_load, max_job_name_len=15)
     
 
     def init_job_file(self, job_name, nodes_setup, queue=None, walltime_hours=None, write_output_file=True):
@@ -103,7 +112,7 @@ class Job(util.batch.general.system.Job):
     
 
     
-    def _make_job_file_header(self):
+    def _make_job_file_header(self, use_mpi):
         content = []
         ## shell
         content.append('#!/bin/bash')

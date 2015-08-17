@@ -18,3 +18,4 @@ MODEL_RENAMING = {'python':'Python-3.3.2', 'python3':'Python-3.3.2', 'hdf5':'hdf
 QSUB_COMMAND = '/opt/pbs/default/bin/qsub'
 QNODES_COMMAND = '/usr/local/bin/qnodes'
 QSTAT_COMMAND = '/opt/pbs/default/bin/qstat'
+MPI_COMMAND = 'mpirun -n {cpus:d} -machinefile $PBS_NODEFILE -r rsh {command}'
