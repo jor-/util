@@ -450,6 +450,8 @@ class NodeSetup:
     
     def __init__(self, memory=1, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf')):
 
+        assert nodes is None or nodes >= 1
+        assert cpus is None or cpus >= 1
         assert total_cpus_max is None or total_cpus_min is None or total_cpus_max >= total_cpus_min
         assert nodes_max is None or nodes is None or nodes_max >= nodes
         assert total_cpus_min is None or nodes is None or cpus is None or total_cpus_min <= nodes * cpus
@@ -528,6 +530,6 @@ class NodeSetup:
 
 class NodeSetupIncompleteError(Exception):
     
-    def __init__(self, node_setup):
-        error_message = 'The node setup is incomplete: node_kind={}, nodes={} and cpus={}.'.format(node_setup.node_kind, node_setup.nodes, node_setup.cpus)
+    def __init__(self, nodes_setup):
+        error_message = 'The node setup is incomplete: node_kind={}, nodes={} and cpus={}.'.format(nodes_setup.node_kind, nodes_setup.nodes, nodes_setup.cpus)
         super().__init__(error_message)

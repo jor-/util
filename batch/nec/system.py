@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import util.batch.general.system
 
@@ -12,8 +13,9 @@ logger = util.logging.logger
 class BatchSystem(util.batch.general.system.BatchSystem):
     
     def __init__(self):
-        from util.batch.nec.constants import QSUB_COMMAND, MPI_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
+        from util.batch.nec.constants import MPI_COMMAND, QSUB_COMMAND,QSTAT_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
         super().__init__(QSUB_COMMAND, MPI_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
+        self.status_command = QSTAT_COMMAND
     
     
     def __str__(self):
@@ -27,6 +29,18 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         assert submit_output_splitted[5][:-1] in self.queues
         job_id = submit_output_splitted[1]
         return job_id
+    
+
+    def job_state(self, job_id):
+        ## get state of job
+        output = subprocess.check_output((self.status_command, job_id)).decode("utf-8")
+        logger.debug('qstat result: {}'.format(output))
+        return output
+    
+    
+    def is_job_running(self, job_id):
+        output = self.job_state(job_id)
+        return 'RUN' in output
 
 
 BATCH_SYSTEM = BatchSystem()

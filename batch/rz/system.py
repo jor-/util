@@ -41,7 +41,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         qstat_result = process.communicate()[0].decode("utf-8")
         qstat_returncode = process.returncode
         
-        logger.debug('qstat result: {} exit code: {}'.format(qstat_result, qstat_returncode))
+        logger.debug('qstat result: {} with exit code: {}'.format(qstat_result, qstat_returncode))
         
         ## 255 => cannot connect to server
         if qstat_returncode == 255:
