@@ -10,34 +10,29 @@ import util.logging
 logger = util.logging.logger
 
 
-# def _substitution_check_input(L, b):
-#     
-#     assert L.ndim == 2 and b.ndim == 1 and L.shape[0] == L.shape[1] == b.shape[0]
-#     
-#     if not scipy.sparse.isspmatrix_csr(L):
-#         warnings.warn('Substitution requires CSR matrix format. Converting to CSR matrix.', scipy.sparse.SparseEfficiencyWarning)
-#         L = scipy.sparse.csr_matrix(L)
-#     
-#     L.sort_indices()
-#     return (L, b)
-    
 
-def _substitution_check_input(L, b):
-    assert b.ndim == 1 and b.shape[0] == L.shape[1] 
-    L = util.math.sparse.check.sorted_squared_csr(L)
-    return (L, b)
-    
-    
 def forward_substitution(L, b):
-    logger.debug('Starting forward substitution for system of dim {}'.format(len(b)))
-    (L, b) = _substitution_check_input(L, b)
+    logger.debug('Starting forward substitution for system of shape {}'.format(b.shape))
     
-    n = len(b)
-    x = np.zeros(n)
+    ## check input
+    L = util.math.sparse.check.sorted_squared_csr(L)
+    if b.ndim not in [1, 2]:
+        raise ValueError('b must have 1 or 2 dims but its shape is {}.'.format(b.shape))
+    if L.shape[1] != b.shape[0]:
+        raise ValueError('The size of the second dim of L must be equal to the size of the first dim of b but the shape of L is {} and the shape of b is {}.'.format(L.shape, b.shape))
+    
+    # ## make b two dim
+    # b_ndim = b.ndim
+    # if b_ndim == 1:
+    #     b = b[:, np.newaxis]
+    # n, m = b.shape
+    
+    ## init
+    x = np.zeros(b.shape)
     column_start = L.indptr[0]
     
     ## fill x (forward)
-    for i in range(n):
+    for i in range(len(b)):
         column_stop = L.indptr[i+1]
         
         ## check regularity and triangularity 
@@ -62,19 +57,28 @@ def forward_substitution(L, b):
         ## next row
         column_start = column_stop
     
+    ## return
     return x
 
 
+
+
 def backward_substitution(R, b):
-    logger.debug('Starting backward substitution for system of dim {}'.format(len(b)))
-    (R, b) = _substitution_check_input(R, b)
+    logger.debug('Starting backward substitution for system of shape {}'.format(b.shape))
     
-    n = len(b)
-    x = np.zeros(n)
+    ## check input
+    R = util.math.sparse.check.sorted_squared_csr(R)
+    if b.ndim not in [1, 2]:
+        raise ValueError('b must have 1 or 2 dims but its shape is {}.'.format(b.shape))
+    if R.shape[1] != b.shape[0]:
+        raise ValueError('The size of the second dim of R must be equal to the size of the first dim of b but the shape of R is {} and the shape of b is {}.'.format(R.shape, b.shape))
+    
+    ## init
+    x = np.zeros(b.shape)
     column_stop = R.indptr[n]
     
     ## fill x (backward)
-    for i in range(n-1,-1,-1):
+    for i in range(len(b)-1, -1, -1):
         column_start = R.indptr[i]
         
         ## check regularity and triangularity 
@@ -99,6 +103,7 @@ def backward_substitution(R, b):
         ## next row
         column_stop = column_start
     
+    ## return
     return x
 
 
