@@ -157,6 +157,9 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
 
 
 def cholesky(A, ordering_method='default', return_type=RETURN_P_L, use_long=False):
+    '''
+    P A P' = L L'
+    '''
     logger.debug('Calculating cholesky decomposition for matrix {!r} with ordering method {}, return type {} and use_long {}.'.format(A, ordering_method, return_type, use_long))
     
     ## check input
@@ -185,7 +188,7 @@ def cholesky(A, ordering_method='default', return_type=RETURN_P_L, use_long=Fals
         raise util.math.matrix.NoPositiveDefiniteMatrixError(A, 'Row/column {} makes matrix not positive definite.'.format(e.column))
     del A
     
-    ## calculate permuation matrix
+    ## calculate permutation matrix
     p = f.P()
     n = len(p)
     if return_type in (RETURN_P_L, RETURN_P_L_D):
