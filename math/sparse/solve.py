@@ -11,7 +11,7 @@ logger = util.logging.logger
 
 
 
-def forward_substitution(L, b):
+def forward_substitution(L, b, dtype=np.float64):
     logger.debug('Starting forward substitution for system of shape {}'.format(b.shape))
     
     ## check input
@@ -20,15 +20,11 @@ def forward_substitution(L, b):
         raise ValueError('b must have 1 or 2 dims but its shape is {}.'.format(b.shape))
     if L.shape[1] != b.shape[0]:
         raise ValueError('The size of the second dim of L must be equal to the size of the first dim of b but the shape of L is {} and the shape of b is {}.'.format(L.shape, b.shape))
-    
-    # ## make b two dim
-    # b_ndim = b.ndim
-    # if b_ndim == 1:
-    #     b = b[:, np.newaxis]
-    # n, m = b.shape
+    if dtype is None:
+        dtype = np.find_common_type([L.dtype, b.dtype, np.float32], [])
     
     ## init
-    x = np.zeros(b.shape)
+    x = np.zeros(b.shape, dtype=dtype)
     column_start = L.indptr[0]
     
     ## fill x (forward)
@@ -63,7 +59,7 @@ def forward_substitution(L, b):
 
 
 
-def backward_substitution(R, b):
+def backward_substitution(R, b, dtype=np.float64):
     logger.debug('Starting backward substitution for system of shape {}'.format(b.shape))
     
     ## check input
@@ -72,10 +68,12 @@ def backward_substitution(R, b):
         raise ValueError('b must have 1 or 2 dims but its shape is {}.'.format(b.shape))
     if R.shape[1] != b.shape[0]:
         raise ValueError('The size of the second dim of R must be equal to the size of the first dim of b but the shape of R is {} and the shape of b is {}.'.format(R.shape, b.shape))
+    if dtype is None:
+        dtype = np.find_common_type([R.dtype, b.dtype, np.float32], [])
     
     ## init
     x = np.zeros(b.shape)
-    column_stop = R.indptr[n]
+    column_stop = R.indptr[len(b)]
     
     ## fill x (backward)
     for i in range(len(b)-1, -1, -1):
@@ -109,15 +107,15 @@ def backward_substitution(R, b):
 
 
 
-def LR(L, R, b, P=None):
+def LR(L, R, b, P=None, dtype=np.float64):
     logger.debug('Solving system of dim {} with LR factors'.format(len(b)))
     
     if P is not None:
         util.math.sparse.check.permutation_matrix(P)
         b = P * b
     
-    x = forward_substitution(L, b)
-    x = backward_substitution(R, x)
+    x = forward_substitution(L, b, dtype=dtype)
+    x = backward_substitution(R, x, dtype=dtype)
     
     if P is not None:
         x = P.transpose() * x
@@ -125,7 +123,12 @@ def LR(L, R, b, P=None):
     return x
 
 
-def cholesky(L, b, P=None):
+
+def cholesky(L, b, P=None, dtype=np.float64):
+    '''
+    P A P' = L L'
+    '''
+    
     logger.debug('Solving system of dim {} with cholesky factors'.format(len(b)))
     
     ## convert L and R to csr format
@@ -146,6 +149,6 @@ def cholesky(L, b, P=None):
     assert scipy.sparse.isspmatrix_csr(R)
     
     ## compute
-    return LR(L, R, b, P=P)
+    return LR(L, R, b, P=P, dtype=dtype)
     
     
