@@ -14,14 +14,38 @@ logger = util.logging.logger
 
 class BatchSystem():
     
-    def __init__(self, submit_command, mpi_command, queues, max_walltime={}, module_renaming={}):
-        self.submit_command = submit_command
-        self.mpi_command = mpi_command
+    def __init__(self, commands, queues, max_walltime={}, module_renaming={}):
+        self.commands = commands
+        # self.submit_command = submit_command
+        # self.mpi_command = mpi_command
+        # self.time_command = 'command time -f "Statistics for %C:\nexit code: %x, elapsed time: %Es\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs" {command}'            
+        # logger.debug('{} initiated with submit_command {}, queues {}, max_walltime {} and module_renaming {}.'.format(self, submit_command, queues, max_walltime, module_renaming))            
+        logger.debug('{} initiating with commands {}, queues {}, max_walltime {} and module_renaming {}.'.format(self, commands, queues, max_walltime, module_renaming))
         self.queues = queues
         self.max_walltime = max_walltime
         self.module_renaming = module_renaming    
             
-        logger.debug('{} initiated with submit_command {}, queues {}, max_walltime {} and module_renaming {}.'.format(self, submit_command, queues, max_walltime, module_renaming))
+    
+    
+    @property
+    def mpi_command(self):
+        return self.commands['mpirun']
+    
+    @property
+    def time_command(self):
+        return self.commands['time']
+    
+    @property
+    def submit_command(self):
+        return self.commands['sub']
+    
+    @property
+    def status_command(self):
+        return self.commands['stat']
+    
+    @property
+    def nodes_command(self):
+        return self.commands['nodes']
     
     
     def __str__(self):
@@ -164,20 +188,20 @@ class Job():
     def __enter__(self):
         return self
     
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.close()
     
     
     def __str__(self):
         output_dir = self.output_dir
         try:
-            id = self.id
+            job_id = self.id
         except KeyError:
-            id = None
-        if id is not None:
-            job_str = 'job {} with output path {}'.format(id, output_dir)
+            job_id = None
+        if job_id is not None:
+            job_str = 'job {} with output path {}'.format(job_id, output_dir)
         else:
-            job_str = 'not started job with output path {}'.format(id, output_dir)
+            job_str = 'not started job with output path {}'.format(job_id, output_dir)
         return job_str
     
     
@@ -324,7 +348,8 @@ class Job():
 
     def _make_job_file_command(self, run_command, add_timing=True):
         if add_timing:
-            run_command = 'time {}'.format(run_command)
+            # run_command = 'time {}'.format(run_command)
+            run_command = self.batch_system.time_command.format(command=run_command)
         content = []
         content.append('touch {}'.format(self.options['/job/unfinished_file']))
         content.append('echo "Job started."')
@@ -439,8 +464,8 @@ class Job():
 
 class JobError(Exception):
     
-    def __init__(self, id, exit_code, output_path):
-        error_message = 'The command of job {} at {} exited with code {}.'.format(id, output_path, exit_code)
+    def __init__(self, job_id, exit_code, output_path):
+        error_message = 'The command of job {} at {} exited with code {}.'.format(job_id, output_path, exit_code)
         super().__init__(error_message)
 
 
@@ -516,7 +541,7 @@ class NodeSetup:
     
     @property
     def node_kind(self):
-        return self.configuration_value('node_kind', test=lambda v : isinstance(v, str))   
+        return self.configuration_value('node_kind', test=lambda v: isinstance(v, str))   
     
     @property
     def nodes(self):

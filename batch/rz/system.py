@@ -17,9 +17,11 @@ logger = util.logging.logger
 class BatchSystem(util.batch.general.system.BatchSystem):
     
     def __init__(self):
-        from util.batch.rz.constants import QSUB_COMMAND, MPI_COMMAND, QSTAT_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
-        super().__init__(QSUB_COMMAND, MPI_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
-        self.status_command = QSTAT_COMMAND
+        # from util.batch.rz.constants import QSUB_COMMAND, MPI_COMMAND, QSTAT_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
+        # super().__init__(QSUB_COMMAND, MPI_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
+        # self.status_command = QSTAT_COMMAND
+        from util.batch.nec.constants import COMMANDS, QUEUES, MAX_WALLTIME, MODEL_RENAMING
+        super().__init__(COMMANDS, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
     
     
     def __str__(self):
