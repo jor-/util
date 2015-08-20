@@ -29,7 +29,7 @@ def add_file_ext_if_needed(file, ext):
 
 def filter_files(path, condition):
     filtered_files = []
-    
+
     try:
         path_filenames = os.listdir(path)
     except OSError:
@@ -38,7 +38,7 @@ def filter_files(path, condition):
         path_file = os.path.join(path, path_filename)
         if condition(path_file):
             filtered_files += [path_file]
-    
+
     return filtered_files
 
 def get_dirs(path=os.getcwd(), with_links=True):
@@ -47,7 +47,7 @@ def get_dirs(path=os.getcwd(), with_links=True):
     else:
         fun = lambda file: os.path.isdir(file) and not os.path.islink(file)
         dirs = filter_files(path, fun)
-    
+
     return dirs
 
 def get_files(path=os.getcwd(), regular_expression=None):
@@ -58,7 +58,7 @@ def get_files(path=os.getcwd(), regular_expression=None):
         def condition(file):
             filename = os.path.split(file)[1]
             return os.path.isfile(file) and regular_expression_object.match(filename) is not None
-    
+
     return filter_files(path, condition)
 
 
@@ -78,7 +78,7 @@ def make_read_only(*files, not_exist_ok=False):
 
 def make_read_only_recursively(path, exclude_dir=True):
     logger.debug('Making recursively all files in {} read-only.'.format(path))
-    
+
     file_function = lambda file: os.chmod(file, stat.S_IRUSR)
     dir_function = lambda file: os.chmod(file, stat.S_IRUSR | stat.S_IXUSR)
     walk_path_bottom_up(path, file_function, dir_function, exclude_dir=exclude_dir)
@@ -94,11 +94,11 @@ def make_writable(file, not_exist_ok=False):
             pass
     else:
         os.chmod(file, get_file_permission(file) | stat.S_IWUSR)
-        
+
 
 def make_writable_recursively(path, exclude_dir=True):
     logger.debug('Making recursively all files in {} writeable.'.format(path))
-    
+
     file_function = lambda file: os.chmod(file, stat.S_IRUSR | stat.S_IWUSR)
     dir_function = lambda file: os.chmod(file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
     walk_path_bottom_up(path, file_function, dir_function, exclude_dir=exclude_dir)
@@ -121,7 +121,7 @@ def remove_file(file, force=False, not_exist_okay=False):
     if not not_exist_okay or os.path.exists(file):
         if force:
             make_writable(file)
-        os.remove(file)  
+        os.remove(file)
 
 def remove_recursively(path, force=False, exclude_dir=False):
     if force:
@@ -133,7 +133,7 @@ def remove_recursively(path, force=False, exclude_dir=False):
 # def extend_filename(file):
 #     file = os.path.expanduser(file)
 #     file = os.path.expandvars(file)
-#     if 
+#     if
 
 
 ##

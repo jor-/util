@@ -2,7 +2,7 @@ import numpy as np
 
 
 class MatrixError(Exception):
-    
+
     def __init__(self, matrix, message=None, additional_message=None):
         self.matrix = matrix
         if message is None:
@@ -10,45 +10,45 @@ class MatrixError(Exception):
         if additional_message is not None:
             message = message + ' ' + additional_message
         self.message = message
-        
+
     def __str__(self):
         return self.message
 
 
 class SingularMatrixError(MatrixError):
-    
+
     def __init__(self, matrix, additional_message=None):
         message = 'Matrix {!r} is singular.'.format(matrix)
         super().__init__(matrix, message, additional_message)
 
 
 class NoTriangularMatrixError(MatrixError):
-    
+
     def __init__(self, matrix, additional_message=None):
         message = 'Matrix {!r} is no triangular matrix.'.format(matrix)
         super().__init__(matrix, message, additional_message)
 
 
 class NoLeftTriangularMatrixError(MatrixError):
-    
+
     def __init__(self, matrix, additional_message=None):
         message = 'Matrix {!r} is no left triangular matrix.'.format(matrix)
         super().__init__(matrix, message, additional_message)
 
 
 class NoRightTriangularMatrixError(MatrixError):
-    
+
     def __init__(self, matrix, additional_message=None):
         message = 'Matrix {!r} is no right triangular matrix.'.format(matrix)
         super().__init__(matrix, message, additional_message)
 
 
 class NoPositiveDefiniteMatrixError(MatrixError):
-    
+
     def __init__(self, matrix, additional_message=None):
         message = 'Matrix {!r} is not positive definite.'.format(matrix)
         super().__init__(matrix, message, additional_message)
-        
+
 
 
 

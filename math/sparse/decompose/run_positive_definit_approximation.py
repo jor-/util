@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser.add_argument('save_file', type=argparse.FileType('w'),)
     parser.add_argument('-d', '--debug', action='store_true', help='Print debug infos.')
     args = parser.parse_args()
-    
+
     with util.logging.Logger(disp_stdout=args.debug):
         A = util.io.object.load(args.load_file.name)
         B = util.math.sparse.decompose.with_cholmod.approximate_positive_definite(A, min_abs_value=0.01)

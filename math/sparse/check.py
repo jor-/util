@@ -12,11 +12,11 @@ def squared(A):
 
 def sorted_squared_csr(A):
     squared(A)
-    
+
     if not scipy.sparse.isspmatrix_csr(A):
         warnings.warn('CSR matrix format is required. Converting to CSR matrix.', scipy.sparse.SparseEfficiencyWarning)
         A = scipy.sparse.csr_matrix(A)
-    
+
     A.sort_indices()
     A.eliminate_zeros()
     return A
@@ -24,11 +24,11 @@ def sorted_squared_csr(A):
 
 def sorted_squared_csc(A):
     squared(A)
-    
+
     if not scipy.sparse.isspmatrix_csc(A):
         warnings.warn('CSC matrix format is required. Converting to CSC matrix.', scipy.sparse.SparseEfficiencyWarning)
         A = scipy.sparse.csc_matrix(A)
-    
+
     A.sort_indices()
     A.eliminate_zeros()
     return A

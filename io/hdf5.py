@@ -11,11 +11,10 @@ def save(file, name, value):
 
 def load_all_datasets(file, groupname):
     results = []
-    
+
     with h5py.File(file, mode='r') as file:
         group = file[groupname]
         for dataset in group.keys():
             results.append(group[dataset].value)
-    
+
     return results
-    

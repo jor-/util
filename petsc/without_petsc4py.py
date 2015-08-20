@@ -8,7 +8,7 @@ PETSC_VEC_HEADER = 1211214
 
 def load_petsc_vec_to_numpy_array(file):
     logger.debug('Loading petsc vector from {} to numpy vector.'.format(file))
-    
+
     with open(file, "rb") as file_object:
         ## omit header
         np.fromfile(file_object, dtype='>i4', count=1)
@@ -16,7 +16,7 @@ def load_petsc_vec_to_numpy_array(file):
         nvec = np.fromfile(file_object, dtype='>i4', count=1)
         ## read values
         v = np.fromfile(file_object, dtype='>f8', count=nvec)
-    
+
     ## return array
     v = np.array(v, dtype='>f8')
     return v
@@ -24,17 +24,17 @@ def load_petsc_vec_to_numpy_array(file):
 
 def save_numpy_array_to_petsc_vec(vec, file):
     logger.debug('Saving numpy vector to petsc vector in {}.'.format(file))
-    
-    
+
+
     with open(file, mode='xb') as file_object:
         ## write header
         header = np.array(PETSC_VEC_HEADER, dtype='>i4')
         header.tofile(file_object)
-        
+
         ## write length (32 bit int)
         length = np.array(len(vec), dtype='>i4')
         length.tofile(file_object)
-        
+
         ## write values
         vec = vec.astype('>f8')
         vec.tofile(file_object)
@@ -44,10 +44,10 @@ def save_numpy_array_to_petsc_vec(vec, file):
 
 def load_petsc_mat_to_array(file, dtype=float):
     logger.debug('Loading petsc matrix from %s.', file)
-    
+
     ## open file
     f = open(file, "rb")
-    
+
     ## omit header
     np.fromfile(f, dtype=">i4", count=1)
     ## read dims
@@ -57,10 +57,10 @@ def load_petsc_mat_to_array(file, dtype=float):
     nrow   = np.fromfile(f, dtype=">i4", count=nx)
     colidx = np.fromfile(f, dtype=">i4", count=nnz)
     val    = np.fromfile(f, dtype=">f8", count=nnz)
-    
+
     ## close file
     f.close()
-    
+
     ## create full matrix
     array = np.zeros(shape=(nx, ny), dtype=dtype)
     offset = 0
@@ -69,6 +69,6 @@ def load_petsc_mat_to_array(file, dtype=float):
             for j in range(nrow[i]):
                 array[i, colidx[offset]] = dtype(val[offset])
                 offset = offset + 1
-    
+
     ## return array
     return array

@@ -9,7 +9,7 @@ def save(file, A, precision=None):
         if precision < precision_min:
             warnings.warn('Precision must be at least {1} to represent all indices. Precision changed from {2} to {1}.'.format(precision_min, precision))
             precision = precision_min
-    
+
     scipy.io.mmwrite(file, A, precision=precision)
 
 def load(file):

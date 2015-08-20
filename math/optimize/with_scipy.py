@@ -14,7 +14,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
     ## prepare input
     if jac is None:
         jac = lambda x: util.math.finite_differences.calculate(f, x, bounds=bounds, accuracy_order=2)[0]
-    
+
     x0 = np.asarray(x0)
     if x0.ndim == 1:
         n = x0.shape[0]
@@ -23,13 +23,13 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
     else:
         n = x0.shape[1]
         m = x0.shape[0]
-    
+
     if bounds is not None and len(bounds) != n:
         raise ValueError('x0 and bounds must have the same length, but their length are {} and {}.'.format(n, len(bounds)))
-    
+
     if not global_method in ['random_start', 'basin_hopping']:
         raise ValueError('global_method {} has to be in {}'.format(global_method, 'random_start', 'basin_hopping'))
-    
+
     ## chose local methods
     if ineq_constraints is not None:
         local_methods = ('SLSQP',)
@@ -38,11 +38,11 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
         local_methods = ('L-BFGS-B', 'TNC')
     else:
         local_methods = ('SLSQP', 'BFGS', 'TNC')
-    
+
     logger.debug('Glocal method {} chosen with local methods {}.'.format(global_method, local_methods))
     if bounds is not None:
         logger.debug('Using bounds {} for the optimization.'.format(bounds))
-    
+
     ## prepare local options
     if ineq_constraints is None:
         constraints = ()
@@ -51,7 +51,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
         if ineq_constraints_jac is not None:
             constraints_dict['jac'] = ineq_constraints_jac
         constraints = [constraints_dict]
-    
+
 # #     #
 #     if bounds is not None:
 #         constraints = []
@@ -75,28 +75,28 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
 #             constraints.append(lower_bound_contraint_dict(i))
 #             constraints.append(upper_bound_contraint_dict(i))
 # #     #
-    
+
     disp = util.logging.is_debug()
     if disp:
         logger.debug('Debug output in optimization enabled.')
     else:
         logger.debug('Debug output in optimization disabled.')
-    
+
     local_minimizer_options = {'method':'', 'jac':jac, 'bounds':bounds, 'constraints':constraints, 'options':{'maxiter': local_max_iterations, 'maxfun': local_max_fun_evals, 'disp':disp}}
 #     local_minimizer_options = {'method':'', 'jac':jac, 'constraints':constraints, 'options':{'maxiter': local_max_iterations, 'maxfun': local_max_fun_evals, 'disp':disp}}
 #     local_minimizer_options = {'method':'', 'jac':jac, 'bounds':bounds, 'options':{'maxiter': local_max_iterations, 'maxfun': local_max_fun_evals, 'disp':disp}}
-    
+
     ## run optimization
     x_min = None
     f_min = np.inf
-    
+
     ## random start point method
     if global_method == 'random_start':
-        
+
         ## prepare start points
         if m < global_iterations and (bounds is None or not np.all(np.isfinite(bounds))):
             raise ValueError('Bounds must be finite if random start point method is chosen and the global iterations is greater then the number of starting points, but they are {}.'.format(bounds))
-        
+
         x0s = np.empty([global_iterations, n])
         for i in range(global_iterations):
             if i < m:
@@ -107,22 +107,22 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
                     for j in range(n):
                         x0s[i, j] = np.random.uniform(low=bounds[j][0], high=bounds[j][1], size=1)
                     accept_x0 = ineq_constraints(x0s[i]) >= 0
-        
+
         ## run all local methods and from all start points
         for local_method in local_methods:
             local_minimizer_options['method'] = local_method
             for x0 in x0s:
                 result = scipy.optimize.minimize(f, x0, **local_minimizer_options)
                 logger.debug('Minimization with local method {} started from {} stopped with the following results: {}'.format(local_method, x0, result))
-                
+
                 if result.success and result.fun < f_min:
                     x_min = result.x
                     f_min = result.fun
-    
+
     ## basin hopping method
     elif global_method == 'basin_hopping':
         x0 = x0[0]
-        
+
         ## incorporate bounds and constarints
         if bounds is not None:
             global_bounds = np.empty([2, n])
@@ -135,7 +135,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
                     global_bounds[1, i] = bounds[i][1]
                 else:
                     global_bounds[1, i] = np.inf
-            
+
             def bounds_test(**kwargs):
                 x = kwargs['x_new']
                 okay = bool(np.all(global_bounds[0] <= x) and np.all(x <= global_bounds[1]))
@@ -143,7 +143,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
         else:
             def bounds_test(**kwargs):
                 return True
-        
+
         if ineq_constraints is not None:
             def constraints_test(**kwargs):
                 x = kwargs['x_new']
@@ -151,7 +151,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
                 return okay
         else:
             constraints_test = bounds_test
-        
+
         ## run all local methods
         for local_method in local_methods:
             local_minimizer_options['method'] = local_method
@@ -160,8 +160,8 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
             if result.fun < f_min:
                 x_min = result.x
                 f_min = result.fun
-    
-    
+
+
     ## return result
     if x_min is not None:
         return (x_min, f_min)

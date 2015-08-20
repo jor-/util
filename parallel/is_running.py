@@ -15,4 +15,3 @@ def scoop_module():
         return scoop.IS_RUNNING
     except ImportError:
         return False
-    

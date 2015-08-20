@@ -9,7 +9,7 @@ FILE_EXT = 'ppy'
 
 def is_file(file):
     return util.io.fs.has_file_ext(file, FILE_EXT)
-    
+
 def make_file(file):
     return util.io.fs.add_file_ext_if_needed(file, FILE_EXT)
 

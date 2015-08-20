@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 #             try:
 #                 value = np.loadtxt(value)
 #             except (OSError, IOError) as e:
-#                 raise ValueError('The value {} seams to be a file, but it could not been read.'.format(value)) from e 
+#                 raise ValueError('The value {} seams to be a file, but it could not been read.'.format(value)) from e
 #     # check if sequence
 #         except TypeError:
 #             try:
 #                 len(value)
 #             except TypeError:
 #                 raise ValueError('Value has to be a float, a sequence or a file containing a sequence.')
-#     
+#
 #     return value
 
 
@@ -45,13 +45,13 @@ class String_List_Stream:
     def write(self, message):
         self.string_list.append(message)
         self.callback_stream.write(message)
-        
+
 
 class Copy_Std_Streams:
     def __init__(self, string_list_out, string_list_err):
         self.string_list_out = string_list_out
-        self.string_list_err = string_list_err        
-        
+        self.string_list_err = string_list_err
+
     def __enter__(self):
         self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
         self.string_list_stream_out = String_List_Stream(self.string_list_out, self.old_stdout)

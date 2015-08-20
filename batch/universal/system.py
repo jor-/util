@@ -15,4 +15,3 @@ elif IS_NEC:
     from util.batch.nec.system import *
 else:
     raise ValueError('Batch system {} is unknown.'.format(BATCH_SYSTEM_STR))
-    
