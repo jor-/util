@@ -6,6 +6,7 @@ import time
 
 import util.io.fs
 import util.options
+import util.batch.universal.system
 
 import util.logging
 logger = util.logging.logger
@@ -14,7 +15,7 @@ logger = util.logging.logger
 
 class BatchSystem():
 
-    def __init__(self, commands, queues, max_walltime={}, module_renaming={}):
+    def __init__(self, commands, queues, max_walltime={}, module_renaming={}, node_infos={}):
         self.commands = commands
         # self.submit_command = submit_command
         # self.mpi_command = mpi_command
@@ -24,6 +25,7 @@ class BatchSystem():
         self.queues = queues
         self.max_walltime = max_walltime
         self.module_renaming = module_renaming
+        self.node_infos = node_infos
 
 
 
@@ -136,12 +138,174 @@ class BatchSystem():
         if use_mpi:
             command = self.mpi_command.format(command=command, cpus=cpus)
         return command
+    
+    ## best node setups
+    
+    def speed(self, nodes_kind, nodes, cpus):
+        return self.node_infos[nodes_kind]['speed'] * nodes * cpus
+    
+    
+    @staticmethod
+    def _best_cpu_configurations_for_state(nodes_state, memory_required, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
+        logger.debug('Getting best cpu configuration for node state {} with memory {}, nodes {}, cpus {}, nodes max {} and nodes left free {}.'.format(nodes_state, memory_required, nodes, cpus, nodes_max, nodes_leave_free))
+    
+        ## check input
+        if nodes_max <= 0:
+            raise ValueError('nodes_max {} has to be greater 0.'.format(nodes_max))
+        if total_cpus_max <= 0:
+            raise ValueError('total_cpus_max {} has to be greater 0.'.format(total_cpus_max))
+        if nodes_leave_free < 0:
+            raise ValueError('nodes_leave_free {} has to be greater or equal to 0.'.format(nodes_leave_free))
+        if nodes is not None:
+            if nodes <= 0:
+                raise ValueError('nodes {} has to be greater 0.'.format(nodes))
+            if nodes > nodes_max:
+                raise ValueError('nodes_max {} has to be greater or equal to nodes {}.'.format(nodes_max, nodes))
+        if cpus is not None:
+            if cpus <= 0:
+                raise ValueError('cpus {} has to be greater 0.'.format(cpus))
+        if nodes is not None and cpus is not None:
+            if nodes * cpus > total_cpus_max:
+                raise ValueError('total_cpus_max {} has to be greater or equal to nodes {} multiplied with cpus {}.'.format(total_cpus_max, nodes, cpus))
+    
+        ## get only nodes with required memory
+        free_cpus, free_memory = nodes_state
+        free_cpus = free_cpus[free_memory >= memory_required]
+    
+        ## calculate best configuration
+        best_nodes = 0
+        best_cpus = 0
+    
+        if len(free_cpus) > 0:
+            ## chose numbers of cpus to check
+            if cpus is not None:
+                cpus_to_check = (cpus,)
+            else:
+                cpus_to_check = range(max(free_cpus), 0, -1)
+    
+            ## get number of nodes for each number of cpus
+            for cpus_to_check_i in cpus_to_check:
+                ## calculate useable nodes (respect max nodes and left free nodes)
+                free_nodes = free_cpus[free_cpus >= cpus_to_check_i].size
+                free_nodes = free_nodes - nodes_leave_free
+                free_nodes = min(free_nodes, nodes_max)
+    
+                ## respect fix number of nodes if passed
+                if nodes is not None:
+                    if free_nodes >= nodes:
+                        free_nodes = nodes
+                    else:
+                        free_nodes = 0
+    
+                ## respect total max cpus
+                while free_nodes * cpus_to_check_i > total_cpus_max:
+                    if free_nodes > 1:
+                        free_nodes -=1
+                    else:
+                        cpus -= 1
+    
+                ## check if best configuration
+                if free_nodes * cpus_to_check_i > best_nodes * best_cpus:
+                    best_nodes = free_nodes
+                    best_cpus = cpus_to_check_i
+    
+        logger.debug('Best CPU configuration is for this kind: {}'.format((best_nodes, best_cpus)))
+    
+        assert best_nodes <= nodes_max
+        assert best_nodes * best_cpus <= total_cpus_max
+        assert nodes is None or best_nodes == nodes or best_nodes == 0
+        assert cpus is None or best_cpus == cpus or best_cpus == 0
+        return (best_nodes, best_cpus)
+
+
+    
+    def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
+
+        logger.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {} and total_cpus_max {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max))
+    
+        ## chose node kinds if not passed
+        if node_kind is None:
+            node_kind = []
+            for node_kind_i, node_infos_i in self.node_infos.items:
+                try:
+                    nodes_leave_free_i = node_infos_i['leave_free']
+                except KeyError:
+                    nodes_leave_free_i = 0
+                if node_infos_i['nodes'] > nodes_leave_free_i:
+                    node_kind.append(node_kind_i)
+            # node_kind = tuple(self.node_infos.keys())
+        elif isinstance(node_kind, str):
+            node_kind = (node_kind,)
+        nodes_state = self._nodes_state(node_kind)
+    
+        ## init
+        best_kind = node_kind[0]
+        best_nodes = 0
+        best_cpus = 0
+        best_cpu_power = 0
+    
+        ## calculate best CPU configuration
+        for node_kind_i in node_kind:
+            nodes_state_i = nodes_state[node_kind_i]
+            node_info_values_i = self.node_infos[node_kind_i]
+            nodes_cpu_power_i = node_info_values_i['speed']
+            nodes_max_i = node_info_values_i['nodes']
+            try:
+                nodes_leave_free_i = node_info_values_i['leave_free']
+            except KeyError:
+                nodes_leave_free_i = 0
+            nodes_max_i = min(nodes_max, nodes_max_i)
+            nodes_leave_free_i = max(nodes_leave_free, nodes_leave_free_i)
+            
+            (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i)
+    
+            if nodes_cpu_power_i * best_cpus_i * best_nodes_i > best_cpu_power * best_cpus * best_nodes:
+                best_kind = node_kind_i
+                best_nodes = best_nodes_i
+                best_cpus = best_cpus_i
+                best_cpu_power = nodes_cpu_power_i
+        
+        ## return
+        best_configuration = (best_kind, best_nodes, best_cpus)
+    
+        logger.debug('Best CPU configuration is: {}.'.format(best_configuration))
+    
+        assert best_kind in node_kind
+        assert best_nodes <= nodes_max
+        assert best_nodes * best_cpus <= total_cpus_max
+        return best_configuration
+
+    
+    def wait_for_needed_resources(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf')):
+        logger.debug('Waiting for at least {} CPUs with {}GB memory, with node_kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_min{} and total_cpus_max {}.'.format(total_cpus_min, memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_min, total_cpus_max))
+    
+        ## check input
+        if total_cpus_min > total_cpus_max:
+            raise ValueError('total_cpus_max has to be greater or equal to total_cpus_min, but {} < {}.'.format(total_cpus_max, total_cpus_min))
+    
+        ## calculate
+        best_nodes = 0
+        best_cpus = 0
+        resources_free = False
+        while not resources_free:
+            (best_cpu_kind, best_nodes, best_cpus) = self.best_cpu_configurations(memory_required, node_kind=node_kind, nodes=nodes, cpus=cpus, nodes_max=nodes_max, nodes_leave_free=nodes_leave_free, total_cpus_max=total_cpus_max)
+            cpus_avail = best_nodes * best_cpus
+            resources_free = (cpus_avail >= total_cpus_min)
+            if not resources_free:
+                logger.debug('No enough resources free. {} CPUs available, but {} CPUs needed. Waiting ...'.format(cpus_avail, total_cpus_min))
+                time.sleep(60)
+    
+        return (best_cpu_kind, best_nodes, best_cpus)
 
 
     ## abstract methods
 
     @abc.abstractmethod
     def _get_job_id_from_submit_output(self, submit_output):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def _nodes_state(self, kinds):
         raise NotImplementedError()
 
 
@@ -297,29 +461,8 @@ class Job():
 
     def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None, walltime_hours=None, write_output_file=True):
         ## check qeue and walltime
-
         queue = self.batch_system.check_queue(queue)
         walltime_hours = self.batch_system.check_walltime(queue, walltime_hours)
-
-        # from util.batch.universal.constants import MAX_WALLTIME, QUEUES
-        #
-        # ## check queue
-        # if queue is not None and queue not in QUEUES:
-        #     raise ValueError('Unknown queue {}.'.format(queue))
-        #
-        # ## check walltime
-        # try:
-        #     max_walltime_for_queue = MAX_WALLTIME[queue]
-        # except KeyError:
-        #     max_walltime_for_queue = float('inf')
-        # if walltime_hours is not None:
-        #     walltime_hours = math.ceil(walltime_hours)
-        #     if max_walltime_for_queue < walltime_hours:
-        #         raise ValueError('Max walltime {} is greater than max walltime for queue {}.'.format(walltime_hours, max_walltime_for_queue))
-        # else:
-        #     if max_walltime_for_queue < float('inf'):
-        #         walltime_hours = max_walltime_for_queue
-
 
         ## set job options
         self.options['/job/memory_gb'] = nodes_setup.memory
@@ -473,7 +616,7 @@ class JobError(Exception):
 
 class NodeSetup:
 
-    def __init__(self, memory=1, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf')):
+    def __init__(self, memory=1, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False):
 
         assert nodes is None or nodes >= 1
         assert cpus is None or cpus >= 1
@@ -495,6 +638,8 @@ class NodeSetup:
         ## save setup
         setup = {'memory':memory, 'node_kind':node_kind, 'nodes':nodes, 'cpus':cpus, 'total_cpus_min':total_cpus_min, 'nodes_max':nodes_max, 'nodes_left_free':nodes_left_free, 'total_cpus_max':total_cpus_max}
         self.setup = setup
+        self.check_for_better = check_for_better
+        self.batch_system = util.batch.universal.system.BATCH_SYSTEM
 
     def __getitem__(self, key):
         return self.setup[key]
@@ -518,9 +663,21 @@ class NodeSetup:
         return self['memory'] is not None and self['node_kind'] is not None and isinstance(self['node_kind'], str) and self['nodes'] is not None and self['cpus'] is not None
 
 
-    def configuration_missing(self):
+    # def configuration_incomplete(self):
+    #     if not self.configuration_is_complete():
+    #         raise NodeSetupIncompleteError(self)
+
+    def configuration_incomplete(self):
         if not self.configuration_is_complete():
-            raise NodeSetupIncompleteError(self)
+            logger.debug('Node setup incomplete. Try to complete it.')
+            try:
+                (node_kind, nodes, cpus) = self.batch_system.wait_for_needed_resources(self['memory'], node_kind=self['node_kind'], nodes=self['nodes'], cpus=self['cpus'], nodes_max=self['nodes_max'], nodes_leave_free=self['nodes_leave_free'], total_cpus_min=self['total_cpus_min'], total_cpus_max=self['total_cpus_max'])
+            except NotImplementedError:
+                logger.error('Batch system does not support completion of node setup.')
+                raise NodeSetupIncompleteError(self)
+            self['node_kind'] = node_kind
+            self['nodes'] = nodes
+            self['cpus'] = cpus
 
 
     def configuration_value(self, key, test=None):
@@ -528,11 +685,24 @@ class NodeSetup:
 
         value = self.setup[key]
         if value is None or (test is not None and not test(value)):
-            self.configuration_missing()
+            self.configuration_incomplete()
             value = self.setup[key]
 
         assert value is not None
         return value
+
+
+    def update_with_best_configuration(self, check_for_better=True):
+        if check_for_better:
+            self.check_for_better = False
+            setup_triple = (self.node_kind, self.nodes, self.cpus)
+            logger.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
+            speed = self.batch_system.speed(*setup_triple)
+            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'])
+            best_speed = self.batch_system.speed(*best_setup_triple)
+            if best_speed > speed:
+                logger.debug('Using better node setup configuration {}.'.format(best_setup_triple))
+                self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
 
 
     @property
@@ -541,14 +711,17 @@ class NodeSetup:
 
     @property
     def node_kind(self):
+        self.update_with_best_configuration(self.check_for_better)
         return self.configuration_value('node_kind', test=lambda v: isinstance(v, str))
 
     @property
     def nodes(self):
+        self.update_with_best_configuration(self.check_for_better)
         return self.configuration_value('nodes')
 
     @property
     def cpus(self):
+        self.update_with_best_configuration(self.check_for_better)
         return self.configuration_value('cpus')
 
 

@@ -4,27 +4,15 @@ MAX_WALLTIME = {'express': 3, 'small': 24, 'medium': 240, 'long': 480, 'para_low
 MODEL_RENAMING = {'python':'Python-3.3.2', 'python3':'Python-3.3.2', 'hdf5':'hdf5_1.8.11', 'matlab':'matlab2014a', 'petsc':'petsc-intel14'}
 
 COMMANDS = {'mpirun': 'mpirun -n {cpus:d} -machinefile $PBS_NODEFILE -r rsh {command}',
-            'time': 'command time -f "Statistics for %C:\nexit code: %x, elapsed time: %Es\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs" {command}',
-            # 'time': 'time {command}',
+            'time': 'TIME_FMT="\nStatistics for %C:\nElapsed time: %Es, Exit code: %x\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs"\ncommand time -f "$TIME_FMT" {command}',
             'sub': '/opt/pbs/default/bin/qsub',
             'stat': '/opt/pbs/default/bin/qstat',
             'nodes': '/usr/local/bin/qnodes'}
 
-# MPI_COMMAND = 'mpirun -n {cpus:d} -machinefile $PBS_NODEFILE -r rsh {command}'
-# QSUB_COMMAND = '/opt/pbs/default/bin/qsub'
-# QSTAT_COMMAND = '/opt/pbs/default/bin/qstat'
-# QNODES_COMMAND = '/usr/local/bin/qnodes'
-
-
-
-# Westmere nodes (12 CPUs per node, 2.67 GHz)
-# f_ocean Barcelona nodes (8 CPUs per node, 2.1 GHz) (f_ocean queue)
-# f-ocean2 nodes Intel(R) Xeon(R) CPU E5-2670 0 (16 CPUs per node, 2.6 GHz) (f_ocean2 queue)
-# f_ocean2 express nodes (16 CPUs per node, 2.6 GHz) (foexpress queue)
-# Opteron nodes (4 CPUs per node, 2.8 GHz)
-# 3 AMD-Shanghai nodes (16 CPUs per node, 2.4 GHz)
-# 1 AMD-Magny node (48 CPUs per node, 2.1 GHz)
-# Shanghai Ethernet nodes (8 CPUs per node, 2.4 GHz) (bio_ocean queue)
-# Shanghai Infiniband nodes (8 CPUs per node, 2.4 GHz) (math queue)
-
-NODE_INFOS = {'westmere': (2.67/4, 18, 0), 'shanghai': (2.4/4, 26, 0), 'f_ocean': (2.1/4, 12, 0), 'f_ocean2': (2.6, 12, 0), 'amd128': (2.4/4, 1, 1), 'amd256': (2.1/4, 1, 1), 'fobigmem': (2.6, 2, 2)}
+NODE_INFOS = {'westmere': {'nodes': 18, 'speed': 2.67, 'cpus': 12, 'memory': 48,},
+              'shanghai': {'nodes': 26, 'speed': 2.4, 'cpus': 8, 'memory': 32},
+              'f_ocean': {'nodes': 12, 'speed': 2.1, 'cpus': 8, 'memory': 32},
+              'f_ocean2': {'nodes': 12, 'speed': 2.6, 'cpus': 16, 'memory': 128},
+              'amd128': {'nodes': 1, 'speed': 2.4, 'cpus': 16, 'memory': 128, 'leave_free': 1},
+              'amd256': {'nodes': 1, 'speed': 2.1, 'cpus': 48, 'memory': 256, 'leave_free': 1},
+              'fobigmem': {'nodes': 2, 'speed': 2.6, 'cpus': 24, 'memory': 1024, 'leave_free': 2}}

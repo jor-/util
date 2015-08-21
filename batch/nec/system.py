@@ -1,6 +1,8 @@
 import os
 import subprocess
 
+import numpy as np
+
 import util.batch.general.system
 
 import util.logging
@@ -13,11 +15,8 @@ logger = util.logging.logger
 class BatchSystem(util.batch.general.system.BatchSystem):
 
     def __init__(self):
-        # from util.batch.nec.constants import MPI_COMMAND, QSUB_COMMAND,QSTAT_COMMAND, QUEUES, MAX_WALLTIME, MODEL_RENAMING
-        # super().__init__(QSUB_COMMAND, MPI_COMMAND, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
-        # self.status_command = QSTAT_COMMAND
-        from util.batch.nec.constants import COMMANDS, QUEUES, MAX_WALLTIME, MODEL_RENAMING
-        super().__init__(COMMANDS, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING)
+        from util.batch.nec.constants import COMMANDS, QUEUES, MAX_WALLTIME, MODEL_RENAMING, NODE_INFOS
+        super().__init__(COMMANDS, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING, node_infos=NODE_INFOS)
 
 
     def __str__(self):
@@ -43,6 +42,34 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def is_job_running(self, job_id):
         output = self.job_state(job_id)
         return 'RUN' in output
+
+
+    def _nodes_state(self, kinds):
+        output = subprocess.check_output(self.nodes_command).decode('utf8')
+        lines = output.splitlines()
+        assert len(lines) == 13
+        lines = lines[2:9]
+        
+        state = {}
+        
+        for line in lines:
+            line_splitted = line.strip().split(' ')
+            node_kind = line_splitted[0]
+            number_of_free_nodes = int(line_splitted[-1])
+            
+            node_info = self.node_infos[node_kind]
+            cpus = node_info['cpus']
+            memory = node_info['memory']
+            
+            free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * node_info['cpus']
+            free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * node_info['memory']
+            
+            state[node_kind] = (free_cpus, free_memory)
+        
+        return state
+
+        
+
 
 
 BATCH_SYSTEM = BatchSystem()
@@ -110,11 +137,6 @@ class Job(util.batch.general.system.Job):
 
 
 
-
-
 ## node setups
 
 from util.batch.general.system import NodeSetup
-# class NodeSetup(util.batch.general.system.NodeSetup):
-#     def __init__(self, *args, **kargs):
-#         super().__init__()
