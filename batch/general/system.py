@@ -200,9 +200,9 @@ class BatchSystem():
                 ## respect total max cpus
                 while free_nodes * cpus_to_check_i > total_cpus_max:
                     if free_nodes > 1:
-                        free_nodes -=1
+                        free_nodes -= 1
                     else:
-                        cpus -= 1
+                        cpus_to_check_i = total_cpus_max
     
                 ## check if best configuration
                 if free_nodes * cpus_to_check_i > best_nodes * best_cpus:
@@ -219,19 +219,23 @@ class BatchSystem():
 
 
     
-    def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
+    def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf'), walltime=1):
 
         logger.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {} and total_cpus_max {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max))
     
         ## chose node kinds if not passed
         if node_kind is None:
             node_kind = []
-            for node_kind_i, node_infos_i in self.node_infos.items:
+            for node_kind_i, node_infos_i in self.node_infos.items():
                 try:
                     nodes_leave_free_i = node_infos_i['leave_free']
                 except KeyError:
                     nodes_leave_free_i = 0
-                if node_infos_i['nodes'] > nodes_leave_free_i:
+                try:
+                    max_walltime_i = node_infos_i['max_walltime']
+                except KeyError:
+                    max_walltime_i = float('inf')
+                if node_infos_i['nodes'] > nodes_leave_free_i and max_walltime_i >= walltime:
                     node_kind.append(node_kind_i)
             # node_kind = tuple(self.node_infos.keys())
         elif isinstance(node_kind, str):
@@ -257,7 +261,7 @@ class BatchSystem():
             nodes_max_i = min(nodes_max, nodes_max_i)
             nodes_leave_free_i = max(nodes_leave_free, nodes_leave_free_i)
             
-            (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i)
+            (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i, total_cpus_max=total_cpus_max)
     
             if nodes_cpu_power_i * best_cpus_i * best_nodes_i > best_cpu_power * best_cpus * best_nodes:
                 best_kind = node_kind_i
@@ -616,7 +620,7 @@ class JobError(Exception):
 
 class NodeSetup:
 
-    def __init__(self, memory=1, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False):
+    def __init__(self, memory=1, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=1):
 
         assert nodes is None or nodes >= 1
         assert cpus is None or cpus >= 1
@@ -636,9 +640,8 @@ class NodeSetup:
             cpus = 1
 
         ## save setup
-        setup = {'memory':memory, 'node_kind':node_kind, 'nodes':nodes, 'cpus':cpus, 'total_cpus_min':total_cpus_min, 'nodes_max':nodes_max, 'nodes_left_free':nodes_left_free, 'total_cpus_max':total_cpus_max}
+        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'total_cpus_min': total_cpus_min, 'nodes_max': nodes_max, 'nodes_left_free': nodes_left_free, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
         self.setup = setup
-        self.check_for_better = check_for_better
         self.batch_system = util.batch.universal.system.BATCH_SYSTEM
 
     def __getitem__(self, key):
@@ -693,12 +696,13 @@ class NodeSetup:
 
 
     def update_with_best_configuration(self, check_for_better=True):
+        # self.check_for_better = False #TODO: fix for qcl command missing
         if check_for_better:
-            self.check_for_better = False
+            self['check_for_better'] = False
             setup_triple = (self.node_kind, self.nodes, self.cpus)
             logger.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
             speed = self.batch_system.speed(*setup_triple)
-            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'])
+            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self['walltime'])
             best_speed = self.batch_system.speed(*best_setup_triple)
             if best_speed > speed:
                 logger.debug('Using better node setup configuration {}.'.format(best_setup_triple))
@@ -711,17 +715,17 @@ class NodeSetup:
 
     @property
     def node_kind(self):
-        self.update_with_best_configuration(self.check_for_better)
+        self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('node_kind', test=lambda v: isinstance(v, str))
 
     @property
     def nodes(self):
-        self.update_with_best_configuration(self.check_for_better)
+        self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('nodes')
 
     @property
     def cpus(self):
-        self.update_with_best_configuration(self.check_for_better)
+        self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('cpus')
 
 
