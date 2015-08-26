@@ -24,6 +24,7 @@ def forward_substitution(L, b, dtype=np.float64):
         dtype = np.find_common_type([L.dtype, b.dtype, np.float32], [])
 
     ## init
+    b = np.asarray_chkfinite(b)
     x = np.zeros(b.shape, dtype=dtype)
     column_start = L.indptr[0]
 
@@ -72,6 +73,7 @@ def backward_substitution(R, b, dtype=np.float64):
         dtype = np.find_common_type([R.dtype, b.dtype, np.float32], [])
 
     ## init
+    b = np.asarray_chkfinite(b)
     x = np.zeros(b.shape)
     column_stop = R.indptr[len(b)]
 
