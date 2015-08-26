@@ -12,6 +12,40 @@ import util.logging
 logger = util.logging.logger
 
 
+class NodeInfos():
+    
+    def __init__(self, node_infos):
+        self.node_infos = node_infos
+    
+    def kinds(self):
+        return tuple(self.node_infos.keys())
+
+    def nodes(self, kind):
+        return self.node_infos[kind]['nodes']
+
+    def cpus(self, kind):
+        return self.node_infos[kind]['cpus']
+
+    def speed(self, kind):
+        return self.node_infos[kind]['speed']
+
+    def memory(self, kind):
+        return self.node_infos[kind]['memory']
+
+    def leave_free(self, kind):
+        node_info_kind = self.node_infos[kind]
+        try:
+            return node_info_kind['leave_free']
+        except KeyError:
+            return 0
+
+    def max_walltime(self, kind):
+        node_info_kind = self.node_infos[kind]
+        try:
+            return node_info_kind['max_walltime']
+        except KeyError:
+            return float('inf')
+
 
 class BatchSystem():
 
@@ -25,6 +59,9 @@ class BatchSystem():
         self.queues = queues
         self.max_walltime = max_walltime
         self.module_renaming = module_renaming
+        
+        if not isinstance(node_infos, NodeInfos):
+            node_infos = NodeInfos(node_infos)
         self.node_infos = node_infos
 
 
@@ -141,8 +178,23 @@ class BatchSystem():
     
     ## best node setups
     
-    def speed(self, nodes_kind, nodes, cpus):
-        return self.node_infos[nodes_kind]['speed'] * nodes * cpus
+    def speed(self, node_kind, nodes, cpus):
+        return self.node_infos.speed(node_kind) * nodes * cpus
+    
+    
+    def is_free(self, memory, node_kind, nodes, cpus):
+        ## get nodes state
+        nodes_state = self._nodes_state()[node_kind]
+    
+        ## get only nodes with required memory
+        free_cpus, free_memory = nodes_state
+        free_cpus = free_cpus[free_memory >= memory]
+        
+        ## calculate useable nodes
+        free_nodes = free_cpus[free_cpus >= cpus].size
+        free_nodes = free_nodes - self.node_infos.leave_free(node_kind)
+        
+        return free_nodes >= nodes
     
     
     @staticmethod
@@ -226,21 +278,12 @@ class BatchSystem():
         ## chose node kinds if not passed
         if node_kind is None:
             node_kind = []
-            for node_kind_i, node_infos_i in self.node_infos.items():
-                try:
-                    nodes_leave_free_i = node_infos_i['leave_free']
-                except KeyError:
-                    nodes_leave_free_i = 0
-                try:
-                    max_walltime_i = node_infos_i['max_walltime']
-                except KeyError:
-                    max_walltime_i = float('inf')
-                if node_infos_i['nodes'] > nodes_leave_free_i and max_walltime_i >= walltime:
+            for node_kind_i in self.node_infos.kinds():
+                if self.node_infos.nodes(node_kind_i) > self.node_infos.leave_free(node_kind_i) and self.node_infos.max_walltime(node_kind_i) >= walltime:
                     node_kind.append(node_kind_i)
-            # node_kind = tuple(self.node_infos.keys())
         elif isinstance(node_kind, str):
             node_kind = (node_kind,)
-        nodes_state = self._nodes_state(node_kind)
+        nodes_state = self._nodes_state()
     
         ## init
         best_kind = node_kind[0]
@@ -251,14 +294,10 @@ class BatchSystem():
         ## calculate best CPU configuration
         for node_kind_i in node_kind:
             nodes_state_i = nodes_state[node_kind_i]
-            node_info_values_i = self.node_infos[node_kind_i]
-            nodes_cpu_power_i = node_info_values_i['speed']
-            nodes_max_i = node_info_values_i['nodes']
-            try:
-                nodes_leave_free_i = node_info_values_i['leave_free']
-            except KeyError:
-                nodes_leave_free_i = 0
+            nodes_cpu_power_i = self.node_infos.speed(node_kind_i)
+            nodes_max_i = self.node_infos.nodes(node_kind_i)
             nodes_max_i = min(nodes_max, nodes_max_i)
+            nodes_leave_free_i = self.node_infos.leave_free(node_kind_i)
             nodes_leave_free_i = max(nodes_leave_free, nodes_leave_free_i)
             
             (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i, total_cpus_max=total_cpus_max)
@@ -309,7 +348,7 @@ class BatchSystem():
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def _nodes_state(self, kinds):
+    def _nodes_state(self):
         raise NotImplementedError()
 
 
@@ -695,8 +734,7 @@ class NodeSetup:
         return value
 
 
-    def update_with_best_configuration(self, check_for_better=True):
-        # self.check_for_better = False #TODO: fix for qcl command missing
+    def update_with_best_configuration(self, check_for_better=True, not_free_speed_factor=0.7):
         if check_for_better:
             self['check_for_better'] = False
             setup_triple = (self.node_kind, self.nodes, self.cpus)
@@ -707,6 +745,13 @@ class NodeSetup:
             if best_speed > speed:
                 logger.debug('Using better node setup configuration {}.'.format(best_setup_triple))
                 self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
+            elif not self.batch_system.is_free(self.memory, self.node_kind, self.nodes, self.cpus):
+                logger.debug('Node setup configuration {} is not free.'.format(setup_triple))
+                if best_speed >= speed * not_free_speed_factor:
+                    logger.debug('Using node setup configuration {}.'.format(best_setup_triple))
+                    self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
+                else:
+                    logger.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
 
 
     @property
