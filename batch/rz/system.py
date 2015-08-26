@@ -134,9 +134,9 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         return (free_cpus, free_memory)
 
 
-    def _nodes_state(self, kinds):
+    def _nodes_state(self):
         state = {}
-        for kind in kinds:
+        for kind in self.node_infos.kinds:
             state[kind] = self._nodes_state_one_kind(kind)
         return state
     
@@ -225,15 +225,15 @@ class Job(util.batch.general.system.Job):
         if len(modules) > 0:
             ## init module system
             content.append('. /usr/share/Modules/init/bash')
-            ## intel compiler and mpi
-            if 'intel' in modules:
-                content.append('. /cluster/Software/intel14/composer_xe_2013_sp1/bin/compilervars.sh intel64')
-                while'intel' in modules:
-                    modules.remove('intel')
-            if 'intelmpi' in modules or 'intelmpi' in modules:
-                content.append('. /cluster/Software/intel14/impi/4.1.1.036/intel64/bin/mpivars.sh')
-                while'intelmpi' in modules:
-                    modules.remove('intelmpi')
+            # ## intel compiler and mpi
+            # if 'intel' in modules:
+            #     content.append('. /cluster/Software/intel14/composer_xe_2013_sp1/bin/compilervars.sh intel64')
+            #     while'intel' in modules:
+            #         modules.remove('intel')
+            # if 'intelmpi' in modules or 'intelmpi' in modules:
+            #     content.append('. /cluster/Software/intel14/impi/4.1.1.036/intel64/bin/mpivars.sh')
+            #     while'intelmpi' in modules:
+            #         modules.remove('intelmpi')
             ## system modules
             for module in modules:
                 content.append('module load {}'.format(module))
