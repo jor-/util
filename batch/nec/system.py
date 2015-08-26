@@ -44,7 +44,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         return 'RUN' in output
 
 
-    def _nodes_state(self, kinds):
+    def _nodes_state(self):
         output = subprocess.check_output(self.nodes_command).decode('utf8')
         lines = output.splitlines()
         assert len(lines) == 13
@@ -57,12 +57,8 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             node_kind = line_splitted[0]
             number_of_free_nodes = int(line_splitted[-1])
             
-            node_info = self.node_infos[node_kind]
-            cpus = node_info['cpus']
-            memory = node_info['memory']
-            
-            free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * node_info['cpus']
-            free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * node_info['memory']
+            free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
+            free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
             
             state[node_kind] = (free_cpus, free_memory)
         
