@@ -51,10 +51,6 @@ class BatchSystem():
 
     def __init__(self, commands, queues, max_walltime={}, module_renaming={}, node_infos={}):
         self.commands = commands
-        # self.submit_command = submit_command
-        # self.mpi_command = mpi_command
-        # self.time_command = 'command time -f "Statistics for %C:\nexit code: %x, elapsed time: %Es\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs" {command}'
-        # logger.debug('{} initiated with submit_command {}, queues {}, max_walltime {} and module_renaming {}.'.format(self, submit_command, queues, max_walltime, module_renaming))
         logger.debug('{} initiating with commands {}, queues {}, max_walltime {} and module_renaming {}.'.format(self, commands, queues, max_walltime, module_renaming))
         self.queues = queues
         self.max_walltime = max_walltime
@@ -659,7 +655,7 @@ class JobError(Exception):
 
 class NodeSetup:
 
-    def __init__(self, memory=1, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=1):
+    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=1):
 
         assert nodes is None or nodes >= 1
         assert cpus is None or cpus >= 1
@@ -679,7 +675,7 @@ class NodeSetup:
             cpus = 1
 
         ## save setup
-        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'total_cpus_min': total_cpus_min, 'nodes_max': nodes_max, 'nodes_left_free': nodes_left_free, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
+        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_left_free': nodes_left_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
         self.setup = setup
         self.batch_system = util.batch.universal.system.BATCH_SYSTEM
 
@@ -693,8 +689,7 @@ class NodeSetup:
         return '{}: {}'.format(self.__class__.__name__, self.setup)
 
     def __copy__(self):
-        copy = type(self)()
-        copy.setup = self.setup.copy()
+        copy = type(self)(**self.setup)
         return copy
 
     def copy(self):
