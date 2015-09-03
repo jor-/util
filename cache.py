@@ -137,41 +137,6 @@ class MemoryCacheDeactivatable(MemoryCache):
 
 
 
-# class MemoryCacheDeactivatable(MemoryCache):
-#
-#     def __init__(self, enabled=True):
-#         super().__init__()
-#         self.memory_cache_enabled = enabled
-#         self.memory_cache_enabled_for_value = True
-#
-#
-#     def set_state(enabled):
-#         self.memory_cache_enabled = enabled
-#
-#     def is_enabled():
-#         return self.memory_cache_enabled and self.memory_cache_enabled_for_value
-#
-#
-#     def load_value(self, value_name):
-#         if self.is_enabled():
-#             return super().load_value(value_name)
-#         else:
-#             raise CacheMissError(value_name)
-#
-#     def save_value(self, value_name, value):
-#         if self.is_enabled():
-#             self.memory_cache[value_name] = value
-#
-#
-#     def get_value(self, value_name, calculate_function, as_shared_array=False, use_memory_cache=True):
-#         self.memory_cache_enabled_for_value = use_memory_cache
-#         value = super().get_value(value_name, calculate_function, as_shared_array=as_shared_array)
-#         self.memory_cache_enabled_for_value = True
-#         return value
-
-
-
-
 class HDD_Cache(Cache):
 
     def __init__(self, cache_dir, load_function, save_function, use_memory_cache=False):
@@ -183,6 +148,10 @@ class HDD_Cache(Cache):
         assert callable(load_function) and callable(save_function)
         self.load_function = load_function
         self.save_function = save_function
+    
+
+    def memory_cache_switch(self, enabled):
+        self.use_memory_cache  = enabled
 
 
     def get_file(self, value_name):
@@ -227,121 +196,6 @@ class HDD_Cache(Cache):
 
 
 
-# class MemoryCache(Cache):
-#
-#     def __init__(self, enabled=True):
-#         self.memory_cache = {}
-#         self.memory_cache_enabled = enabled
-#
-#     def load_value(self, value_name):
-#         try:
-#             if self.memory_cache_enabled:
-#                 return self.memory_cache[value_name]
-#         except KeyError:
-#             pass
-#         raise CacheMissError(value_name)
-#
-#     def save_value(self, value_name, value):
-#         if self.memory_cache_enabled:
-#             self.memory_cache[value_name] = value
-#
-#     def del_value(self, value_name):
-#         del self.memory_cache[value_name]
-
-
-
-# class HDD_Cache(MemoryCacheDeactivatable):
-#
-#     def __init__(self, cache_dir, load_function, save_function, use_memory_cache=False):
-#         super().__init__(enabled=use_memory_cache)
-#
-#         self.cache_dir = cache_dir
-#
-#         assert callable(load_function) and callable(save_function)
-#         self.load_function = load_function
-#         self.save_function = save_function
-#
-#
-#     def get_file(self, value_name):
-#         return os.path.join(self.cache_dir, value_name)
-#
-#
-#     def load_value(self, value_name):
-#         try:
-#             return super().load_value(value_name)
-#         except CacheMissError:
-#             file = self.get_file(value_name)
-#             try:
-#                 value = self.load_function(file)
-#             except OSError:
-#                 raise CacheMissError(value_name)
-#             super().save_value(value_name, value)
-#             return value
-#
-#
-#     def save_value(self, value_name, value):
-#         super().save_value(value_name, value)
-#         file = self.get_file(value_name)
-#         self.save_function(file, value)
-#         os.chmod(file, stat.S_IRUSR)
-#
-#
-#
-#     def get_value(self, value_name, calculate_function, as_shared_array=False, use_memory_cache=True):
-#
-#
-#
-#     def has_value(self, value_name):
-#         file = self.get_file(value_name)
-#         exists = os.path.exists(file)
-#         logger.debug('Value "{}" existing {} in {}.'.format(value_name, exists, self))
-#         return exists
-#
-#
-#     def __str__(self):
-#         return self.__class__.__name__ + ': ' + self.cache_dir
-
-
-# class HDD_Cache(Cache):
-#
-#     def __init__(self, cache_dir, load_function, save_function):
-#         self.cache_dir = cache_dir
-#
-#         assert callable(load_function) and callable(save_function)
-#         self.load_function = load_function
-#         self.save_function = save_function
-#
-#
-#     def get_file(self, value_name):
-#         return os.path.join(self.cache_dir, value_name)
-#
-#
-#     def load_value(self, value_name):
-#         file = self.get_file(value_name)
-#         try:
-#             return self.load_function(file)
-#         except OSError:
-#             raise CacheMissError(value_name)
-#
-#
-#     def save_value(self, value_name, value):
-#         file = self.get_file(value_name)
-#         self.save_function(file, value)
-#         os.chmod(file, stat.S_IRUSR)
-#
-#
-#     def has_value(self, value_name):
-#         file = self.get_file(value_name)
-#         exists = os.path.exists(file)
-#
-#         logger.debug('Value "{}" existing {} in {}.'.format(value_name, exists, self))
-#         return exists
-#
-#
-#     def __str__(self):
-#         return self.__class__.__name__ + ': ' + self.cache_dir
-
-
 
 
 
@@ -370,65 +224,3 @@ class HDD_ObjectWithSaveCache(HDD_Cache):
 
 
 
-# class HDD_Cache(Cache):
-#
-#     def __init__(self, cache_dir):
-#         self.cache_dir = cache_dir
-#
-#     def get_file(self, value_name):
-#         return os.path.join(self.cache_dir, value_name)
-#
-#     def __str__(self):
-#         return self.__class__.__name__ + ': ' + self.cache_dir
-#
-#
-#
-# class HDD_NPY_Cache(HDD_Cache):
-#
-#     def load_value(self, value_name):
-#         try:
-#             return np.load(self.get_file(value_name))
-#         except OSError:
-#             raise CacheMissError(value_name)
-#
-#     def save_value(self, value_name, value):
-#         file = self.get_file(value_name)
-#         np.save(file, value)
-#         os.chmod(file, stat.S_IRUSR)
-#
-#
-#
-# class HDD_PickleCache(HDD_Cache):
-#
-#     def load_value(self, value_name):
-#         file = self.get_file(value_name)
-#         try:
-#             with open(file, 'rb') as f:
-#                 return pickle.load(f)
-#         except OSError:
-#             raise CacheMissError(value_name)
-#
-#     def save_value(self, value_name, value):
-#         file = self.get_file(value_name)
-#         with open(file, 'wb') as f:
-#             pickle.dump(value, f)
-#         os.chmod(file, stat.S_IRUSR)
-#
-#
-#
-# class HDD_Object_Cache(HDD_Cache):
-#
-#     def __init__(self, cache_dir, object):
-#         self.object = object
-#         super().__init__(cache_dir)
-#
-#     def load_value(self, value_name):
-#         try:
-#             return self.object.load(self.get_file(value_name))
-#         except OSError:
-#             raise CacheMissError(value_name)
-#
-#     def save_value(self, value_name, value):
-#         file = self.get_file(value_name)
-#         self.object.save(file, value)
-#         os.chmod(file, stat.S_IRUSR)
