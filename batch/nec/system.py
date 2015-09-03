@@ -41,7 +41,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
     def is_job_running(self, job_id):
         output = self.job_state(job_id)
-        return 'RUN' in output
+        return 'RequestID' in output
 
 
     def _nodes_state(self):
