@@ -24,7 +24,12 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
     logger.debug('Calculating positive definite approximation of matrix {!r} with min diagonal entry {}, min absolute value {}, ordering_method {}, reorder_after_each_step {}, use_long {} and reduction_factors_file {}.'.format(A, min_diag_entry, min_abs_value, ordering_method, reorder_after_each_step, use_long, reduction_factors_file))
 
     def multiply_off_diagonal_entries_with_factor(i, factor):
-        assert factor >= 0 and factor < 1
+        if not np.isfinite(factor):
+            raise ValueError('Reduction factor {} with index {} has to be finite!'.format(factor, i))
+        if not factor <= 1:
+            raise ValueError('Reduction factor {} with index {} has to be <= 1!'.format(factor, i))
+        if not factor >= 0:
+            raise ValueError('Reduction factor {} with index {} has to be >= 0!'.format(factor, i))
 
         ## get indices
         A_ii = A[i,i]
@@ -73,11 +78,10 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
     if reduction_factors_file is not None and os.path.exists(reduction_factors_file):
         reduction_factors = np.load(reduction_factors_file)
         for i in np.where((reduction_factors != 1))[0]:
-            multiply_off_diagonal_entries_with_factor(i, reduction_factors[i])
-        # for i in range(len(reduction_factors)):
-        #     factor = reduction_factors[i]
-        #     if factor != 1:
-        #         multiply_off_diagonal_entries_with_factor(i, factor)
+            try:
+                multiply_off_diagonal_entries_with_factor(i, reduction_factors[i])
+            except ValueError as e:
+                raise ValueError('Reduction factors file is wrong.') from e
     else:
         reduction_factors = np.ones(n, dtype=A.dtype)
 
@@ -118,13 +122,6 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
                 raise util.math.matrix.NoPositiveDefiniteMatrixError(A, 'Diagonal entries of matrix must be positiv but {}th entry is {}.'.format(p_i, A_ii))
 
             ## calculate reduction factor
-            # (L, D) = f.L_D()
-            # assert scipy.sparse.isspmatrix_csr(L)
-            # D_diag = D.diagonal()
-            # L_i_start_index = L.indptr[i]
-            # L_i_stop_index = L.indptr[i+1]
-            # L_i_columns = L.indices[L_i_start_index:L_i_stop_index]
-            # L_i_data = L.data[L_i_start_index:L_i_stop_index]
             LD = f.LD()     # Do not use f.L_D() -> higher memory consumption
             del f
             assert scipy.sparse.isspmatrix_csc(LD)
@@ -140,7 +137,12 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
             del LD, D_diag, L_i, L_i_columns, L_i_data
 
             reduction_factor_i = ((A_ii - min_diag_entry) / s)**(1/2)
+            if reduction_factor_i >= 1:
+                min_reduction_factor = 0.99
+                logger.warning('Current calculated reduction factor {} for column {} is greater then 1. Past total reducing reduction factor is {}. The diagonal entry is {}. The sum is {}. Changing reduction factor to {}.'.format(reduction_factor_i, p_i, reduction_factors[p_i], A_ii, s, min_reduction_factor))
+                reduction_factor_i = min_reduction_factor
             reduction_factors[p_i] *= reduction_factor_i
+            
             if reduction_factors_file is not None:
                 np.save(reduction_factors_file, reduction_factors)
             logger.debug('Row {} of cholesky decomposition not constructable. Row/column {} makes matrix not positive definite. Multiplying off diagonal entries with {}.'.format(i, p_i, reduction_factor_i))
@@ -220,117 +222,5 @@ def cholesky(A, ordering_method='default', return_type=RETURN_P_L, use_long=Fals
             logger.debug('Returning permutation matrix {!r}, lower triangular matrix {!r} and diagonal matrix {!r}.'.format(P, L, D))
             return (P, L, D)
 
-
-
-# def cholesky(A, approximate_if_not_positive_semidefinite=False, reduction_factor=0.9, min_abs_value=0, ordering_method='default', return_type=RETURN_P_L_D):
-#     logger.debug('Calculating cholesky decomposition for matrix {!r}.'.format(A))
-#
-#     ## check input
-#     return_types = (RETURN_A, RETURN_P_L, RETURN_P_L_D)
-#     if return_type not in return_types:
-#         raise ValueError('Unknown return type {}. Only values in {} are supported.'.format(return_type, return_types))
-#     if ordering_method not in CHOLMOD_ORDERING_METHODS:
-#         raise ValueError('Unknown ordering method {}. Only values in {} are supported.'.format(ordering_method, CHOLMOD_ORDERING_METHODS))
-#
-#     #TODO symmetry check
-#     A = util.math.sparse.check.sorted_squared_csc(A)
-#
-#     ## calculate cholesky decomposition
-#     if not approximate_if_not_positive_semidefinite:
-#         try:
-#             f = scikits.sparse.cholmod.cholesky(A, ordering_method=ordering_method)
-#         except scikits.sparse.cholmod.CholmodNotPositiveDefiniteError as e:
-#             raise util.math.matrix.NoPositiveDefiniteMatrixError(A, 'Row/column {} makes matrix not positive definite.'.format(e.column))
-#
-#     ## calculate positive definite approximation of A
-#     else:
-#         old_column = -1
-#         finished = False
-#         while not finished:
-#             ## try cholesky decomposition
-#             try:
-#                 f = scikits.sparse.cholmod.cholesky(A, ordering_method='natural')
-#                 finished = True
-#             except scikits.sparse.cholmod.CholmodNotPositiveDefiniteError as e:
-#                 column = e.column
-#
-#             ## if not positive definite change row and column
-#             if not finished:
-#                 ## warn
-#                 if old_column == column:
-#                     total_reduction_factor *= reduction_factor
-#                 else:
-#                     if old_column != -1:
-#                         logger.warning('Multiplying column/row {} off diagonal entries with {}.'.format(old_column, total_reduction_factor))
-#                     logger.warning('Column/row {} makes matrix not positive definite.'.format(column))
-#                     old_column = column
-#                     total_reduction_factor = reduction_factor
-#
-#                 ## save diagonal entry
-#                 A_cc = A[column,column]
-#                 if A_cc <= 0:
-#                     raise util.math.matrix.NoPositiveDefiniteMatrixError(A, 'Diagonal entries of matrix must be positiv but {}th entry is {}.'.format(column, A_cc))
-#
-#                 ## check
-#                 start_index = A.indptr[column]
-#                 stop_index = A.indptr[column+1]
-#                 assert stop_index - start_index > 1
-#
-#                 ## set column
-#                 A.data[start_index:stop_index] *= reduction_factor
-#
-#                 ## set 0 for low values
-#                 row_indices = A.indices[start_index:stop_index]
-#                 zero_row_indices = row_indices[np.abs(A.data[start_index:stop_index]) < min_abs_value]
-#                 for row in zero_row_indices:
-#                     A[column, row] = 0
-#
-#                 ## set row
-#                 data = A.data[start_index:stop_index]
-#                 for row, data_ij in zip(row_indices, data):
-#                     if row != column:
-#                         A[column, row] = data_ij
-#
-#                 ## set diagonal entry
-#                 A[column,column] = A_cc
-#
-#                 ## eliminate zeros
-#                 if len(zero_row_indices) > 0:
-#                     A.eliminate_zeros()
-#
-#         ## calculate cholesky decomposition
-#         if return_types != RETURN_A:
-#             f = scikits.sparse.cholmod.cholesky(A, ordering_method=ordering_method)
-#
-#
-#     ## calculate permuation matrix
-#     if return_types in (RETURN_P_L, RETURN_P_L_D):
-#         p = f.P()
-#         n = len(p)
-#         P = scipy.sparse.dok_matrix((n,n))
-#         for i in range(n):
-#             P[i,p[i]] = 1
-#         P = P.tocsr()
-#
-#     ## return A
-#     if return_types == RETURN_A:
-#         logger.debug('Returning positive definite matrix {!r}.'.format(A))
-#         return A
-#
-#     ## return P, L
-#     if return_types == RETURN_P_L:
-#         L = f.L().tocsr()
-#         logger.debug('Returning permutation matrix {!r} and lower triangular matrix {!r}.'.format(P, L))
-#         return (P, L)
-#
-#     ## return P, L, D
-#     if return_types == RETURN_P_L_D:
-#         LD = f.LD()
-#         d = LD.diagonal()
-#         D = scipy.sparse.dia_matrix((d[np.newaxis,:], [0]), shape=(n,n))
-#         L = LD.tocsr()
-#         L.setdiag(1)
-#         logger.debug('Returning permutation matrix {!r}, lower triangular matrix {!r} and diagonal matrix {!r}.'.format(P, L, D))
-#         return (P, L, D)
 
 
