@@ -171,32 +171,36 @@ def line(x, y, file, line_label=None, line_width=1, line_style='-', line_color='
     if len(x) != len(y) and len(x) != 1:
         raise ValueError('Length of x must have same length as y or length 1 but length x is {} and length y is {}.'.format(len(x), len(y)))
 
-    ## prepare for multiple lines
-    multiple_lines = np.asarray(y[0]).ndim != 0
-    if multiple_lines:
-        xs = x
-        ys = y
-
-        ## copy line setups for each line if only one line setup passed
-        n = len(ys)
-        line_setups = []
-        for line_setup in (line_label, line_width, line_style, line_color):
-            if np.asarray(line_setup).ndim == 0:
-                line_setup = (line_setup,) * n
-            line_setups.append(line_setup)
-
-        line_labels = line_setups[0]
-        line_widths = line_setups[1]
-        line_styles = line_setups[2]
-        line_colors = line_setups[3]
+    ## prepare line(s)
+    if len(y) > 0:
+        ## multiple lines
+        if np.asarray(y[0]).ndim != 0:
+            xs = x
+            ys = y
+    
+            ## copy line setups for each line if only one line setup passed
+            number_of_lines = len(ys)
+            line_setups = []
+            for line_setup in (line_label, line_width, line_style, line_color):
+                if np.asarray(line_setup).ndim == 0:
+                    line_setup = (line_setup,) * n
+                line_setups.append(line_setup)
+    
+            line_labels = line_setups[0]
+            line_widths = line_setups[1]
+            line_styles = line_setups[2]
+            line_colors = line_setups[3]
+        ## one line
+        else:
+            number_of_lines = 1
+            xs = x.reshape((1,) + x.shape)
+            ys = y.reshape((1,) + y.shape)
+            line_labels = [line_label]
+            line_widths = [line_width]
+            line_styles = [line_style]
+            line_colors = [line_color]
     else:
-        n = 1
-        xs = x.reshape((1,) + x.shape)
-        ys = y.reshape((1,) + y.shape)
-        line_labels = [line_label]
-        line_widths = [line_width]
-        line_styles = [line_style]
-        line_colors = [line_color]
+        number_of_lines = 0
 
     ## make figure
     fig = plt.figure()
@@ -204,7 +208,7 @@ def line(x, y, file, line_label=None, line_width=1, line_style='-', line_color='
     x_max = -np.inf
 
     ## plot each line
-    for i in range(n):
+    for i in range(number_of_lines):
         ## get line and setup
         x = np.asanyarray(xs[i])
         y = np.asanyarray(ys[i])
