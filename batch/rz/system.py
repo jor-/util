@@ -136,7 +136,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
     def _nodes_state(self):
         state = {}
-        for kind in self.node_infos.kinds:
+        for kind in self.node_infos.kinds():
             state[kind] = self._nodes_state_one_kind(kind)
         return state
     
@@ -154,9 +154,7 @@ class Job(util.batch.general.system.Job):
         super().__init__(BATCH_SYSTEM, output_dir, force_load=force_load, max_job_name_len=15)
 
 
-    def init_job_file(self, job_name, nodes_setup, queue=None, walltime_hours=None, write_output_file=True):
-        from util.batch.universal.constants import MAX_WALLTIME, QUEUES
-
+    def init_job_file(self, job_name, nodes_setup, queue=None, walltime_hours=None):
         ## set queue if missing
         cpu_kind = nodes_setup.node_kind
 
@@ -168,18 +166,18 @@ class Job(util.batch.general.system.Job):
             if queue is None:
                 if walltime_hours is None:
                     queue = 'medium'
-                elif walltime_hours <= MAX_WALLTIME['express']:
+                elif walltime_hours <= self.batch_system.max_walltime['express']:
                     queue = 'express'
-                elif walltime_hours <= MAX_WALLTIME['small']:
+                elif walltime_hours <= self.batch_system.max_walltime['small']:
                     queue = 'small'
-                elif walltime_hours <= MAX_WALLTIME['medium']:
+                elif walltime_hours <= self.batch_system.max_walltime['medium']:
                     queue = 'medium'
-                elif walltime_hours <= MAX_WALLTIME['long']:
+                elif walltime_hours <= self.batch_system.max_walltime['long']:
                     queue = 'long'
-                elif walltime_hours <= MAX_WALLTIME['para_low']:
+                elif walltime_hours <= self.batch_system.max_walltime['para_low']:
                     queue = 'para_low'
                 else:
-                    raise ValueError('Walltime hours > {} are not supported.'.format(MAX_WALLTIME['para_low']))
+                    raise ValueError('Walltime hours > {} are not supported.'.format(self.batch_system.max_walltime['para_low']))
 
         ## set cpu kind
         if cpu_kind == 'f_ocean2':
@@ -188,7 +186,7 @@ class Job(util.batch.general.system.Job):
             cpu_kind = 'all'
 
         ## super
-        super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind, walltime_hours=walltime_hours, write_output_file=write_output_file)
+        super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind, walltime_hours=walltime_hours)
 
 
 

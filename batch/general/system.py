@@ -316,7 +316,7 @@ class BatchSystem():
 
     
     def wait_for_needed_resources(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf')):
-        logger.debug('Waiting for at least {} CPUs with {}GB memory, with node_kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_min{} and total_cpus_max {}.'.format(total_cpus_min, memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_min, total_cpus_max))
+        logger.debug('Waiting for at least {} CPUs with {}GB memory, with node_kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_min {} and total_cpus_max {}.'.format(total_cpus_min, memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_min, total_cpus_max))
     
         ## check input
         if total_cpus_min > total_cpus_max:
@@ -358,31 +358,33 @@ class Job():
         ## check input
         if output_dir is None:
             raise ValueError('The output dir is not allowed to be None.')
-
+        output_dir_expanded = os.path.expandvars(output_dir)
+        
         ## get option file
         try:
-            option_file = os.path.join(output_dir, 'job_options.hdf5')
+            option_file_expanded = os.path.join(output_dir_expanded, 'job_options.hdf5')
         except Exception as e:
             raise ValueError('The output dir {} is not allowed.'.format(output_dir)) from e
 
         ## load option file if existing or forced
-        if force_load or os.path.exists(option_file):
-            self.__options = util.options.Options(option_file, mode='r+', replace_environment_vars_at_get=True)
-            logger.debug('Job {} loaded.'.format(option_file))
+        if force_load or os.path.exists(option_file_expanded):
+            self.__options = util.options.Options(option_file_expanded, mode='r+', replace_environment_vars_at_get=True)
+            logger.debug('Job {} loaded.'.format(option_file_expanded))
 
         ## make new job options file otherwise
         else:
-            os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(output_dir_expanded, exist_ok=True)
 
-            self.__options = util.options.Options(option_file, mode='w-', replace_environment_vars_at_get=True)
+            self.__options = util.options.Options(option_file_expanded, mode='w-', replace_environment_vars_at_get=True)
 
-            self.__options['/job/output_dir'] = output_dir
-            self.__options['/job/option_file'] = os.path.join(output_dir, 'job_options.txt')
-            self.__options['/job/id_file'] = os.path.join(output_dir, 'job_id.txt')
-            self.__options['/job/unfinished_file'] = os.path.join(output_dir, 'unfinished.txt')
-            self.__options['/job/finished_file'] = os.path.join(output_dir, 'finished.txt')
+            self.options['/job/output_dir'] = output_dir
+            self.options['/job/output_file'] = os.path.join(self.output_dir, 'job_output.txt')
+            self.options['/job/option_file'] = os.path.join(output_dir, 'job_options.txt')
+            self.options['/job/id_file'] = os.path.join(output_dir, 'job_id.txt')
+            self.options['/job/unfinished_file'] = os.path.join(output_dir, 'unfinished.txt')
+            self.options['/job/finished_file'] = os.path.join(output_dir, 'finished.txt')
 
-            logger.debug('Job {} initialized.'.format(option_file))
+            logger.debug('Job {} initialized.'.format(option_file_expanded))
 
 
     def __del__(self):
@@ -498,7 +500,7 @@ class Job():
 
     ## init methods
 
-    def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None, walltime_hours=None, write_output_file=True):
+    def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None, walltime_hours=None):
         ## check qeue and walltime
         queue = self.batch_system.check_queue(queue)
         walltime_hours = self.batch_system.check_walltime(queue, walltime_hours)
@@ -513,9 +515,6 @@ class Job():
             self.options['/job/cpu_kind'] = cpu_kind
         if walltime_hours is not None:
             self.options['/job/walltime_hours'] = walltime_hours
-
-        if write_output_file:
-            self.options['/job/output_file'] = os.path.join(self.output_dir, 'job_output.txt')
 
 
 
@@ -655,7 +654,7 @@ class JobError(Exception):
 
 class NodeSetup:
 
-    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_left_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=1):
+    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=1):
 
         assert nodes is None or nodes >= 1
         assert cpus is None or cpus >= 1
@@ -675,7 +674,7 @@ class NodeSetup:
             cpus = 1
 
         ## save setup
-        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_left_free': nodes_left_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
+        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_leave_free': nodes_leave_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
         self.setup = setup
         self.batch_system = util.batch.universal.system.BATCH_SYSTEM
 
