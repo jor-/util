@@ -223,6 +223,6 @@ class Options():
             new_option = old_option.replace(old_str, new_str)
             if old_option != new_option:
                 self[option] = new_option
-                logger.debug('Option {} updated from {} to {}.'.format(option, old_option, new_option))
+                logger.info('Option {} updated from {} to {}.'.format(option, old_option, new_option))
             else:
                 logger.debug('Option {} with value {} does not have to be updated.'.format(option, old_option))
