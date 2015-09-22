@@ -1,5 +1,4 @@
 import os
-# import pickle
 import stat
 
 import numpy as np
@@ -9,25 +8,6 @@ import util.parallel.with_multiprocessing
 
 import util.logging
 logger = util.logging.logger
-
-
-# class MemoryCache():
-#
-#     def __init__(self):
-#         self.memory_cache = {}
-#
-#     def get_value(self, value_name, calculate_function, as_shared_array=False):
-#         try:
-#             value = self.memory_cache[value_name]
-#             logger.debug('Loaded value "{}" from memory cache.'.format(value_name))
-#             return value
-#         except KeyError:
-#             logger.debug('Value "{}" not found in memory cache. Calculating value and saving.'.format(value_name))
-#             value = calculate_function()
-#             if as_shared_array:
-#                 value = util.parallel.with_multiprocessing.shared_array(value)
-#             self.memory_cache[value_name] = value
-#             return value
 
 
 class CacheMissError(LookupError):
@@ -118,7 +98,7 @@ class MemoryCacheDeactivatable(MemoryCache):
         self.memory_cache_enabled = enabled
 
 
-    def set_state(self, enabled):
+    def switch(self, enabled):
         self.memory_cache_enabled = enabled
 
     def is_enabled(self):
@@ -174,13 +154,13 @@ class HDD_Cache(Cache):
     def save_value(self, value_name, value):
         self.memory_cache.save_value(value_name, value)
         file = self.get_file(value_name)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         self.save_function(file, value)
         os.chmod(file, stat.S_IRUSR)
 
 
-
     def get_value(self, value_name, calculate_function, as_shared_array=False, use_memory_cache=True):
-        self.memory_cache.set_state(self.use_memory_cache and use_memory_cache)
+        self.memory_cache.switch(self.use_memory_cache and use_memory_cache)
         return super().get_value(value_name, calculate_function, as_shared_array=as_shared_array)
 
 
