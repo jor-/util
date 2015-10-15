@@ -20,16 +20,32 @@ CHOLMOD_ORDERING_METHODS = ('natural', 'default', 'best')
 
 
 
-def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, ordering_method='natural', reorder_after_each_step=True, use_long=False, reduction_factors_file=None):
-    logger.debug('Calculating positive definite approximation of matrix {!r} with min diagonal entry {}, min absolute value {}, ordering_method {}, reorder_after_each_step {}, use_long {} and reduction_factors_file {}.'.format(A, min_diag_entry, min_abs_value, ordering_method, reorder_after_each_step, use_long, reduction_factors_file))
+def approximate_positive_definite(A, min_abs_value=0, ordering_method='natural', min_diag_value=10**(-4), reorder_after_each_step=True, use_long=False, reduction_factors_file=None):
+    logger.debug('Calculating positive definite approximation of matrix {!r} with min diagonal entry {}, min absolute value {}, ordering_method {}, reorder_after_each_step {}, use_long {} and reduction_factors_file {}.'.format(A, min_diag_value, min_abs_value, ordering_method, reorder_after_each_step, use_long, reduction_factors_file))
+    
+    assert min_diag_value > 0
 
-    def multiply_off_diagonal_entries_with_factor(i, factor):
-        if not np.isfinite(factor):
-            raise ValueError('Reduction factor {} with index {} has to be finite!'.format(factor, i))
-        if not factor <= 1:
-            raise ValueError('Reduction factor {} with index {} has to be <= 1!'.format(factor, i))
-        if not factor >= 0:
-            raise ValueError('Reduction factor {} with index {} has to be >= 0!'.format(factor, i))
+    max_reduction_factor = 1 - 10**-6
+    def multiply_off_diagonal_entries_with_factor(i, reduction_factor):
+        # logger.debug('Multiplying off diagonal entries of row and column {} with {}.'.format(i, reduction_factor))
+        
+        ## check reduction_factor
+        if not np.isfinite(reduction_factor):
+            raise ValueError('Reduction factor {} with index {} has to be finite!'.format(reduction_factor, i))
+        if not reduction_factor < 1:
+            raise ValueError('Reduction factor {} with index {} has to be < 1!'.format(reduction_factor, i))
+        if not reduction_factor >= 0:
+            raise ValueError('Reduction factor {} with index {} has to be >= 0!'.format(reduction_factor, i))
+        
+        ## check max reduction factor
+        if reduction_factor > max_reduction_factor:
+            logger.warning('Current reduction factor {} for row and column {} is greater then max reduction factor {}. Past total reducing reduction factor is {}. Changing reduction factor to max reduction factor.'.format(reduction_factor, i, max_reduction_factor, reduction_factors[i]))
+            reduction_factor = max_reduction_factor
+        
+        ## save reduction factor
+        if reduction_factors_file is not None:
+            reduction_factors[i] *= reduction_factor
+            np.save(reduction_factors_file, reduction_factors)
 
         ## get indices
         A_ii = A[i,i]
@@ -38,7 +54,7 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
         assert A_i_stop_index - A_i_start_index > 1
 
         ## set column
-        A.data[A_i_start_index:A_i_stop_index] *= factor
+        A.data[A_i_start_index:A_i_stop_index] *= reduction_factor
 
         ## set 0 for low values
         for k in range(A_i_start_index, A_i_stop_index):
@@ -58,7 +74,16 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
         ## eliminate zeros
         if reorder_after_each_step or ordering_method == 'natural':
             A.eliminate_zeros()
-
+    
+    
+    def get_p_i(i, f):        
+        if ordering_method == 'natural':
+            p_i = i
+        else:
+            p_i = f.P()[i]
+        return p_i
+        
+    
 
     ## check input
     #TODO symmetry check
@@ -73,8 +98,11 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
     if min_abs_value < resolution:
         logger.warning('Setting min abs value to resolution {} of data type.'.format(resolution))
         min_abs_value = resolution
-    finished = False
+    if min_diag_value < resolution:
+        logger.warning('Setting min diag value to resolution {} of data type.'.format(resolution))
+        min_diag_value = resolution
 
+    ## apply reduction file values
     if reduction_factors_file is not None and os.path.exists(reduction_factors_file):
         reduction_factors = np.load(reduction_factors_file)
         for i in np.where((reduction_factors != 1))[0]:
@@ -92,67 +120,67 @@ def approximate_positive_definite(A, min_diag_entry=10**(-4), min_abs_value=0, o
     A.eliminate_zeros()
 
     ## calculate positive definite approximation of A
+    logger.debug('Checking if matrix is positive definite.')
+    finished = False
     while not finished:
-
-        ## try cholesky decomposition
+        
+        ## compute cholesky factor
         try:
             try:
                 f = scikits.sparse.cholmod.cholesky(A, ordering_method=ordering_method, use_long=use_long)
             except scikits.sparse.cholmod.CholmodTooLargeError as e:
                 if not use_long:
                     warnings.warn('Problem to large for int, switching to long.')
-                    return approximate_positive_definite(A, min_diag_entry=min_diag_entry, min_abs_value=min_abs_value, use_long=True)
+                    return approximate_positive_definite(A, min_diag_value=min_diag_value, min_abs_value=min_abs_value, use_long=True)
                 else:
                     raise
-            finished = True
         except scikits.sparse.cholmod.CholmodNotPositiveDefiniteError as e:
-            i = e.column
             f = e.factor
-
-        ## if not positive definite change row and column
+        
+        ## calculate LD and d
+        LD = f.LD()     # Do not use f.L_D() -> higher memory consumption
+        assert scipy.sparse.isspmatrix_csc(LD)
+        d = LD.diagonal()
+        
+        ## check if all diagonal entries >= min_diag_value
+        i_array = np.where(np.logical_not(np.logical_or(d >= min_diag_value, np.isclose(d, min_diag_value, atol=0, rtol=10**-4))))[0]
+        finished = len(i_array) == 0
+        
+        ## if not, reduce off diagonal entries at row and column
         if not finished:
-            if ordering_method == 'natural':
-                p_i = i
-            else:
-                p_i = f.P()[i]
-
+            ## get i and p_i
+            i = i_array[0]
+            p_i = get_p_i(i, f)
+            del f, i_array
+            
             ## check diagonal entry
-            A_ii = A[p_i,p_i]
-            if A_ii <= 0:
-                raise util.math.matrix.NoPositiveDefiniteMatrixError(A, 'Diagonal entries of matrix must be positiv but {}th entry is {}.'.format(p_i, A_ii))
-
-            ## calculate reduction factor
-            LD = f.LD()     # Do not use f.L_D() -> higher memory consumption
-            del f
+            A_ii = A[p_i, p_i]
+            if A_ii < min_diag_value:
+                raise util.math.matrix.NoPositiveDefiniteMatrixError(A, 'Diagonal values of matrix must be at least {} to be able to ensure the minimum value, but the {}th entry is {}.'.format(min_diag_value, p_i, A_ii))
+    
+            ## get values for calulation of reduction factors
             assert scipy.sparse.isspmatrix_csc(LD)
-            D_diag = LD.diagonal()
             L_i = LD[i].tocsr()
-            # assert scipy.sparse.isspmatrix_csr(L_i)
             L_i_columns = L_i.indices
             L_i_data = L_i.data
-
+            assert len(L_i_data) == len(L_i_columns) >= 2
+            assert L_i_columns[-1] == i
+    
+            ## calculate reduction factor
             s = 0
-            for j, L_ij in zip(L_i_columns, L_i_data):
-                s += L_ij**2 * D_diag[j]
-            del LD, D_diag, L_i, L_i_columns, L_i_data
-
-            reduction_factor_i = ((A_ii - min_diag_entry) / s)**(1/2)
-            if reduction_factor_i >= 1:
-                min_reduction_factor = 0.99
-                logger.warning('Current calculated reduction factor {} for column {} is greater then 1. Past total reducing reduction factor is {}. The diagonal entry is {}. The sum is {}. Changing reduction factor to {}.'.format(reduction_factor_i, p_i, reduction_factors[p_i], A_ii, s, min_reduction_factor))
-                reduction_factor_i = min_reduction_factor
-            reduction_factors[p_i] *= reduction_factor_i
-            
-            if reduction_factors_file is not None:
-                np.save(reduction_factors_file, reduction_factors)
-            logger.debug('Row {} of cholesky decomposition not constructable. Row/column {} makes matrix not positive definite. Multiplying off diagonal entries with {}.'.format(i, p_i, reduction_factor_i))
-
+            for j, L_ij in zip(L_i_columns[:-1], L_i_data[:-1]):
+                assert j < i
+                s += L_ij**2 * d[j]
+            reduction_factor_i = ((A_ii - min_diag_value) / s)**(1/2)
+        
             ## multiply off diagonal entries with reduction factor
+            logger.debug('Row {} of cholesky decomposition, corresponding to row/column {} of input matrix, has diagonal value {} which is less than the min value {}. Multiplying off diagonal entries with {}.'.format(i, p_i, d[i], min_diag_value, reduction_factor_i))
+            del LD, d, L_i, L_i_columns, L_i_data
             multiply_off_diagonal_entries_with_factor(p_i, reduction_factor_i)
-
+            
+    
     ## return
     A.eliminate_zeros()
-
     logger.debug('Returning reduction factors with average reduction factor {} and positive definite matrix {!r}.'.format(reduction_factors.mean(), A))
     return (A, reduction_factors)
 
