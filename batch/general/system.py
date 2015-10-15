@@ -4,6 +4,8 @@ import os
 import subprocess
 import time
 
+import numpy as np
+
 import util.io.fs
 import util.options
 import util.batch.universal.system
@@ -45,6 +47,38 @@ class NodeInfos():
             return node_info_kind['max_walltime']
         except KeyError:
             return float('inf')
+
+
+
+class NodesState():
+    
+    def __init__(self, nodes_state):
+        self.nodes_state = nodes_state
+    
+    def nodes_state_for_kind(self, kind):
+        nodes_state_values_for_kind = self.nodes_state_values_for_kind(kind)
+        return NodesState({kind: nodes_state_values_for_kind})
+    
+    def nodes_state_values_for_kind(self, kind):
+        try:
+            nodes_state_values_for_kind = self.nodes_state[kind]
+        except KeyError as e:
+            logger.warning('Node kind {} not found in nodes state {}.'.format(kind, self.nodes_state))
+            nodes_state_values_for_kind = [np.array([]), np.array([])]
+        return nodes_state_values_for_kind
+    
+    def free_cpus(self, kind, required_memory=0):
+        if required_memory == 0:
+            free_cpus = self.nodes_state_values_for_kind(kind)[0]
+        else:
+            free_memory = self.free_memory(kind)
+            free_cpus = self.free_cpus(kind, required_memory=0)
+            free_cpus = free_cpus[free_memory >= required_memory]
+        return free_cpus
+
+    def free_memory(self, kind):
+        return self.nodes_state_values_for_kind(kind)[1]
+
 
 
 class BatchSystem():
@@ -179,12 +213,9 @@ class BatchSystem():
     
     
     def is_free(self, memory, node_kind, nodes, cpus):
-        ## get nodes state
-        nodes_state = self._nodes_state()[node_kind]
-    
-        ## get only nodes with required memory
-        free_cpus, free_memory = nodes_state
-        free_cpus = free_cpus[free_memory >= memory]
+        ## get nodes with required memory
+        nodes_state = self._nodes_state()
+        free_cpus = nodes_state.free_cpus(node_kind, required_memory=memory)
         
         ## calculate useable nodes
         free_nodes = free_cpus[free_cpus >= cpus].size
@@ -194,7 +225,7 @@ class BatchSystem():
     
     
     @staticmethod
-    def _best_cpu_configurations_for_state(nodes_state, memory_required, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
+    def _best_cpu_configurations_for_state(nodes_state, node_kind, memory_required, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
         logger.debug('Getting best cpu configuration for node state {} with memory {}, nodes {}, cpus {}, nodes max {} and nodes left free {}.'.format(nodes_state, memory_required, nodes, cpus, nodes_max, nodes_leave_free))
     
         ## check input
@@ -217,8 +248,7 @@ class BatchSystem():
                 raise ValueError('total_cpus_max {} has to be greater or equal to nodes {} multiplied with cpus {}.'.format(total_cpus_max, nodes, cpus))
     
         ## get only nodes with required memory
-        free_cpus, free_memory = nodes_state
-        free_cpus = free_cpus[free_memory >= memory_required]
+        free_cpus = nodes_state.free_cpus(node_kind, required_memory=memory_required)
     
         ## calculate best configuration
         best_nodes = 0
@@ -289,14 +319,15 @@ class BatchSystem():
     
         ## calculate best CPU configuration
         for node_kind_i in node_kind:
-            nodes_state_i = nodes_state[node_kind_i]
             nodes_cpu_power_i = self.node_infos.speed(node_kind_i)
             nodes_max_i = self.node_infos.nodes(node_kind_i)
             nodes_max_i = min(nodes_max, nodes_max_i)
             nodes_leave_free_i = self.node_infos.leave_free(node_kind_i)
             nodes_leave_free_i = max(nodes_leave_free, nodes_leave_free_i)
             
-            (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i, total_cpus_max=total_cpus_max)
+            (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state, node_kind_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i, total_cpus_max=total_cpus_max)
+
+            logger.debug('Best CPU configurations for {}GB memory with node kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {} and total_cpus_max {} is {}.'.format(memory_required, node_kind_i, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, (best_nodes_i, best_cpus_i)))
     
             if nodes_cpu_power_i * best_cpus_i * best_nodes_i > best_cpu_power * best_cpus * best_nodes:
                 best_kind = node_kind_i
@@ -378,7 +409,7 @@ class Job():
             self.__options = util.options.Options(option_file_expanded, mode='w-', replace_environment_vars_at_get=True)
 
             self.options['/job/output_dir'] = output_dir
-            self.options['/job/output_file'] = os.path.join(self.output_dir, 'job_output.txt')
+            self.options['/job/output_file'] = os.path.join(output_dir, 'job_output.txt')
             self.options['/job/option_file'] = os.path.join(output_dir, 'job_options.txt')
             self.options['/job/id_file'] = os.path.join(output_dir, 'job_id.txt')
             self.options['/job/unfinished_file'] = os.path.join(output_dir, 'unfinished.txt')

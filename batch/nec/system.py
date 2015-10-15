@@ -47,7 +47,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def _nodes_state(self):
         output = subprocess.check_output(self.nodes_command).decode('utf8')
         lines = output.splitlines()
-        assert len(lines) == 13
+        # assert len(lines) == 13
         lines = lines[2:9]
         
         state = {}
@@ -62,7 +62,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             
             state[node_kind] = (free_cpus, free_memory)
         
-        return state
+        return util.batch.general.system.NodesState(state)
 
         
 

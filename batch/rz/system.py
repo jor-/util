@@ -138,7 +138,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         state = {}
         for kind in self.node_infos.kinds():
             state[kind] = self._nodes_state_one_kind(kind)
-        return state
+        return util.batch.general.system.NodesState(state)
     
 
 
