@@ -27,13 +27,19 @@ def add_file_ext_if_needed(file, ext):
 
 ## get files
 
-def filter_files(path, condition):
+def filter_files(path, condition, recursive=False):
+    ## get all filenames
+    if os.path.exists(path):
+        if recursive:
+            path_filenames = []
+            walk_path(path, path_filenames.append, path_filenames.append, topdown=True, exclude_dir=True)
+        else:
+            path_filenames = os.listdir(path)
+    else:
+        path_filenames = []
+    
+    ## filter filenames
     filtered_files = []
-
-    try:
-        path_filenames = os.listdir(path)
-    except OSError:
-        return []
     for path_filename in path_filenames:
         path_file = os.path.join(path, path_filename)
         if condition(path_file):
@@ -43,10 +49,10 @@ def filter_files(path, condition):
 
 def get_dirs(path=os.getcwd(), with_links=True):
     if with_links:
-        dirs = filter_files(path, os.path.isdir)
+        dirs = filter_files(path, os.path.isdir, recursive=False)
     else:
         fun = lambda file: os.path.isdir(file) and not os.path.islink(file)
-        dirs = filter_files(path, fun)
+        dirs = filter_files(path, fun, recursive=False)
 
     return dirs
 
@@ -59,7 +65,7 @@ def get_files(path=os.getcwd(), regular_expression=None):
             filename = os.path.split(file)[1]
             return os.path.isfile(file) and regular_expression_object.match(filename) is not None
 
-    return filter_files(path, condition)
+    return filter_files(path, condition, recursive=False)
 
 
 ## permissions
@@ -81,7 +87,7 @@ def make_read_only_recursively(path, exclude_dir=True):
 
     file_function = lambda file: os.chmod(file, stat.S_IRUSR)
     dir_function = lambda file: os.chmod(file, stat.S_IRUSR | stat.S_IXUSR)
-    walk_path_bottom_up(path, file_function, dir_function, exclude_dir=exclude_dir)
+    walk_path(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
 
 
 def make_writable(file, not_exist_ok=False):
@@ -101,7 +107,7 @@ def make_writable_recursively(path, exclude_dir=True):
 
     file_function = lambda file: os.chmod(file, stat.S_IRUSR | stat.S_IWUSR)
     dir_function = lambda file: os.chmod(file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-    walk_path_bottom_up(path, file_function, dir_function, exclude_dir=exclude_dir)
+    walk_path(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
 
 
 def get_file_permission(file):
@@ -126,7 +132,7 @@ def remove_file(file, force=False, not_exist_okay=False):
 def remove_recursively(path, force=False, exclude_dir=False):
     if force:
         make_writable_recursively(path, exclude_dir=exclude_dir)
-    walk_path_bottom_up(path, os.remove, os.rmdir, exclude_dir=exclude_dir)
+    walk_path(path, os.remove, os.rmdir, exclude_dir=exclude_dir, topdown=False)
 
 
 # ## extend
@@ -154,8 +160,8 @@ def makedirs_if_not_exists(file):
         logger.debug('directory {} created'.format(dir))
 
 
-def walk_path_bottom_up(path, file_function, dir_function, exclude_dir=True):
-    for (dirpath, dirnames, filenames) in os.walk(path, topdown=False):
+def walk_path(path, file_function, dir_function, topdown=True, exclude_dir=True):
+    for (dirpath, dirnames, filenames) in os.walk(path, topdown=topdown):
             for filename in filenames:
                 file = os.path.join(dirpath, filename)
                 file_function(file)
