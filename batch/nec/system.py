@@ -79,14 +79,14 @@ class Job(util.batch.general.system.Job):
         super().__init__(BATCH_SYSTEM, output_dir, force_load=force_load)
 
 
-    def init_job_file(self, job_name, nodes_setup, queue=None, walltime_hours=None):
+    def init_job_file(self, job_name, nodes_setup, queue=None):
         ## set queue if missing
         if queue is not None and queue != nodes_setup.node_kind:
             logger.warn('Queue {} and cpu kind {} have to be the same. Setting Queue to cpu kind.'.format(queue, nodes_setup.node_kind))
         queue = nodes_setup.node_kind
 
         ## super
-        super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=None, walltime_hours=walltime_hours)
+        super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=None)
 
 
     def _make_job_file_header(self, use_mpi):

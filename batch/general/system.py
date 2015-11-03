@@ -297,12 +297,14 @@ class BatchSystem():
 
 
     
-    def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf'), walltime=1):
+    def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf'), walltime=None):
 
-        logger.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {} and total_cpus_max {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max))
+        logger.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_max {} and walltime {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, walltime))
     
         ## chose node kinds if not passed
         if node_kind is None:
+            if walltime is None:
+                walltime = 0
             node_kind = []
             for node_kind_i in self.node_infos.kinds():
                 if self.node_infos.nodes(node_kind_i) > self.node_infos.leave_free(node_kind_i) and self.node_infos.max_walltime(node_kind_i) >= walltime:
@@ -449,14 +451,19 @@ class Job():
 
     ## option properties
 
-    def option_value(self, name, not_exist_okay=True):
-        if not_exist_okay:
-            try:
+    def option_value(self, name, not_exist_okay=True, replace_environment_vars=True):
+        replace_environment_vars_old = self.options.replace_environment_vars_at_get
+        self.options.replace_environment_vars_at_get = replace_environment_vars
+        try:
+            if not_exist_okay:
+                try:
+                    return self.options[name]
+                except KeyError:
+                    return None
+            else:
                 return self.options[name]
-            except KeyError:
-                return None
-        else:
-            return self.options[name]
+        finally:
+            self.options.replace_environment_vars_at_get = replace_environment_vars_old
 
 
     @property
@@ -470,6 +477,9 @@ class Job():
     def output_dir(self):
         return self.option_value('/job/output_dir', False)
 
+    @property
+    def output_dir_not_expanded(self):
+        return self.option_value('/job/output_dir', False, replace_environment_vars=False)
 
     @property
     def option_file(self):
@@ -531,9 +541,10 @@ class Job():
 
     ## init methods
 
-    def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None, walltime_hours=None):
+    def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None):
         ## check qeue and walltime
         queue = self.batch_system.check_queue(queue)
+        walltime_hours = nodes_setup.walltime
         walltime_hours = self.batch_system.check_walltime(queue, walltime_hours)
 
         ## set job options
@@ -685,7 +696,7 @@ class JobError(Exception):
 
 class NodeSetup:
 
-    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=1):
+    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
 
         assert nodes is None or nodes >= 1
         assert cpus is None or cpus >= 1
@@ -765,7 +776,7 @@ class NodeSetup:
             setup_triple = (self.node_kind, self.nodes, self.cpus)
             logger.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
             speed = self.batch_system.speed(*setup_triple)
-            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self['walltime'])
+            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self.walltime)
             best_speed = self.batch_system.speed(*best_setup_triple)
             if best_speed > speed:
                 logger.debug('Using better node setup configuration {}.'.format(best_setup_triple))
@@ -797,6 +808,14 @@ class NodeSetup:
     def cpus(self):
         self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('cpus')
+
+    @property
+    def walltime(self):
+        return self.setup['walltime']
+    
+    @walltime.setter
+    def walltime(self, walltime):
+        self.setup['walltime'] = walltime
 
 
 

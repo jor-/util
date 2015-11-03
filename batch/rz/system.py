@@ -154,7 +154,7 @@ class Job(util.batch.general.system.Job):
         super().__init__(BATCH_SYSTEM, output_dir, force_load=force_load, max_job_name_len=15)
 
 
-    def init_job_file(self, job_name, nodes_setup, queue=None, walltime_hours=None):
+    def init_job_file(self, job_name, nodes_setup, queue=None):
         ## set queue if missing
         cpu_kind = nodes_setup.node_kind
 
@@ -164,6 +164,7 @@ class Job(util.batch.general.system.Job):
             queue = cpu_kind
         else:
             if queue is None:
+                walltime_hours = nodes_setup.walltime
                 if walltime_hours is None:
                     queue = 'medium'
                 elif walltime_hours <= self.batch_system.max_walltime['express']:
@@ -186,7 +187,7 @@ class Job(util.batch.general.system.Job):
             cpu_kind = 'all'
 
         ## super
-        super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind, walltime_hours=walltime_hours)
+        super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind)
 
 
 
