@@ -36,6 +36,10 @@ class Options():
 
 
     def __setitem__(self, key, value):
+        ## check value
+        if value is None:
+            raise ValueError('Value None is not allowed (for key {}).'.format(key))
+        
         ## replace env
         value = self._replace_environment_vars(value, self.replace_environment_vars_at_set)
 
