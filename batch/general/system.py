@@ -410,7 +410,6 @@ class Job():
 
             self.__options = util.options.Options(option_file_expanded, mode='w-', replace_environment_vars_at_get=True)
 
-            self.options['/job/output_dir'] = output_dir
             self.options['/job/output_file'] = os.path.join(output_dir, 'job_output.txt')
             self.options['/job/option_file'] = os.path.join(output_dir, 'job_options.txt')
             self.options['/job/id_file'] = os.path.join(output_dir, 'job_id.txt')
@@ -474,12 +473,12 @@ class Job():
             raise KeyError('Job with option file ' + self.options.filename + ' is not started!')
 
     @property
-    def output_dir(self):
-        return self.option_value('/job/output_dir', False)
+    def output_dir(self):q
+        return os.path.dirname(self.option_value('/job/output_file', False))
 
     @property
     def output_dir_not_expanded(self):
-        return self.option_value('/job/output_dir', False, replace_environment_vars=False)
+        return os.path.dirname(self.option_value('/job/output_file', False, replace_environment_vars=False))
 
     @property
     def option_file(self):
@@ -503,6 +502,9 @@ class Job():
 
     @property
     def exit_code(self):
+        ## check if finished file exists
+        if not os.path.exists(self.finished_file):
+            ValueError('Finished file {} does not exist. The job is not finished'.format(self.finished_file))
         ## read exit code
         with open(self.finished_file, mode='r') as finished_file:
             exit_code = finished_file.read()
