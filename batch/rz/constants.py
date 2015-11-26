@@ -7,7 +7,8 @@ COMMANDS = {'mpirun': 'mpirun -n {cpus:d} -machinefile $PBS_NODEFILE -r rsh {com
             'time': 'TIME_FMT="\nStatistics for %C:\nElapsed time: %Es, Exit code: %x\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs"\ncommand time -f "$TIME_FMT" {command}',
             'sub': '/opt/pbs/default/bin/qsub',
             'stat': '/opt/pbs/default/bin/qstat',
-            'nodes': '/usr/local/bin/qnodes'}
+            'nodes': '/usr/local/bin/qnodes',
+            'python': '/home/sunip229/local/bin/python3'}
 
 NODE_INFOS = {'westmere': {'nodes': 18, 'speed': 2.67, 'cpus': 12, 'memory': 48, 'max_walltime': MAX_WALLTIME['para_low']},
               'shanghai': {'nodes': 26, 'speed': 2.4, 'cpus': 8, 'memory': 32, 'max_walltime': MAX_WALLTIME['para_low']},

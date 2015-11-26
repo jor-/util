@@ -6,8 +6,10 @@ MODEL_RENAMING = {'python':'Python3.3.6', 'python3':'Python3.3.6', 'hdf5':'hdf5-
 COMMANDS = {'mpirun': 'mpirun $NQSII_MPIOPTS -np {cpus:d} {command}',
             'time': 'TIME_FMT="\nStatistics for %C:\nElapsed time: %Es, Exit code: %x\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs"\n/sfs/fs3/sw/tools/time1.7/bin/time -f "$TIME_FMT" {command}',
             'sub': '/usr/bin/nqsII/qsub',
-            'stat': '/usr/bin/nqsII/qstat',
-            'nodes': '/sfs/fs3/sw/tools/qcl/qcl'}
+            # 'stat': '/usr/bin/nqsII/qstat',
+            'stat': '/usr/local/bin/qstatall',
+            'nodes': '/sfs/fs3/sw/tools/qcl/qcl',
+            'python': '/sfs/fs5/home-sh/sunip229/local/bin/python3'}
 
 NODE_INFOS = {'clexpress': {'nodes': 2, 'speed': 2.6, 'cpus': 16, 'memory': 128, 'max_walltime': MAX_WALLTIME['clexpress']},
               'clmedium': {'nodes': 60, 'speed': 2.6, 'cpus': 16, 'memory': 128, 'max_walltime': MAX_WALLTIME['clmedium']},

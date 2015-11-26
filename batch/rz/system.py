@@ -142,7 +142,6 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     
 
 
-
 BATCH_SYSTEM = BatchSystem()
 
 
@@ -190,7 +189,6 @@ class Job(util.batch.general.system.Job):
         super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind)
 
 
-
     def _make_job_file_header(self, use_mpi):
         content = []
         ## shell
@@ -224,15 +222,6 @@ class Job(util.batch.general.system.Job):
         if len(modules) > 0:
             ## init module system
             content.append('. /usr/share/Modules/init/bash')
-            # ## intel compiler and mpi
-            # if 'intel' in modules:
-            #     content.append('. /cluster/Software/intel14/composer_xe_2013_sp1/bin/compilervars.sh intel64')
-            #     while'intel' in modules:
-            #         modules.remove('intel')
-            # if 'intelmpi' in modules or 'intelmpi' in modules:
-            #     content.append('. /cluster/Software/intel14/impi/4.1.1.036/intel64/bin/mpivars.sh')
-            #     while'intelmpi' in modules:
-            #         modules.remove('intelmpi')
             ## system modules
             for module in modules:
                 content.append('module load {}'.format(module))
@@ -245,13 +234,3 @@ class Job(util.batch.general.system.Job):
 ## node setups
 
 from util.batch.general.system import NodeSetup
-
-
-# class NodeSetup(util.batch.general.system.NodeSetup):
-# 
-#     def configuration_incomplete(self):
-#         if not self.configuration_is_complete():
-#             (node_kind, nodes, cpus) = BATCH_SYSTEM.wait_for_needed_resources(self['memory'], node_kind=self['node_kind'], nodes=self['nodes'], cpus=self['cpus'], nodes_max=self['nodes_max'], nodes_leave_free=self['nodes_leave_free'], total_cpus_min=self['total_cpus_min'], total_cpus_max=self['total_cpus_max'])
-#             self['node_kind'] = node_kind
-#             self['nodes'] = nodes
-#             self['cpus'] = cpus

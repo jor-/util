@@ -8,7 +8,6 @@ import numpy as np
 
 import util.io.fs
 import util.options
-import util.batch.universal.system
 
 import util.logging
 logger = util.logging.logger
@@ -473,7 +472,7 @@ class Job():
             raise KeyError('Job with option file ' + self.options.filename + ' is not started!')
 
     @property
-    def output_dir(self):q
+    def output_dir(self):
         return os.path.dirname(self.option_value('/job/output_file', False))
 
     @property
@@ -499,6 +498,16 @@ class Job():
     @property
     def output_file(self):
         return self.option_value('/job/output_file', True)
+
+    @property
+    def output(self):
+        output_file = self.output_file
+        if output_file is not None and os.path.exists(output_file):
+            with open(output_file, 'r') as file:
+                output = file.read()
+        else:
+            output = None
+        return output
 
     @property
     def exit_code(self):
@@ -539,8 +548,6 @@ class Job():
         return self.option_value('/job/walltime_hours', True)
 
 
-
-
     ## init methods
 
     def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None):
@@ -561,7 +568,6 @@ class Job():
             self.options['/job/walltime_hours'] = walltime_hours
 
 
-
     @abc.abstractmethod
     def _make_job_file_header(self, use_mpi):
         raise NotImplementedError()
@@ -570,29 +576,27 @@ class Job():
     def _make_job_file_modules(self, modules):
         raise NotImplementedError()
 
-
-    def _make_job_file_command(self, run_command, add_timing=True):
+    def _make_job_file_command(self, run_command, pre_run_command=None, add_timing=True):
         if add_timing:
-            # run_command = 'time {}'.format(run_command)
             run_command = self.batch_system.time_command.format(command=run_command)
         content = []
         content.append('touch {}'.format(self.options['/job/unfinished_file']))
         content.append('echo "Job started."')
         content.append('')
+        if pre_run_command is not None:
+            content.append(pre_run_command)
         content.append(run_command)
         content.append('')
         content.append('EXIT_CODE=$?')
         content.append('echo "Job finished with exit code $EXIT_CODE."')
         content.append('rm {}'.format(self.options['/job/unfinished_file']))
         content.append('echo $EXIT_CODE > {}'.format(self.options['/job/finished_file']))
-        # content.append('')
-        # content.append('qstat -f $PBS_JOBID')
         content.append('exit')
         content.append('')
         return os.linesep.join(content)
 
 
-    def write_job_file(self, run_command, modules=()):
+    def write_job_file(self, run_command, pre_run_command=None, modules=()):
         modules = self.batch_system.check_modules(modules)
         use_mpi = self.batch_system.is_mpi_used(modules)
         cpus = self.options['/job/nodes'] * self.options['/job/cpus']
@@ -600,8 +604,7 @@ class Job():
         with open(self.option_file, mode='w') as file:
             file.write(self._make_job_file_header(use_mpi=use_mpi))
             file.write(self._make_job_file_modules(modules))
-            file.write(self._make_job_file_command(run_command))
-
+            file.write(self._make_job_file_command(run_command, pre_run_command=pre_run_command))
 
 
     ## other methods
@@ -623,14 +626,18 @@ class Job():
         except KeyError:
             return False
 
+
     def is_finished(self, check_exit_code=True):
-        if os.path.exists(self.finished_file) and (self.output_file is None or os.path.exists(self.output_file)):
+        if os.path.exists(self.finished_file):
             if check_exit_code:
                 exit_code = self.exit_code
                 if exit_code != 0:
-                    raise JobError(self.id, self.output_dir, exit_code)
-            return True
-        return False
+                    raise JobExitCodeError(self.id, self.output_dir, exit_code, self.output)
+            return self.output_file is None or os.path.exists(self.output_file)
+        elif not self.batch_system.is_job_running(self.id) and not os.path.exists(self.finished_file):
+            raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running!', self.output)
+        else:
+            return False
 
 
     def is_running(self):
@@ -656,7 +663,6 @@ class Job():
                     cycle = 0
 
         logger.debug('Job {} finished with exit code {}.'.format(self.id, self.exit_code))
-
 
 
     def make_read_only_input(self, read_only=True):
@@ -688,18 +694,28 @@ class Job():
 
 
 class JobError(Exception):
-
-    def __init__(self, job_id, exit_code, output_path):
-        error_message = 'The command of job {} at {} exited with code {}.'.format(job_id, output_path, exit_code)
+    def __init__(self, job_id, output_path, error_message, ouput=None):
+        error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_path, error_message)
+        if ouput is not None:
+            error_message = error_message + '\nThe job output was:\n{}'.format(ouput)
         super().__init__(error_message)
 
+class JobExitCodeError(JobError):
+    def __init__(self, job_id, output_path, exit_code, ouput=None):
+        error_message = 'The command of the job exited with code {}.'.format(exit_code)
+        super().__init__(job_id, output_path, error_message, ouput=ouput)
 
 
 
 class NodeSetup:
 
     def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
-
+        
+        ## set batch system
+        from util.batch.universal.system import BATCH_SYSTEM
+        self.batch_system = BATCH_SYSTEM
+        
+        ## check input
         assert nodes is None or nodes >= 1
         assert cpus is None or cpus >= 1
         assert total_cpus_max is None or total_cpus_min is None or total_cpus_max >= total_cpus_min
@@ -708,6 +724,16 @@ class NodeSetup:
         assert total_cpus_max is None or nodes is None or cpus is None or total_cpus_max >= nodes * cpus
         assert total_cpus_max is None or nodes is None or total_cpus_max >= nodes
         assert total_cpus_max is None or cpus is None or total_cpus_max >= cpus
+        
+        if node_kind is not None and cpus is not None:
+            max_cpus = self.batch_system.node_infos.cpus(node_kind)
+            if cpus > max_cpus:
+                raise ValueError('For node kind {} are maximal {} cpus per node available but {} are reqeusted'.format(node_kind, max_cpus, cpus))      
+        
+        if node_kind is not None and nodes is not None:
+            max_nodes = self.batch_system.node_infos.nodes(node_kind)
+            if nodes > max_nodes:
+                raise ValueError('For node kind {} are maximal {} nodes available but {} are reqeusted'.format(node_kind, max_nodes, nodes))
 
         ## prepare input
         if node_kind is not None and not isinstance(node_kind, str) and len(node_kind) == 1:
@@ -720,7 +746,7 @@ class NodeSetup:
         ## save setup
         setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_leave_free': nodes_leave_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
         self.setup = setup
-        self.batch_system = util.batch.universal.system.BATCH_SYSTEM
+        
 
     def __getitem__(self, key):
         return self.setup[key]
@@ -742,10 +768,6 @@ class NodeSetup:
     def configuration_is_complete(self):
         return self['memory'] is not None and self['node_kind'] is not None and isinstance(self['node_kind'], str) and self['nodes'] is not None and self['cpus'] is not None
 
-
-    # def configuration_incomplete(self):
-    #     if not self.configuration_is_complete():
-    #         raise NodeSetupIncompleteError(self)
 
     def configuration_incomplete(self):
         if not self.configuration_is_complete():

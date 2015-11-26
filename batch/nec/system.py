@@ -35,7 +35,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def job_state(self, job_id):
         ## get state of job
         output = subprocess.check_output((self.status_command, job_id)).decode("utf-8")
-        logger.debug('qstat result: {}'.format(output))
+        logger.debug('qstat result:\n{}'.format(output.strip()))
         return output
 
 
@@ -47,26 +47,29 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def _nodes_state(self):
         output = subprocess.check_output(self.nodes_command).decode('utf8')
         lines = output.splitlines()
-        # assert len(lines) == 13
-        lines = lines[2:9]
         
         state = {}
         
         for line in lines:
-            line_splitted = line.strip().split(' ')
-            node_kind = line_splitted[0]
-            number_of_free_nodes = int(line_splitted[-1])
-            
-            free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
-            free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
-            
-            state[node_kind] = (free_cpus, free_memory)
+            line = line.strip()
+            for node_kind in self.node_infos.kinds():
+                if line.startswith(node_kind):
+                    line_splitted = line.split(' ')
+                    number_of_free_nodes = int(line_splitted[-1])
+                    
+                    if number_of_free_nodes < 0:
+                        logger.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
+                        number_of_free_nodes = 0
+                    
+                    logger.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
+                    free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
+                    free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
+                    
+                    state[node_kind] = (free_cpus, free_memory)
         
         return util.batch.general.system.NodesState(state)
 
         
-
-
 
 BATCH_SYSTEM = BatchSystem()
 
@@ -121,8 +124,6 @@ class Job(util.batch.general.system.Job):
     def _make_job_file_modules(self, modules):
         content = []
         if len(modules) > 0:
-            # ## init module system
-            # content.append('. /usr/share/Modules/init/bash')
             ## system modules
             for module in modules:
                 content.append('module load {}'.format(module))
@@ -130,7 +131,6 @@ class Job(util.batch.general.system.Job):
             content.append('')
             content.append('')
         return os.linesep.join(content)
-
 
 
 ## node setups
