@@ -34,7 +34,7 @@ def load(file):
 
 
 
-def save_txt(values, file, format_string=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
+def save_txt(file, values, format_string=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
     values = np.asarray(values)
 
     if len(values.shape) == 0:
@@ -75,7 +75,7 @@ def load_txt(file):
 
 
 
-def save_npy_and_txt(array, file, make_read_only=False, overwrite=False, create_path_if_not_exists=True, format_string='%.6g'):
+def save_npy_and_txt(file, array, make_read_only=False, overwrite=False, create_path_if_not_exists=True, format_string='%.6g'):
     (file_without_ext, file_ext) = os.path.splitext(file)
     (dir, filename_without_ext) = os.path.split(file_without_ext)
     os.makedirs(dir, exist_ok=True)
@@ -86,4 +86,4 @@ def save_npy_and_txt(array, file, make_read_only=False, overwrite=False, create_
     array = np.asarray(array)
 
     save(file_npy, array, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
-    save_txt(array, file_txt, format_string=format_string, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
+    save_txt(file_txt, array, format_string=format_string, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
