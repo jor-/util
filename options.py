@@ -141,21 +141,6 @@ class Options():
         f = self.__hdf5_file
         return f.mode == 'r'
 
-
-    # def make_read_only(self):
-    #     file = self.filename
-    #
-    #     if not self.is_read_only():
-    #         logger.debug('Opening {} read_only.'.format(file))
-    #
-    #         self.close()
-    #         os.chmod(file, stat.S_IRUSR)
-    #         self.open(file, 'r')
-    #
-    #         logger.debug('File {} is now read_only.'.format(file))
-    #     else:
-    #         logger.debug('File {} is read_only.'.format(file))
-
     def make_writable(self):
         if not self.is_writable():
             logger.debug('Opening {} writable.'.format(self.filename))
