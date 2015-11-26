@@ -3,6 +3,7 @@ import stat
 
 import numpy as np
 
+import util.io.fs
 import util.io.object
 import util.parallel.with_multiprocessing
 
@@ -154,9 +155,9 @@ class HDD_Cache(Cache):
     def save_value(self, value_name, value):
         self.memory_cache.save_value(value_name, value)
         file = self.get_file(value_name)
-        os.makedirs(os.path.dirname(file), exist_ok=True)
+        util.io.fs.makedirs(file, exist_ok=True)
         self.save_function(file, value)
-        os.chmod(file, stat.S_IRUSR)
+        util.io.fs.make_read_only(file)
 
 
     def get_value(self, value_name, calculate_function, as_shared_array=False, use_memory_cache=True):
