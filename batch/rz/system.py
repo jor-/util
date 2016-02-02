@@ -231,6 +231,6 @@ class Job(util.batch.general.system.Job):
         return os.linesep.join(content)
 
 
-## node setups
+## imports from util.batch.general.system
 
-from util.batch.general.system import NodeSetup
+from util.batch.general.system import NodeSetup, NodeSetupIncompleteError, JobError, JobExitCodeError
