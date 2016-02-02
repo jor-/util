@@ -155,7 +155,7 @@ class HDD_Cache(Cache):
     def save_value(self, value_name, value):
         self.memory_cache.save_value(value_name, value)
         file = self.get_file(value_name)
-        util.io.fs.makedirs(file, exist_ok=True)
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         self.save_function(file, value)
         util.io.fs.make_read_only(file)
 
