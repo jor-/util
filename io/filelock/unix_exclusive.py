@@ -1,39 +1,21 @@
-"""
-A file lock implementation that tries to avoid platform specific
-issues. It is inspired by a whole bunch of different implementations
-listed below.
-
- - https://bitbucket.org/jaraco/yg.lockfile/src/6c448dcbf6e5/yg/lockfile/__init__.py
- - http://svn.zope.org/zc.lockfile/trunk/src/zc/lockfile/__init__.py?rev=121133&view=markup
- - http://stackoverflow.com/questions/489861/locking-a-file-in-python
- - http://www.evanfosmark.com/2009/01/cross-platform-file-locking-support-in-python/
- - http://packages.python.org/lockfile/lockfile.html
-
-There are some tests below and a blog posting conceptually the
-problems I wanted to try and solve. The tests reflect these ideas.
-
- - http://ionrock.wordpress.com/2012/06/28/file-locking-in-python/
-
-I'm not advocating using this package. But if you do happen to try it
-out and have suggestions please let me know.
-"""
-
 import fcntl
 import os
 import time
+
+import util.io.filelock.general
 
 import util.logging
 logger = util.logging.get_logger()
 
 
-class FileLockTimeoutError(TimeoutError):
-    
-    def __init__(self, lock_filename, timeout, pid):
-        self.lock_filename = lock_filename
-        self.timeout = timeout
-        self.pid = pid
-        error_message = 'The lock {} could not be aquired by process {} within timeout {}.'.format(lock_filename, pid, timeout)
-        super().__init__(error_message)
+# class FileLockTimeoutError(TimeoutError):
+#     
+#     def __init__(self, lock_filename, timeout, pid):
+#         self.lock_filename = lock_filename
+#         self.timeout = timeout
+#         self.pid = pid
+#         error_message = 'The lock {} could not be aquired by process {} within timeout {}.'.format(lock_filename, pid, timeout)
+#         super().__init__(error_message)
 
 
 class FileLock(object):
@@ -138,7 +120,7 @@ class FileLock(object):
             sleep_intervals -= 1
         
         if not self.is_locked_by_me():
-            raise FileLockTimeoutError()
+            raise util.io.filelock.general.FileLockTimeoutError(self.lock_filename, self.timeout)
     
 
     def release(self):
