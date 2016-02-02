@@ -23,7 +23,7 @@ def save(file, values, make_read_only=False, overwrite=False, create_path_if_not
         (dir, filename) = os.path.split(file)
         os.makedirs(dir, exist_ok=True)
     if overwrite:
-        util.io.fs.make_writable(file, not_exist_ok=True)
+        util.io.fs.remove_file(file, force=True, not_exist_okay=True)
     np.save(file, values)
     if make_read_only:
         util.io.fs.make_read_only(file)
@@ -51,7 +51,7 @@ def save_txt(file, values, format_string=None, make_read_only=False, overwrite=F
         (dir, filename) = os.path.split(file)
         os.makedirs(dir, exist_ok=True)
     if overwrite:
-        util.io.fs.make_writable(file, not_exist_ok=True)
+        util.io.fs.remove_file(file, force=True, not_exist_okay=True)
     np.savetxt(file, values, fmt=format_string)
     if make_read_only:
         util.io.fs.make_read_only(file)
