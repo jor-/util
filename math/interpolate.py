@@ -413,7 +413,8 @@ class Interpolator_Values_Changeable(Interpolator_Base):
         if interpolator is None:
             logger.debug('Constructing {} interpolator.'.format(self.method))
             if self.method == 'nearest':
-                interpolator = NearestNDInterpolator(self.data_points, self.data_values, compact_nodes=False, balanced_tree=False)
+                tree_options = {'compact_nodes': False, 'balanced_tree': False}
+                interpolator = NearestNDInterpolator(self.data_points, self.data_values, tree_options=tree_options)
             else:
                 interpolator = LinearNDInterpolator(self.data_points, self.data_values)
             self._interpolator = interpolator
