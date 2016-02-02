@@ -1,3 +1,4 @@
+import errno
 import os
 import re
 import stat
@@ -28,11 +29,13 @@ def add_file_ext_if_needed(file, ext):
 ## get files
 
 def filter_files(path, condition, recursive=False):
+    path = os.path.abspath(path)
+    
     ## get all filenames
     if os.path.exists(path):
         if recursive:
             path_filenames = []
-            walk_path(path, path_filenames.append, path_filenames.append, topdown=True, exclude_dir=True)
+            walk_all_in_dir(path, path_filenames.append, path_filenames.append, topdown=True, exclude_dir=True)
         else:
             path_filenames = os.listdir(path)
     else:
@@ -111,7 +114,7 @@ def make_read_only_recursively(path, exclude_dir=True):
     logger.debug('Making recursively all files in {} read-only.'.format(path))
     file_function = lambda file: make_read_only(file)
     dir_function = lambda file: make_read_only(file)
-    walk_path(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
+    walk_all_in_dir(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
 
 
 def make_writable(file, not_exist_ok=False):
@@ -119,7 +122,7 @@ def make_writable(file, not_exist_ok=False):
         try:
             add_write_permission(file)
         except FileNotFoundError:
-            logger.debug('File {} not existing, but this is okay.'.format(file))
+            logger.debug('File {} does not exist, but this is okay.'.format(file))
             pass
     else:
         add_write_permission(file)
@@ -129,41 +132,49 @@ def make_writable_recursively(path, exclude_dir=True):
     logger.debug('Making recursively all files in {} writeable.'.format(path))
     file_function = lambda file: make_writable(file)
     dir_function = lambda file: make_writable(file)
-    walk_path(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
+    walk_all_in_dir(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
 
 
 ## remove
 
-def remove_dir(path, force=False):
-    if force:
-        make_writable(path)
-    os.rmdir(path)
+def _remove_general(remove_function, file, force=False, not_exist_okay=False):
+    try:
+        remove_function(file)
+    except FileNotFoundError:
+        if not not_exist_okay:
+            raise
+    except PermissionError:
+        if force:
+            (dir, filename) = os.path.split(file)
+            make_writable(dir)
+            remove_function(file)
+        else:
+            raise
+    
+
+def remove_dir(dir, force=False, not_exist_okay=False):
+    _remove_general(os.rmdir, dir, force=force, not_exist_okay=not_exist_okay)
 
 def remove_file(file, force=False, not_exist_okay=False):
-    if not not_exist_okay or os.path.exists(file):
-        if force:
-            make_writable(file)
-        os.remove(file)
-
-def remove_recursively(path, force=False, exclude_dir=False):
-    if force:
-        make_writable_recursively(path, exclude_dir=exclude_dir)
-    walk_path(path, os.remove, os.rmdir, exclude_dir=exclude_dir, topdown=False)
+    _remove_general(os.remove, file, force=force, not_exist_okay=not_exist_okay)
 
 
-## make
-
-def makedirs(file, exist_ok=True):
-    dir = os.path.dirname(file)
-    if dir is not None:
-        if not os.path.exists(dir):
-            logger.debug('Creating recrusive directories {}.'.format(dir))
-            os.makedirs(dir, exist_ok=exist_ok)
-    else:
-        raise ValueError('Directories of file {} is not creatable.'.format(file))
+def remove_universal(file, force=False, not_exist_okay=False):
+    try:
+        remove_file(file, force=force, not_exist_okay=not_exist_okay)
+    except IsADirectoryError:
+        remove_dir(file, force=force, not_exist_okay=not_exist_okay)
 
 
-##
+def remove_recursively(dir, force=False, not_exist_okay=False, exclude_dir=False):
+    try:
+        remove_file(dir, force=force, not_exist_okay=not_exist_okay)
+    except IsADirectoryError:
+        walk_all_in_dir(dir, lambda file: remove_file(file, force=force, not_exist_okay=not_exist_okay), lambda dir: remove_dir(dir, force=force, not_exist_okay=not_exist_okay), exclude_dir=exclude_dir, topdown=False)
+
+
+
+## utility functions
 
 def flush_and_close(file):
     file.flush()
@@ -174,13 +185,48 @@ def flush_and_close(file):
         time.sleep(1)
 
 
-def walk_path(path, file_function, dir_function, topdown=True, exclude_dir=True):
-    for (dirpath, dirnames, filenames) in os.walk(path, topdown=topdown):
+def walk_all_in_dir(dir, file_function, dir_function, topdown=True, exclude_dir=True):
+    for (dirpath, dirnames, filenames) in os.walk(dir, topdown=topdown):
             for filename in filenames:
-                file = os.path.join(dirpath, filename)
-                file_function(file)
+                current_file = os.path.join(dirpath, filename)
+                file_function(current_file)
             for dirname in dirnames:
-                dir = os.path.join(dirpath, dirname)
-                dir_function(dir)
+                current_dir = os.path.join(dirpath, dirname)
+                dir_function(current_dir)
     if not exclude_dir:
-        dir_function(path)
+        dir_function(dir)
+
+
+## fd functions
+
+def fd_is_file(fd, file, not_exist_okay=False):
+    ## get file stats
+    try:
+        file_stat = os.stat(file)
+    except FileNotFoundError as e:
+        if not_exist_okay:
+            logger.debug('File {} does not exist, but this is okay.'.format(file))
+            return False
+        else:
+            raise
+    except OSError as e:
+        if e.errno == errno.ESTALE and not_exist_okay:
+            logger.debug('File {} does not exist, but this is okay.'.format(file))
+            return False
+        else:
+            raise
+
+    ## get fd stats
+    try:
+        fd_stat = os.fstat(fd)
+    except OSError as e:
+        if e.errno == errno.ESTALE and not_exist_okay:
+            logger.debug('File referenced by file desciptor {} was removed, but this is okay.'.format(fd))
+            return False
+        else:
+            raise
+    
+    ## check if same device and inode
+    return fd_stat.st_dev == file_stat.st_dev and fd_stat.st_ino == file_stat.st_ino
+    
+     
