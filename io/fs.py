@@ -97,6 +97,19 @@ def add_write_permission(file):
             permission_new = permission_new | write_permission
     os.chmod(file, permission_new)
     logger.debug('Adding write permission to file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:], oct(permission_new)[-3:]))
+
+
+def add_group_permissions(file, read=True, write=True, execute=True):
+    permission_old = file_mode(file)
+    permission_new = permission_old
+    if read:
+        permission_new = permission_new | stat.S_IRGRP
+    if write:
+        permission_new = permission_new | stat.S_IWGRP
+    if execute:
+        permission_new = permission_new | stat.S_IXGRP
+    os.chmod(file, permission_new)
+    logger.debug('Adding group permission (read={read}, write={write}, execute={execute}) to {file}. Mode changed from {permission_old} to {permission_new}.'.format(file=file, permission_old=oct(permission_old)[-3:], permission_new=oct(permission_new)[-3:], read=read, write=write, execute=execute))
     
 
 def make_read_only(*files, not_exist_ok=False):
