@@ -112,7 +112,7 @@ class MultiDict():
 
 
 
-    ## add & remove
+    ## add
 
     def _get_or_init_value_list(self, key):
         last_dict = self._get_last_dict(key)
@@ -147,9 +147,25 @@ class MultiDict():
         self._add_value_lists(keys, values, add_function)
 
 
+    ## remove
+    
     def clear(self):
         self._value_dict = type(self.value_dict)()
 
+    def remove_value(self, key, value):
+        logger.debug('Removing value {} for key {}.'.format(value, key))
+        value_list = self.get_value_list(key)
+        n = len(value_list)
+        value_list[:] = [v for x in value_list if not np.all(np.isclose(v, value))]
+        if len(value_list) == n:
+            raise KeyError('Value {} was not deposited for key {}.'.format(value, key))
+        #TODO remove dict entries if list is empty
+    
+    def remove_values(self, multi_dict):
+        logger.debug('Removing {} values.'.format(len(multi_dict)))
+        for key, value_list in multi_dict.iterator_keys_and_value_lists():
+            for value in value_list:
+                self.remove_value(key, value)
 
 
     ## access
