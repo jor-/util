@@ -83,7 +83,7 @@ class Database(util.index_database.general.Database):
             used_indices = np.where(used_mask)[0]
             
             logger.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
-            return used_indices
+            return used_indices.astype(np.int32)
     
     
     def remove_index(self, index):
