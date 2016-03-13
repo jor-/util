@@ -80,6 +80,160 @@ class NodesState():
 
 
 
+
+class NodeSetup:
+
+    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
+        
+        ## set batch system
+        from util.batch.universal.system import BATCH_SYSTEM
+        self.batch_system = BATCH_SYSTEM
+        
+        ## check input
+        assert nodes is None or nodes >= 1
+        assert cpus is None or cpus >= 1
+        assert total_cpus_max is None or total_cpus_min is None or total_cpus_max >= total_cpus_min
+        assert nodes_max is None or nodes is None or nodes_max >= nodes
+        assert total_cpus_min is None or nodes is None or cpus is None or total_cpus_min <= nodes * cpus
+        assert total_cpus_max is None or nodes is None or cpus is None or total_cpus_max >= nodes * cpus
+        assert total_cpus_max is None or nodes is None or total_cpus_max >= nodes
+        assert total_cpus_max is None or cpus is None or total_cpus_max >= cpus
+        
+        if node_kind is not None and cpus is not None:
+            max_cpus = self.batch_system.node_infos.cpus(node_kind)
+            if cpus > max_cpus:
+                raise ValueError('For node kind {} are maximal {} cpus per node available but {} are reqeusted'.format(node_kind, max_cpus, cpus))      
+        
+        if node_kind is not None and nodes is not None:
+            max_nodes = self.batch_system.node_infos.nodes(node_kind)
+            if nodes > max_nodes:
+                raise ValueError('For node kind {} are maximal {} nodes available but {} are reqeusted'.format(node_kind, max_nodes, nodes))
+
+        ## prepare input
+        if node_kind is not None and not isinstance(node_kind, str) and len(node_kind) == 1:
+            node_kind = node_kind[0]
+        if nodes_max == 1 and nodes is None:
+            nodes = 1
+        if nodes is not None and total_cpus_max == nodes:
+            cpus = 1
+
+        ## save setup
+        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_leave_free': nodes_leave_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
+        self.setup = setup
+        
+
+    def __getitem__(self, key):
+        return self.setup[key]
+
+    def __setitem__(self, key, value):
+        self.setup[key] = value
+
+    def __str__(self):
+        dict_str = str(self.setup).replace(": inf", ": float('inf')")
+        return '{}(**{})'.format(self.__class__.__name__, dict_str)
+    
+    def __repr__(self):
+        dict_str = str(self.setup).replace(": inf", ": float('inf')")
+        return '{}.{}(**{})'.format(self.__class__.__module__, self.__class__.__name__, dict_str)
+        
+
+    def __copy__(self):
+        copy = type(self)(**self.setup)
+        return copy
+
+    def copy(self):
+        return self.__copy__()
+
+
+    def configuration_is_complete(self):
+        return self['memory'] is not None and self['node_kind'] is not None and isinstance(self['node_kind'], str) and self['nodes'] is not None and self['cpus'] is not None
+
+
+    def configuration_incomplete(self):
+        if not self.configuration_is_complete():
+            logger.debug('Node setup incomplete. Try to complete it.')
+            try:
+                (node_kind, nodes, cpus) = self.batch_system.wait_for_needed_resources(self['memory'], node_kind=self['node_kind'], nodes=self['nodes'], cpus=self['cpus'], nodes_max=self['nodes_max'], nodes_leave_free=self['nodes_leave_free'], total_cpus_min=self['total_cpus_min'], total_cpus_max=self['total_cpus_max'])
+            except NotImplementedError:
+                logger.error('Batch system does not support completion of node setup.')
+                raise NodeSetupIncompleteError(self)
+            self['node_kind'] = node_kind
+            self['nodes'] = nodes
+            self['cpus'] = cpus
+
+
+    def configuration_value(self, key, test=None):
+        assert test is None or callable(test)
+
+        value = self.setup[key]
+        if value is None or (test is not None and not test(value)):
+            self.configuration_incomplete()
+            value = self.setup[key]
+
+        assert value is not None
+        return value
+
+
+    def update_with_best_configuration(self, check_for_better=True, not_free_speed_factor=0.75):
+        if check_for_better:
+            self['check_for_better'] = False
+            setup_triple = (self.node_kind, self.nodes, self.cpus)
+            logger.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
+            speed = self.batch_system.speed(*setup_triple)
+            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self.walltime)
+            best_speed = self.batch_system.speed(*best_setup_triple)
+            if best_speed > speed:
+                logger.debug('Using better node setup configuration {}.'.format(best_setup_triple))
+                self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
+            elif not self.batch_system.is_free(self.memory, self.node_kind, self.nodes, self.cpus):
+                logger.debug('Node setup configuration {} is not free.'.format(setup_triple))
+                if best_speed >= speed * not_free_speed_factor:
+                    logger.debug('Using node setup configuration {}.'.format(best_setup_triple))
+                    self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
+                else:
+                    logger.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
+
+
+    @property
+    def memory(self):
+        return self.setup['memory']
+
+    @property
+    def node_kind(self):
+        self.update_with_best_configuration(self['check_for_better'])
+        return self.configuration_value('node_kind', test=lambda v: isinstance(v, str))
+
+    @property
+    def nodes(self):
+        self.update_with_best_configuration(self['check_for_better'])
+        return self.configuration_value('nodes')
+
+    @property
+    def cpus(self):
+        self.update_with_best_configuration(self['check_for_better'])
+        return self.configuration_value('cpus')
+
+    @property
+    def walltime(self):
+        return self.setup['walltime']
+    
+    @walltime.setter
+    def walltime(self, walltime):
+        self.setup['walltime'] = walltime
+
+
+
+class NodeSetupIncompleteError(Exception):
+
+    def __init__(self, nodes_setup):
+        error_message = 'The node setup is incomplete: node_kind={}, nodes={} and cpus={}.'.format(nodes_setup.node_kind, nodes_setup.nodes, nodes_setup.cpus)
+        super().__init__(error_message)
+
+
+
+
+
+
 class BatchSystem():
 
     def __init__(self, commands, queues, max_walltime={}, module_renaming={}, node_infos={}):
@@ -197,7 +351,10 @@ class BatchSystem():
 
 
     def is_mpi_used(self, modules):
-        return 'intelmpi' in modules
+        for module in modules:
+            if 'intelmpi' in module:
+                return True
+        return False
 
 
     def add_mpi_to_command(self, command, cpus, use_mpi=True):
@@ -377,6 +534,10 @@ class BatchSystem():
 
     @abc.abstractmethod
     def _nodes_state(self):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def is_job_running(self, job_id):
         raise NotImplementedError()
 
 
@@ -634,8 +795,12 @@ class Job():
                 if exit_code != 0:
                     raise JobExitCodeError(self.id, self.output_dir, exit_code, self.output)
             return self.output_file is None or os.path.exists(self.output_file)
-        elif not self.batch_system.is_job_running(self.id) and not os.path.exists(self.finished_file):
-            raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running!', self.output)
+        elif self.is_started() and not self.batch_system.is_job_running(self.id) and not os.path.exists(self.finished_file):
+            time.sleep(60)
+            if os.path.exists(self.finished_file):
+                return self.is_finished(check_exit_code=check_exit_code)
+            else:
+                raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running!', self.output)
         else:
             return False
 
@@ -704,147 +869,3 @@ class JobExitCodeError(JobError):
     def __init__(self, job_id, output_path, exit_code, ouput=None):
         error_message = 'The command of the job exited with code {}.'.format(exit_code)
         super().__init__(job_id, output_path, error_message, ouput=ouput)
-
-
-
-class NodeSetup:
-
-    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
-        
-        ## set batch system
-        from util.batch.universal.system import BATCH_SYSTEM
-        self.batch_system = BATCH_SYSTEM
-        
-        ## check input
-        assert nodes is None or nodes >= 1
-        assert cpus is None or cpus >= 1
-        assert total_cpus_max is None or total_cpus_min is None or total_cpus_max >= total_cpus_min
-        assert nodes_max is None or nodes is None or nodes_max >= nodes
-        assert total_cpus_min is None or nodes is None or cpus is None or total_cpus_min <= nodes * cpus
-        assert total_cpus_max is None or nodes is None or cpus is None or total_cpus_max >= nodes * cpus
-        assert total_cpus_max is None or nodes is None or total_cpus_max >= nodes
-        assert total_cpus_max is None or cpus is None or total_cpus_max >= cpus
-        
-        if node_kind is not None and cpus is not None:
-            max_cpus = self.batch_system.node_infos.cpus(node_kind)
-            if cpus > max_cpus:
-                raise ValueError('For node kind {} are maximal {} cpus per node available but {} are reqeusted'.format(node_kind, max_cpus, cpus))      
-        
-        if node_kind is not None and nodes is not None:
-            max_nodes = self.batch_system.node_infos.nodes(node_kind)
-            if nodes > max_nodes:
-                raise ValueError('For node kind {} are maximal {} nodes available but {} are reqeusted'.format(node_kind, max_nodes, nodes))
-
-        ## prepare input
-        if node_kind is not None and not isinstance(node_kind, str) and len(node_kind) == 1:
-            node_kind = node_kind[0]
-        if nodes_max == 1 and nodes is None:
-            nodes = 1
-        if nodes is not None and total_cpus_max == nodes:
-            cpus = 1
-
-        ## save setup
-        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_leave_free': nodes_leave_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
-        self.setup = setup
-        
-
-    def __getitem__(self, key):
-        return self.setup[key]
-
-    def __setitem__(self, key, value):
-        self.setup[key] = value
-
-    def __str__(self):
-        return '{}: {}'.format(self.__class__.__name__, self.setup)
-
-    def __copy__(self):
-        copy = type(self)(**self.setup)
-        return copy
-
-    def copy(self):
-        return self.__copy__()
-
-
-    def configuration_is_complete(self):
-        return self['memory'] is not None and self['node_kind'] is not None and isinstance(self['node_kind'], str) and self['nodes'] is not None and self['cpus'] is not None
-
-
-    def configuration_incomplete(self):
-        if not self.configuration_is_complete():
-            logger.debug('Node setup incomplete. Try to complete it.')
-            try:
-                (node_kind, nodes, cpus) = self.batch_system.wait_for_needed_resources(self['memory'], node_kind=self['node_kind'], nodes=self['nodes'], cpus=self['cpus'], nodes_max=self['nodes_max'], nodes_leave_free=self['nodes_leave_free'], total_cpus_min=self['total_cpus_min'], total_cpus_max=self['total_cpus_max'])
-            except NotImplementedError:
-                logger.error('Batch system does not support completion of node setup.')
-                raise NodeSetupIncompleteError(self)
-            self['node_kind'] = node_kind
-            self['nodes'] = nodes
-            self['cpus'] = cpus
-
-
-    def configuration_value(self, key, test=None):
-        assert test is None or callable(test)
-
-        value = self.setup[key]
-        if value is None or (test is not None and not test(value)):
-            self.configuration_incomplete()
-            value = self.setup[key]
-
-        assert value is not None
-        return value
-
-
-    def update_with_best_configuration(self, check_for_better=True, not_free_speed_factor=0.7):
-        if check_for_better:
-            self['check_for_better'] = False
-            setup_triple = (self.node_kind, self.nodes, self.cpus)
-            logger.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
-            speed = self.batch_system.speed(*setup_triple)
-            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self.walltime)
-            best_speed = self.batch_system.speed(*best_setup_triple)
-            if best_speed > speed:
-                logger.debug('Using better node setup configuration {}.'.format(best_setup_triple))
-                self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
-            elif not self.batch_system.is_free(self.memory, self.node_kind, self.nodes, self.cpus):
-                logger.debug('Node setup configuration {} is not free.'.format(setup_triple))
-                if best_speed >= speed * not_free_speed_factor:
-                    logger.debug('Using node setup configuration {}.'.format(best_setup_triple))
-                    self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
-                else:
-                    logger.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
-
-
-    @property
-    def memory(self):
-        return self.setup['memory']
-
-    @property
-    def node_kind(self):
-        self.update_with_best_configuration(self['check_for_better'])
-        return self.configuration_value('node_kind', test=lambda v: isinstance(v, str))
-
-    @property
-    def nodes(self):
-        self.update_with_best_configuration(self['check_for_better'])
-        return self.configuration_value('nodes')
-
-    @property
-    def cpus(self):
-        self.update_with_best_configuration(self['check_for_better'])
-        return self.configuration_value('cpus')
-
-    @property
-    def walltime(self):
-        return self.setup['walltime']
-    
-    @walltime.setter
-    def walltime(self, walltime):
-        self.setup['walltime'] = walltime
-
-
-
-class NodeSetupIncompleteError(Exception):
-
-    def __init__(self, nodes_setup):
-        error_message = 'The node setup is incomplete: node_kind={}, nodes={} and cpus={}.'.format(nodes_setup.node_kind, nodes_setup.nodes, nodes_setup.cpus)
-        super().__init__(error_message)
