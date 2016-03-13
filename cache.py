@@ -33,7 +33,6 @@ class Cache():
     def get_value(self, value_name, calculate_function, as_shared_array=False):
         try:
             value = self.load_value(value_name)
-            logger.debug('Loaded value "{}" from {}.'.format(value_name, self))
         except CacheMissError:
             logger.debug('Value "{}" not found in {}. Calculating value and saving.'.format(value_name, self))
             value = calculate_function()
@@ -79,13 +78,15 @@ class MemoryCache(Cache):
 
     def load_value(self, value_name):
         try:
-            return self.memory_cache[value_name]
+            value = self.memory_cache[value_name]
+            logger.debug('Loaded value "{}" from {}.'.format(value_name, self))
         except KeyError:
-            pass
-        raise CacheMissError(value_name)
+            raise CacheMissError(value_name)
+        return value
 
     def save_value(self, value_name, value):
         self.memory_cache[value_name] = value
+        logger.debug('Saved value "{}" to {}.'.format(value_name, self))
 
     def del_value(self, value_name):
         del self.memory_cache[value_name]
@@ -141,15 +142,16 @@ class HDD_Cache(Cache):
 
     def load_value(self, value_name):
         try:
-            return self.memory_cache.load_value(value_name)
+            value = self.memory_cache.load_value(value_name)
         except CacheMissError:
             file = self.get_file(value_name)
             try:
                 value = self.load_function(file)
             except OSError:
                 raise CacheMissError(value_name)
+            logger.debug('Loaded value "{}" from {}.'.format(value_name, self))
             self.memory_cache.save_value(value_name, value)
-            return value
+        return value
 
 
     def save_value(self, value_name, value):
@@ -158,6 +160,7 @@ class HDD_Cache(Cache):
         os.makedirs(os.path.dirname(file), exist_ok=True)
         self.save_function(file, value)
         util.io.fs.make_read_only(file)
+        logger.debug('Saved value "{}" to {}.'.format(value_name, self))
 
 
     def get_value(self, value_name, calculate_function, as_shared_array=False, use_memory_cache=True):
