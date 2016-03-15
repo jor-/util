@@ -70,8 +70,11 @@ class Database:
     ## value comparison
     
     def value_difference(self, v1, v2):
+        ## check input
+        if len(v1) != len(v2):
+            raise ValueError('Both values must have equal lengths, but length of {} is {} and length of {} is {}.'.format(v1, len(v1), v2, len(v2)))
+        
         ## calculate value weights
-        assert len(v1) == len(v2) or len(v1) == 1 or len(v2) == 1
         relative_weights = np.minimum(np.abs(v1), np.abs(v2))
 
         assert len(self.relative_tolerance) in (1, len(v1))
@@ -187,41 +190,6 @@ class Database:
             return None
 
 
-    # def closest_index(self, value):
-    #     logger.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
-    #     ## get all value files
-    #     used_indices = self.used_indices()
-
-    #         ## search for parameter set directories with nearby parameters
-    #     best_value_difference = float('inf')
-    #     best_index = None
-    #     
-    #     ## search for beat value in all value files
-    #     for current_index in used_indices:
-    #         try:
-    #             current_value = self.get_value(current_index)
-    #         except DatabaseIndexError as e:
-    #             logger.warnig('{}: Could not read the value file for index {}: {}'.format(self, index, e.with_traceback(None)))
-    #             current_value_difference = float('inf')
-    #         else:
-    #             current_value_difference = self.value_difference(value, current_value)
-
-    #           if current_value_difference < best_value_difference:
-    #             best_value_difference = current_value_difference
-    #             best_index = current_index
-    #         
-    #         if best_value_difference == 0:
-    #             break
-    #         
-    #     ## return
-    #     if best_index is not None:
-    #         logger.debug('{}: Closest index is {}.'.format(self, best_index))
-    #         return best_index
-    #     else:
-    #         logger.debug('{}: No closest index found.'.format(self))
-    #         return None
-
-
     def index(self, value):
         ## search for directories with matching parameters
         logger.debug('{}: Searching for index of value {}.'.format(self, value))
@@ -233,8 +201,6 @@ class Database:
         else:
             logger.debug('{}: No index found for value {}.'.format(self, value))
             return None
-
-    
 
 
 
