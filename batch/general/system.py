@@ -149,9 +149,11 @@ class NodeSetup:
         return self['memory'] is not None and self['node_kind'] is not None and isinstance(self['node_kind'], str) and self['nodes'] is not None and self['cpus'] is not None
 
 
-    def configuration_incomplete(self):
+    def complete_configuration(self):
         if not self.configuration_is_complete():
             logger.debug('Node setup incomplete. Try to complete it.')
+            if self['memory'] is None:
+                raise ValueError('Memory has to be set.')
             try:
                 (node_kind, nodes, cpus) = self.batch_system.wait_for_needed_resources(self['memory'], node_kind=self['node_kind'], nodes=self['nodes'], cpus=self['cpus'], nodes_max=self['nodes_max'], nodes_leave_free=self['nodes_leave_free'], total_cpus_min=self['total_cpus_min'], total_cpus_max=self['total_cpus_max'])
             except NotImplementedError:
@@ -167,7 +169,7 @@ class NodeSetup:
 
         value = self.setup[key]
         if value is None or (test is not None and not test(value)):
-            self.configuration_incomplete()
+            self.complete_configuration()
             value = self.setup[key]
 
         assert value is not None
