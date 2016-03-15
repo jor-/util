@@ -197,6 +197,11 @@ class NodeSetup:
     @property
     def memory(self):
         return self.setup['memory']
+    
+    @memory.setter
+    def memory(self, memory):
+        self.setup['memory'] = memory
+    
 
     @property
     def node_kind(self):
@@ -213,6 +218,7 @@ class NodeSetup:
         self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('cpus')
 
+
     @property
     def walltime(self):
         return self.setup['walltime']
@@ -220,6 +226,24 @@ class NodeSetup:
     @walltime.setter
     def walltime(self, walltime):
         self.setup['walltime'] = walltime
+
+
+    @property
+    def total_cpus_min(self):
+        return self.setup['total_cpus_min']
+    
+    @total_cpus_min.setter
+    def total_cpus_min(self, total_cpus_min):
+        self.setup['total_cpus_min'] = total_cpus_min
+
+
+    @property
+    def nodes_max(self):
+        return self.setup['nodes_max']
+    
+    @nodes_max.setter
+    def nodes_max(self, nodes_max):
+        self.setup['nodes_max'] = nodes_max
 
 
 
