@@ -83,7 +83,7 @@ class NodesState():
 
 class NodeSetup:
 
-    def __init__(self, memory, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
+    def __init__(self, memory=None, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
         
         ## set batch system
         from util.batch.universal.system import BATCH_SYSTEM
