@@ -81,6 +81,15 @@ class Options():
         return value
 
 
+    def __delitem__(self, name):
+        try:
+            del self.__hdf5_file[name]
+        except KeyError as e:
+            raise KeyError('The key {} is not in the option file {}.'.format(name, self.filename)) from e
+        #TODO delete empty groups
+        
+
+
     @property
     def __hdf5_file(self):
         hdf5_file_object = self.__hdf5_file_object
