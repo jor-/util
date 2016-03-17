@@ -49,6 +49,9 @@ class Database:
                     util.logging.warn('The absolute tolerance {} is not support. Using smallest supported absolute tolerance {}.'.format(tolerance_options['absolute'], min_absolute_tolerance))
                     tolerance_options['absolute'][tolerance_options['absolute'] < min_absolute_tolerance] = min_absolute_tolerance
         
+        if not (len(tolerance_options['absolute']) == 1 or len(tolerance_options['relative']) == 1 or len(tolerance_options['relative']) == len(tolerance_options['absolute'])):
+            raise ValueError('The relative and absolute tolerances habe to be scalaras or arrays of equal length, but the relative tolerance is {} and the absolute is {}.'.format(tolerance_options['relative'], tolerance_options['absolute']))
+        
         self._tolerance_options = tolerance_options
 
         logger.debug('Index database initiated with {} value format and tolerance options {}.'.format(self.value_fmt, self._tolerance_options))
@@ -73,6 +76,11 @@ class Database:
         ## check input
         if len(v1) != len(v2):
             raise ValueError('Both values must have equal lengths, but length of {} is {} and length of {} is {}.'.format(v1, len(v1), v2, len(v2)))
+        if not len(self.relative_tolerance) in (1, len(v1)):
+            raise ValueError('The relative tolerances must be a scalar or of equal length as the values, but the relative tolerance is {} with length {} and the values have length {}.'.format(self.relative_tolerance, len(self.relative_tolerance), len(v1)))
+        if not len(self.relative_tolerance) in (1, len(v1)):
+            raise ValueError('The absolute tolerances must be a scalar or of equal length as the values, but the absolute tolerance is {} with length {} and the values have length {}.'.format(self.absolute_tolerance, len(self.absolute_tolerance), len(v1)))
+            
         
         ## calculate value weights
         relative_weights = np.minimum(np.abs(v1), np.abs(v2))
