@@ -22,7 +22,7 @@ def load_petsc_vec_to_numpy_array(file):
     return v
 
 
-def save_numpy_array_to_petsc_vec(vec, file):
+def save_numpy_array_to_petsc_vec(file, vec):
     logger.debug('Saving numpy vector to petsc vector in {}.'.format(file))
 
 
