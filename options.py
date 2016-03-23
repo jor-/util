@@ -1,6 +1,7 @@
 import os.path
 import stat
 
+import numpy as np
 import h5py
 
 import util.io.fs
@@ -46,19 +47,9 @@ class Options():
         ## check if writable
         if not self.is_writable():
             raise OSError('Option file is not writable.')
-
-        ## if dict insert each item since dict is not supported in HDF5
-        if isinstance(value, dict):
-            for (key_i, value_i) in value.items():
-                self['{}/{}'.format(key, key_i)] = value_i
-
-        ## if tuple insert each item since dict is not supported in HDF5
-        elif isinstance(value, tuple):
-            for i in range(len(value)):
-                self['{}/{}'.format(key, i)] = value[i]
-
-        ## insert
-        else:
+        
+        ## insert supported types
+        try:
             f = self.__hdf5_file
             ## set if key exists
             try:
@@ -66,6 +57,36 @@ class Options():
             ## set if key not exists
             except KeyError:
                 f[key] = value
+        
+        ## try to insert unsupported types
+        except TypeError as e:
+            successfully_inserted = False
+            
+            ## if dict, insert each item since dict is not supported in HDF5
+            if isinstance(value, dict):
+                for (key_i, value_i) in value.items():
+                    self['{}/{}'.format(key, key_i)] = value_i
+                successfully_inserted = True
+            
+            ## if iterable of unicode strings
+            if not successfully_inserted:
+                value_array = np.asanyarray(value)
+                if value_array.dtype.kind == 'U':                
+                    h5_dtype = h5py.special_dtype(vlen=str)
+                    dataset = f.create_dataset(key, value_array.shape, dtype=h5_dtype)
+                    dataset[:] = value_array
+                    successfully_inserted = True
+                    
+            ## if tuple or list with different types, insert each item since generic object arrays are not supported in HDF5
+            if not successfully_inserted and (isinstance(value, tuple) or isinstance(value, list)):
+                for i in range(len(value)):
+                    self['{}/{}'.format(key, i)] = value[i]
+                successfully_inserted = True
+            
+            ## if not insertable, raise error
+            if not successfully_inserted:
+                raise TypeError('The value {} for key {} could not be stored, because this type of value is not supported in hdf5.'.format(value, key)) from e
+    
 
 
     def __getitem__(self, name):
