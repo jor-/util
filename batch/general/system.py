@@ -176,7 +176,7 @@ class NodeSetup:
         return value
 
 
-    def update_with_best_configuration(self, check_for_better=True, not_free_speed_factor=0.75):
+    def update_with_best_configuration(self, check_for_better=True, not_free_speed_factor=0.7):
         if check_for_better:
             self['check_for_better'] = False
             setup_triple = (self.node_kind, self.nodes, self.cpus)
