@@ -12,9 +12,11 @@ CURRENT_MODE = MODES['scoop']
 
 def max_parallel_mode():
     if util.parallel.is_running.scoop_module():
-        return MODES['scoop']
+        max_parallel_mode = MODES['scoop']
     else:
-        return MODES['multiprocessing']
+        max_parallel_mode = MODES['multiprocessing']
+    logger.debug('Maximal parallel mode is {}.'.format(max_parallel_mode))
+    return max_parallel_mode
 
 
 
