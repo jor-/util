@@ -826,7 +826,7 @@ class Job():
             if os.path.exists(self.finished_file):
                 return self.is_finished(check_exit_code=check_exit_code)
             else:
-                raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running!', self.output)
+                raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), self.output)
         else:
             return False
 
