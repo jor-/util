@@ -14,17 +14,17 @@ def load_petsc_vec_to_numpy_array(file):
         np.fromfile(file_object, dtype='>i4', count=1)
         ## read length
         nvec = np.fromfile(file_object, dtype='>i4', count=1)
+        assert nvec.ndim == 1 and len(nvec) == 1
+        nvec = nvec[0]
         ## read values
         v = np.fromfile(file_object, dtype='>f8', count=nvec)
+        assert v.ndim == 1 and len(v) == nvec
 
-    ## return array
-    v = np.array(v, dtype='>f8')
     return v
 
 
 def save_numpy_array_to_petsc_vec(file, vec):
     logger.debug('Saving numpy vector to petsc vector in {}.'.format(file))
-
 
     with open(file, mode='xb') as file_object:
         ## write header
