@@ -264,6 +264,11 @@ class MultiDict():
             sorted = self.sorted
         new = type(self)(sorted=sorted)
         return new
+    
+    
+    def copy(self):
+        import copy
+        return copy.deepcopy(self)
 
 
     def _return_items_as_type(self, keys, value_lists, return_type=None):
