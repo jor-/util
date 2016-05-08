@@ -18,3 +18,6 @@ NODE_INFOS = {'clexpress': {'nodes': 2, 'speed': 2.6, 'cpus': 16, 'memory': 128,
               'clfocean': {'nodes': 4, 'speed': 2.6, 'cpus': 16, 'memory': 128, 'max_walltime': MAX_WALLTIME['clfocean']},
               'clfo2': {'nodes': 18, 'speed': 2.5, 'cpus': 24, 'memory': 128, 'max_walltime': MAX_WALLTIME['clfo2']},
               'feque': {'nodes': 1, 'speed': 0, 'cpus': 16, 'memory': 128, 'leave_free': 1, 'max_walltime': MAX_WALLTIME['feque']}}
+
+
+EXCEEDED_WALLTIME_ERROR_MESSAGE = "Batch job received signal SIGKILL. (Exceeded per-req elapse time limit)"

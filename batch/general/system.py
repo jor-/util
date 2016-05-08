@@ -569,10 +569,11 @@ class BatchSystem():
 
 class Job():
 
-    def __init__(self, batch_system, output_dir, force_load=False, max_job_name_len=80):
+    def __init__(self, batch_system, output_dir, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None):
         ## batch system
         self.batch_system = batch_system
         self.max_job_name_len = max_job_name_len
+        self.exceeded_walltime_error_message = exceeded_walltime_error_message
 
         ## check input
         if output_dir is None:
@@ -815,18 +816,27 @@ class Job():
 
 
     def is_finished(self, check_exit_code=True):
+        ## if finished file exists, check exit code and output file
         if os.path.exists(self.finished_file):
             if check_exit_code:
                 exit_code = self.exit_code
                 if exit_code != 0:
                     raise JobExitCodeError(self.id, self.output_dir, exit_code, self.output)
             return self.output_file is None or os.path.exists(self.output_file)
+        
+        ## if finished file odes not exist, check if running
         elif self.is_started() and not self.batch_system.is_job_running(self.id) and not os.path.exists(self.finished_file):
             time.sleep(60)
             if os.path.exists(self.finished_file):
                 return self.is_finished(check_exit_code=check_exit_code)
             else:
-                raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), self.output)
+                output = self.output
+                if self.exceeded_walltime_error_message is not None and self.exceeded_walltime_error_message in output:
+                    raise JobExceededWalltimeError(self.id, self.output_dir, self.walltime_hours, output)
+                else:
+                    raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), output)
+        
+        ## if not not started or running, return false
         else:
             return False
 
@@ -894,4 +904,10 @@ class JobError(Exception):
 class JobExitCodeError(JobError):
     def __init__(self, job_id, output_path, exit_code, ouput=None):
         error_message = 'The command of the job exited with code {}.'.format(exit_code)
+        super().__init__(job_id, output_path, error_message, ouput=ouput)
+
+
+class JobExceededWalltimeError(JobError):
+    def __init__(self, job_id, output_path, walltime, ouput=None):
+        error_message = 'The job {} exceeded walltime {}.'.format(job_id, walltime)
         super().__init__(job_id, output_path, error_message, ouput=ouput)
