@@ -397,7 +397,7 @@ def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, wei
 def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT_FONT_SIZE, dpi=800):
 
     ## set font size
-    set_global_font_size(tick_font_size)
+    set_global_font_size(font_size)
 
     ## make figure
     fig = plt.figure()
