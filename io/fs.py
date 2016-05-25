@@ -1,4 +1,5 @@
 import errno
+import fnmatch
 import os
 import re
 import stat
@@ -28,47 +29,87 @@ def add_file_ext_if_needed(file, ext):
 
 ## get files
 
-def filter_files(path, condition, recursive=False):
+
+def filter_with_condition_function(path, condition_function, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
+    ## use absolute path
     path = os.path.abspath(path)
     
-    ## get all filenames
+    ## definde append filtered result function
+    filtered_results = []
+    
+    def append_filtered(filename):
+        if use_absolute_filenames:
+            filename = os.path.join(path, filename)
+        if condition_function(filename):
+            filtered_results.append(filename)
+    
+    ## filter recursive
     if os.path.exists(path):
         if recursive:
-            path_filenames = []
-            walk_all_in_dir(path, path_filenames.append, path_filenames.append, topdown=True, exclude_dir=True)
-        else:
-            path_filenames = os.listdir(path)
-    else:
-        path_filenames = []
+            if not exclude_files:
+                file_filter_function = append_filtered
+            else:
+                file_filter_function = None
+            if not exclude_dirs:
+                dir_filter_function = append_filtered
+            else:
+                dir_filter_function = None
+            
+            walk_all_in_dir(path, file_function=file_filter_function, dir_function=dir_filter_function, topdown=True, exclude_dir=True)
     
-    ## filter filenames
-    filtered_files = []
-    for path_filename in path_filenames:
-        path_file = os.path.join(path, path_filename)
-        if condition(path_file):
-            filtered_files += [path_file]
-
-    return filtered_files
-
-def get_dirs(path=os.getcwd(), with_links=True):
-    if with_links:
-        dirs = filter_files(path, os.path.isdir, recursive=False)
+    ## filter not recursive
+        else:
+            for filename in os.listdir(path):
+                append_filtered(filename)
+            
+            if exclude_files:
+                if use_absolute_filenames:
+                    filtered_results = [file for file in filtered_results if not os.path.isfile(file)]
+                else:
+                    filtered_results = [file for file in filtered_results if not os.path.isfile(os.path.join(path, file))]            
+            if exclude_dirs:
+                if use_absolute_filenames:
+                    filtered_results = [file for file in filtered_results if not os.path.isdir(file)]
+                else:
+                    filtered_results = [file for file in filtered_results if not os.path.isdir(os.path.join(path, file))]     
+    
+    ## path is not existing
     else:
-        fun = lambda file: os.path.isdir(file) and not os.path.islink(file)
-        dirs = filter_files(path, fun, recursive=False)
+        filtered_results = []
+    
+    ## return 
+    return filtered_results
 
+
+
+def filter_with_filename_pattern(path, filename_pattern, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
+    condition_function = lambda filename: fnmatch.fnmatch(filename, filename_pattern)
+    filtered_results = filter_with_condition_function(path, condition_function, exclude_files=exclude_files, exclude_dirs=exclude_dirs, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
+    return filtered_results
+
+
+def filter_with_regular_expression(path, regular_expression, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
+    regular_expression_object = re.compile(regular_expression)
+    condition_function = lambda filename: regular_expression_object.fullmatch(filename)
+    filtered_results = filter_with_condition_function(path, condition_function, exclude_files=exclude_files, exclude_dirs=exclude_dirs, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
+    return filtered_results
+
+
+
+def get_dirs(path=os.getcwd(), regular_expression=None):
+    if regular_expression is None:
+        regular_expression = '*'
+    dirs = filter_with_filename_pattern(path, '*', exclude_files=True, use_absolute_filenames=False, recursive=False)
     return dirs
 
 def get_files(path=os.getcwd(), regular_expression=None):
     if regular_expression is None:
-        condition = os.path.isfile
-    else:
-        regular_expression_object = re.compile(regular_expression)
-        def condition(file):
-            filename = os.path.split(file)[1]
-            return os.path.isfile(file) and regular_expression_object.match(filename) is not None
+        regular_expression = '*'
+    files = filter_with_filename_pattern(path, '*', exclude_dirs=True, use_absolute_filenames=False, recursive=False)
+    return files
 
-    return filter_files(path, condition, recursive=False)
+
+
 
 
 ## permissions
@@ -198,15 +239,17 @@ def flush_and_close(file):
         time.sleep(1)
 
 
-def walk_all_in_dir(dir, file_function, dir_function, topdown=True, exclude_dir=True):
+def walk_all_in_dir(dir, file_function=None, dir_function=None, topdown=True, exclude_dir=True):
     for (dirpath, dirnames, filenames) in os.walk(dir, topdown=topdown):
-            for filename in filenames:
-                current_file = os.path.join(dirpath, filename)
-                file_function(current_file)
-            for dirname in dirnames:
-                current_dir = os.path.join(dirpath, dirname)
-                dir_function(current_dir)
-    if not exclude_dir:
+            if file_function is not None:
+                for filename in filenames:
+                    current_file = os.path.join(dirpath, filename)
+                    file_function(current_file)
+            if dir_function is not None:
+                for dirname in dirnames:
+                    current_dir = os.path.join(dirpath, dirname)
+                    dir_function(current_dir)
+    if not exclude_dir and dir_function is not None:
         dir_function(dir)
 
 
