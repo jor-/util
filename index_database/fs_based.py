@@ -1,3 +1,4 @@
+import abc
 import os.path
 import re
 
@@ -13,128 +14,143 @@ logger = util.logging.logger
 
 class Database(util.index_database.general.Database):
     
-    def __init__(self, value_file, value_reliable_decimal_places=15, tolerance_options=None):
+    def __init__(self, value_dir, value_filenames, value_reliable_decimal_places=15, tolerance_options=None):
         ## call super constructor
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
-
-        ## set value file informations
-        for s in ['{', '}']:
-            if len(value_file.split(s)) != 2:
-                raise ValueError('The value filename must contain exactly one "{}". But the filename is {}.'.format(s, value_file))
         
-        value_file = os.path.realpath(value_file)
-        self.value_file = value_file
-        self.base_dir = os.path.dirname(value_file.split('{')[0])
+        ## check value dir
+        for s in ['{', '}']:
+            if len(value_dir.split(s)) != 2:
+                raise ValueError('The value dirname must contain exactly one "{}". But the filename is {}.'.format(s, value_file))
+        
+        ## save dirs
+        value_dir = os.path.realpath(value_dir)
+        self.value_dir = value_dir
+        
+        base_dir_including_index = value_dir
+        while re.search('\{.*\}', os.path.dirname(base_dir_including_index)):
+            base_dir_including_index = os.path.dirname(base_dir_including_index)
+        self.base_dir_including_index = base_dir_including_index
+        index_dir = os.path.basename(base_dir_including_index)
+        
+        self.base_dir = os.path.dirname(base_dir_including_index)
         assert len(self.base_dir) > 0
-            
-        self.value_file_regular_expression_search = re.sub('\{.*\}','[0-9]*', self.value_file)
-        self.value_file_regular_expression_split = re.sub('\{.*\}','|', self.value_file)
+        
+        ## save needed regular expressions
+        self.index_dir_regular_expression_search = re.sub('\{.*\}', '[0-9]*', index_dir)
+        self.index_dir_regular_expression_split = re.sub('\{.*\}', '', index_dir)
+        
+        ## save filenames in list
+        if isinstance(value_filenames, str):
+            value_filenames = [value_filenames]
+        self.value_filenames = value_filenames
+        assert len(self.value_filenames) > 0
         
     
     def __str__(self):
         return 'Index file system database {}'.format(self.base_dir)
     
     
-    ## value dir
     
-    def value_dir(self, index):
-        value_file = self.value_file.format(index)
-        value_dir = os.path.dirname(value_file)
-        return value_dir
+    ## load and save
+
+    @abc.abstractmethod
+    def _load_file(self, value_file):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def _save_file(self, value_file, value):
+        raise NotImplementedError()
 
 
     
     ## access
     
     def get_value(self, index):
-        value_file = self.value_file.format(index)
-        try:
-            return np.loadtxt(value_file)
-        except FileNotFoundError:
-            raise util.index_database.general.DatabaseIndexError(index)
+        ## make absolute filenames
+        value_dir = self.value_dir.format(index)
+        value_files = [os.path.join(value_dir, value_filename) for value_filename in self.value_filenames]
+
+        ## load each file
+        value_array = []
+        for value_file in value_files:        
+            try:
+                current_value_array = self._load_file(value_file)
+            except FileNotFoundError:
+                raise util.index_database.general.DatabaseIndexError(index)
+            value_array.append(current_value_array)
+
+        ## return as one array
+        if len(value_array) > 1:
+            value_array = np.asanyarray(value_array)
+        else:
+            value_array = value_array[0]
+        return value_array
+
 
 
     def set_value(self, index, value, overwrite=False):
         logger.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
+        
+        ## check value and make it as two dim array
+        value = np.asanyarray(value)        
+        assert (len(self.value_filenames) == 1 and (value.ndim == 1 or (value.ndim == 2 and len(value) == len(self.value_filenames)))) or (len(self.value_filenames) > 1 and len(value) == len(self.value_filenames))
+        
+        if value.ndim == 1:
+            value = [value]
 
         ## make value dir
-        value_dir = self.value_dir(index)
+        value_dir = self.value_dir.format(index)
         os.makedirs(value_dir, exist_ok=True)
 
-        ## make value file
-        value_file = self.value_file.format(index)
-        value_file_exists = os.path.exists(value_file)
-        if value_file_exists and overwrite:
-            util.io.fs.make_writable(value_file)
-        if overwrite or not value_file_exists:
-            np.savetxt(value_file, value, fmt=self.value_fmt)
-            util.io.fs.make_read_only(value_file)
-        else:
-            logger.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
-            raise util.index_database.general.DatabaseOverwriteError(index)
+        ## save each value to file
+        for i in range(len(self.value_filenames)):
+            value_file = os.path.join(value_dir, self.value_filenames[i])
+            value_file_exists = os.path.exists(value_file)
+            if value_file_exists and overwrite:
+                util.io.fs.make_writable(value_file)
+            if overwrite or not value_file_exists:
+                self._save_file(value_file, value[i])
+                util.io.fs.make_read_only(value_file)
+            else:
+                logger.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
+                raise util.index_database.general.DatabaseOverwriteError(index)
     
     
-    # def add_value(self, value):
-    #     logger.debug('Adding value {} to {}.'.format(value, self))
-    #     
-    #     ## get used indices
-    #     used_indices = self.used_indices()
-    #     
-    #     ## create value dir
-    #     index = 0
-    #     created = False
-    #     while not created:
-    #         if not index in used_indices:
-    #             value_file = self.value_file.format(index)
-    #             value_dir = self.value_dir(index)
-    #             try:
-    #                 os.makedirs(value_dir, exist_ok=False)
-    #                 created = True
-    #             except FileExistsError:
-    #                 index += 1
-    #         else:
-    #             index += 1
-
-    #       ## create value
-    #     np.savetxt(value_file, value, fmt=self.value_fmt)
-    #     util.io.fs.make_read_only(value_file)
-    #     
-    #     ## return index
-    #     logger.debug('Value {} added with index {}.'.format(value, index))
-    #     return index
     
-
     def used_indices(self):
         ## get all value files
-        def condition(file):
-            return re.match(self.value_file_regular_expression_search, file) is not None
-        all_value_files = util.io.fs.filter_files(self.base_dir, condition, recursive=True)
+        all_index_dirs = util.io.fs.filter_with_regular_expression(self.base_dir, self.index_dir_regular_expression_search, exclude_files=True, use_absolute_filenames=False, recursive=False)
         
         ## get all used indices
         used_indices = []
-        for value_file in all_value_files:
-            split_result = re.split(self.value_file_regular_expression_split, value_file)
-            assert len(split_result) == 3
-            index = int(split_result[1])
+        for index_dir in all_index_dirs:
+            # get name starting at index
+            extracted = re.split(self.index_dir_regular_expression_split, index_dir)
+            assert len(extracted) in [2, 3]
+            extracted = extracted[1]
+            # get index only
+            extracted = re.search(r'\d+', extracted).group()
+            # append int index
+            index = int(extracted)
             used_indices.append(index)
         
         logger.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
         return used_indices
     
     
+    
     def remove_index(self, index, force=False):
         logger.debug('{}: Removing index {}.'.format(self, index))
-        value_dir = self.value_file
-        while re.search('\{.*\}', os.path.dirname(value_dir)):
-            value_dir = os.path.dirname(value_dir)
-        value_dir = value_dir.format(index)
+        
+        ## get topmost dir with index
+        base_dir_including_index = self.base_dir_including_index.format(index)
 
-        logger.debug('{}: Removing value dir {}.'.format(self, value_dir))
-        assert value_dir.startswith(self.base_dir) and len(value_dir) > len(self.base_dir)
+        ## remove directory
+        logger.debug('{}: Removing value dir {}.'.format(self, base_dir_including_index))
+        assert base_dir_including_index.startswith(self.base_dir) and len(base_dir_including_index) > len(self.base_dir)
         try:
-            util.io.fs.remove_recursively(value_dir, force=force, exclude_dir=False)
+            util.io.fs.remove_recursively(base_dir_including_index, force=force, exclude_dir=False)
         except FileNotFoundError:
             raise util.index_database.general.DatabaseIndexError(index)
             
-
-
