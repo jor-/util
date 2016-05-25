@@ -211,6 +211,13 @@ class Database:
             return None
 
 
+    def get_or_add_index(self, value):
+        index = self.index(value)
+        if index is None:
+            index = self.add_value(value)
+        return index
+
+
 
 class DatabaseIndexError(IndexError):
     
