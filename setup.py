@@ -13,7 +13,7 @@ with open(readme_file, mode='r', encoding='utf-8') as f:
 
 setuptools.setup(
     # Name
-    name='utils',
+    name='utillib',
 
     # Version
     use_scm_version=True,
