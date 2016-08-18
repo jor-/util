@@ -12,15 +12,13 @@ with open(readme_file, mode='r', encoding='utf-8') as f:
     long_description = f.read()
 
 setuptools.setup(
-    name='util',
+    # Name
+    name='utils',
 
     # Version
-    # Should comply with PEP440.
-    # https://www.python.org/dev/peps/pep-0440/
-    #version='0.1.1',
     use_scm_version=True,
-    setup_requires=['setuptools>=0.8', 'pip>=1.4','setuptools_scm'],
-
+    
+    # Desctiption
     description='util functions',
     long_description=long_description,
 
@@ -63,13 +61,20 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     # Dependencies
-    install_requires=['numpy'],
+    setup_requires=[
+        'setuptools>=0.8',
+        'pip>=1.4',
+        'setuptools_scm',
+    ],
+    install_requires=[
+        'numpy',
+    ],
     extras_require={
         'cache': ['cachetools'],
+        'options': ['h5py'],
         'sorted_multi_dict': ['blist'],
         'colored_log': ['colorlog'],
         'hdf5': ['h5py'],
-        'options': ['h5py'],
         'netcdf': ['netCDF4', 'scipy'],
         'petsc': ['petsc4py'],
         'cholmod': ['scikit-sparse'],
@@ -77,6 +82,7 @@ setuptools.setup(
         'deap': ['deap'],
         'plot' : ['matplotlib', 'scipy'],
         'sparse' : ['scipy'],
-        'multi_dict_stats' : ['scipy']
+        'interpolate' : ['scipy'],
+        'multi_dict_stats' : ['scipy'],
     }
 )
