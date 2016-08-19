@@ -580,7 +580,7 @@ class MultiDict():
         return self.iterate_values(calculate_variance, min_values, return_type=return_type)
 
 
-    def deviations(self, min_values=3, min_deviation=0, return_type='array'):
+    def standard_deviations(self, min_values=3, min_deviation=0, return_type='array'):
         logger.debug('Calculate deviations of values with at least {} values with mininmal deviation {}.'.format(min_values, min_deviation))
 
         def calculate_deviation(values):
