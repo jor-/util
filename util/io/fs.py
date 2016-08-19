@@ -12,10 +12,9 @@ logger = util.logging.logger
 ## file extension
 
 def has_file_ext(file, ext):
-    actual_ext = os.path.splitext(file)[1]
     if not ext.startswith('.'):
-        actual_ext = actual_ext[1:]
-    return actual_ext == ext
+        ext = '.' + ext
+    return file.endswith(ext)
 
 
 def add_file_ext_if_needed(file, ext):
@@ -29,8 +28,7 @@ def add_file_ext_if_needed(file, ext):
 
 ## get files
 
-
-def filter_with_condition_function(path, condition_function, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
+def find_with_condition_function(path, condition_function, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
     ## use absolute path
     path = os.path.abspath(path)
     
@@ -81,35 +79,30 @@ def filter_with_condition_function(path, condition_function, exclude_files=False
     return filtered_results
 
 
-
-def filter_with_filename_pattern(path, filename_pattern, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
+def find_with_filename_pattern(path, filename_pattern, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
     condition_function = lambda filename: fnmatch.fnmatch(filename, filename_pattern)
-    filtered_results = filter_with_condition_function(path, condition_function, exclude_files=exclude_files, exclude_dirs=exclude_dirs, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
+    filtered_results = find_with_condition_function(path, condition_function, exclude_files=exclude_files, exclude_dirs=exclude_dirs, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
     return filtered_results
 
 
-def filter_with_regular_expression(path, regular_expression, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
+def find_with_regular_expression(path, regular_expression, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
     regular_expression_object = re.compile(regular_expression)
     condition_function = lambda filename: regular_expression_object.fullmatch(filename)
-    filtered_results = filter_with_condition_function(path, condition_function, exclude_files=exclude_files, exclude_dirs=exclude_dirs, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
+    filtered_results = find_with_condition_function(path, condition_function, exclude_files=exclude_files, exclude_dirs=exclude_dirs, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
     return filtered_results
 
 
-
-def get_dirs(path=os.getcwd(), regular_expression=None):
-    if regular_expression is None:
-        regular_expression = '*'
-    dirs = filter_with_filename_pattern(path, '*', exclude_files=True, use_absolute_filenames=False, recursive=False)
+def get_dirs(path=os.getcwd(), filename_pattern=None, use_absolute_filenames=False, recursive=False):
+    if filename_pattern is None:
+        filename_pattern = '*'
+    dirs = find_with_filename_pattern(path, filename_pattern, exclude_files=True, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
     return dirs
 
-def get_files(path=os.getcwd(), regular_expression=None):
-    if regular_expression is None:
-        regular_expression = '*'
-    files = filter_with_filename_pattern(path, '*', exclude_dirs=True, use_absolute_filenames=False, recursive=False)
+def get_files(path=os.getcwd(), filename_pattern=None, use_absolute_filenames=False, recursive=False):
+    if filename_pattern is None:
+        filename_pattern = '*'
+    files = find_with_filename_pattern(path, filename_pattern, exclude_dirs=True, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
     return files
-
-
-
 
 
 ## permissions
@@ -117,10 +110,12 @@ def get_files(path=os.getcwd(), regular_expression=None):
 def file_mode(file):
     return os.stat(file)[stat.ST_MODE]
 
+
 def file_permission(file):
     permission_octal_string = oct(file_mode(file))[-3:]
     permission_int = int(permission_octal_string, 8)
     return permission_int
+
 
 def remove_write_permission(file):
     permission_old = file_mode(file)
@@ -129,6 +124,7 @@ def remove_write_permission(file):
         permission_new = permission_new & ~ write_permission
     os.chmod(file, permission_new)
     logger.debug('Removing write permission of file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:],oct( permission_new)[-3:]))
+
 
 def add_write_permission(file):
     permission_old = file_mode(file)
@@ -163,6 +159,7 @@ def make_read_only(*files, not_exist_ok=False):
                 pass
         else:
             remove_write_permission(file)
+
 
 def make_read_only_recursively(path, exclude_dir=True):
     logger.debug('Making recursively all files in {} read-only.'.format(path))
@@ -209,6 +206,7 @@ def _remove_general(remove_function, file, force=False, not_exist_okay=False):
 def remove_dir(dir, force=False, not_exist_okay=False):
     _remove_general(os.rmdir, dir, force=force, not_exist_okay=not_exist_okay)
 
+
 def remove_file(file, force=False, not_exist_okay=False):
     _remove_general(os.remove, file, force=force, not_exist_okay=not_exist_okay)
 
@@ -225,7 +223,6 @@ def remove_recursively(dir, force=False, not_exist_okay=False, exclude_dir=False
         remove_file(dir, force=force, not_exist_okay=not_exist_okay)
     except IsADirectoryError:
         walk_all_in_dir(dir, lambda file: remove_file(file, force=force, not_exist_okay=not_exist_okay), lambda dir: remove_dir(dir, force=force, not_exist_okay=not_exist_okay), exclude_dir=exclude_dir, topdown=False)
-
 
 
 ## utility functions
@@ -284,5 +281,4 @@ def fd_is_file(fd, file, not_exist_okay=False):
     
     ## check if same device and inode
     return fd_stat.st_dev == file_stat.st_dev and fd_stat.st_ino == file_stat.st_ino
-    
      
