@@ -5,18 +5,18 @@ import util.io.fs
 
 
 
-FILE_EXT = 'ppy'
+FILE_EXT = '.ppy'
 
 def is_file(file):
     return util.io.fs.has_file_ext(file, FILE_EXT)
 
-def make_file(file):
+def add_file_ext(file):
     return util.io.fs.add_file_ext_if_needed(file, FILE_EXT)
 
 
 
 def save(file, o, protocol=-1):
-    file = make_file(file)
+    file = add_file_ext(file)
     with open(file, 'wb') as file_object:
         pickle.dump(o, file_object, protocol=protocol)
 
