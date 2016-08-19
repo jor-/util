@@ -1,5 +1,5 @@
 import abc
-import os.path
+import os
 import re
 
 import numpy as np
@@ -18,27 +18,8 @@ class Database(util.index_database.general.Database):
         ## call super constructor
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
         
-        ## check value dir
-        for s in ['{', '}']:
-            if len(value_dir.split(s)) != 2:
-                raise ValueError('The value dirname must contain exactly one "{}". But the filename is {}.'.format(s, value_file))
-        
-        ## save dirs
-        value_dir = os.path.realpath(value_dir)
+        ## set value dir
         self.value_dir = value_dir
-        
-        base_dir_including_index = value_dir
-        while re.search('\{.*\}', os.path.dirname(base_dir_including_index)):
-            base_dir_including_index = os.path.dirname(base_dir_including_index)
-        self.base_dir_including_index = base_dir_including_index
-        index_dir = os.path.basename(base_dir_including_index)
-        
-        self.base_dir = os.path.dirname(base_dir_including_index)
-        assert len(self.base_dir) > 0
-        
-        ## save needed regular expressions
-        self.index_dir_regular_expression_search = re.sub('\{.*\}', '[0-9]*', index_dir)
-        self.index_dir_regular_expression_split = re.sub('\{.*\}', '', index_dir)
         
         ## save filenames in list
         if isinstance(value_filenames, str):
@@ -48,8 +29,58 @@ class Database(util.index_database.general.Database):
         
     
     def __str__(self):
-        return 'Index file system database {}'.format(self.base_dir)
+        return 'Index file system database {}'.format(self.value_dir)
     
+    
+    ## setter and getter for files and dirs
+    
+    @property
+    def value_dir(self):
+        return self._value_dir
+    
+    @value_dir.setter
+    def value_dir(self, value_dir):               
+        ## check value dir
+        for s in ['{', '}']:
+            if len(value_dir.split(s)) != 2:
+                raise ValueError('The value dirname must contain exactly one "{}". But the filename is {}.'.format(s, value_file))
+        
+        ## calculate dirs
+        value_dir = os.path.realpath(value_dir)
+        
+        base_dir_including_index = value_dir
+        while re.search('\{.*\}', os.path.dirname(base_dir_including_index)):
+            base_dir_including_index = os.path.dirname(base_dir_including_index)
+        
+        base_dir = os.path.dirname(base_dir_including_index)
+        assert len(base_dir) > 0
+
+        ## make base dir
+        os.makedirs(base_dir, exist_ok=True)
+        
+        ## store needed dirs
+        self._value_dir = value_dir
+        self._base_dir_including_index = base_dir_including_index
+        self._base_dir = base_dir
+
+        ## save needed regular expressions        
+        index_dir = os.path.basename(base_dir_including_index)
+        self._index_dir_regular_expression_search = re.sub('\{.*\}', '[0-9]*', index_dir)
+        self._index_dir_regular_expression_split = re.sub('\{.*\}', '', index_dir)
+    
+    
+    @property
+    def value_filenames(self):
+        return self._value_filenames
+    
+    @value_filenames.setter
+    def value_filenames(self, value_filenames):        
+        ## save filenames in list
+        if isinstance(value_filenames, str):
+            value_filenames = [value_filenames]
+        assert len(value_filenames) > 0
+        
+        self._value_filenames = value_filenames
     
     
     ## load and save
@@ -62,14 +93,18 @@ class Database(util.index_database.general.Database):
     def _save_file(self, value_file, value):
         raise NotImplementedError()
 
-
     
     ## access
     
-    def get_value(self, index):
+    def value_files(self, index):
         ## make absolute filenames
         value_dir = self.value_dir.format(index)
         value_files = [os.path.join(value_dir, value_filename) for value_filename in self.value_filenames]
+        return value_files
+        
+    
+    def get_value(self, index):
+        value_files = self.value_files(index)
 
         ## load each file
         value_array = []
@@ -86,7 +121,6 @@ class Database(util.index_database.general.Database):
         else:
             value_array = value_array[0]
         return value_array
-
 
 
     def set_value(self, index, value, overwrite=False):
@@ -117,16 +151,15 @@ class Database(util.index_database.general.Database):
                 raise util.index_database.general.DatabaseOverwriteError(index)
     
     
-    
     def used_indices(self):
         ## get all value files
-        all_index_dirs = util.io.fs.filter_with_regular_expression(self.base_dir, self.index_dir_regular_expression_search, exclude_files=True, use_absolute_filenames=False, recursive=False)
+        all_index_dirs = util.io.fs.find_with_regular_expression(self._base_dir, self._index_dir_regular_expression_search, exclude_files=True, use_absolute_filenames=False, recursive=False)
         
         ## get all used indices
         used_indices = []
         for index_dir in all_index_dirs:
             # get name starting at index
-            extracted = re.split(self.index_dir_regular_expression_split, index_dir)
+            extracted = re.split(self._index_dir_regular_expression_split, index_dir)
             assert len(extracted) in [2, 3]
             extracted = extracted[1]
             # get index only
@@ -139,16 +172,15 @@ class Database(util.index_database.general.Database):
         return used_indices
     
     
-    
     def remove_index(self, index, force=False):
         logger.debug('{}: Removing index {}.'.format(self, index))
         
         ## get topmost dir with index
-        base_dir_including_index = self.base_dir_including_index.format(index)
+        base_dir_including_index = self._base_dir_including_index.format(index)
 
         ## remove directory
         logger.debug('{}: Removing value dir {}.'.format(self, base_dir_including_index))
-        assert base_dir_including_index.startswith(self.base_dir) and len(base_dir_including_index) > len(self.base_dir)
+        assert base_dir_including_index.startswith(self._base_dir) and len(base_dir_including_index) > len(self._base_dir)
         try:
             util.io.fs.remove_recursively(base_dir_including_index, force=force, exclude_dir=False)
         except FileNotFoundError:
