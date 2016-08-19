@@ -16,48 +16,54 @@ class Database:
         assert value_reliable_decimal_places >= 0
         self.value_fmt = '%.{}f'.format(value_reliable_decimal_places)
 
-        
         ## set tolerance options
         if tolerance_options is None:
             tolerance_options = {}
+        self._tolerance_options = {}
         
+        ## set relative option
         try:
-            tolerance_options['relative']
+            relative = tolerance_options['relative']
         except KeyError:
-            tolerance_options['relative'] = np.asarray([0])
+            relative = None
+        
+        if relative is None:
+            relative = np.array([0])
         else:
-            if tolerance_options['relative'] is None:
-                tolerance_options['relative'] = np.asarray([0])
-            else:
-                tolerance_options['relative'] = np.asarray(tolerance_options['relative']).reshape(-1)
-                if np.any(tolerance_options['relative'] < 0):
-                    raise ValueError('The relative tolerance {} has to be positive.'.format(tolerance_options['relative']))
+            relative = np.asanyarray(relative).reshape(-1)
+            if np.any(relative < 0):
+                raise ValueError('The relative tolerance {} has to be positive.'.format(relative))
+        
+        self._tolerance_options['relative'] = relative
 
+        ## min absolute tolerance
         min_absolute_tolerance = 10**(-value_reliable_decimal_places)
-        try:
-            tolerance_options['absolute']
-        except KeyError:
-            tolerance_options['absolute'] = np.asarray([min_absolute_tolerance])
-        else:
-            if tolerance_options['absolute'] is None:
-                tolerance_options['absolute'] = np.asarray([min_absolute_tolerance])
-            else:
-                tolerance_options['absolute'] = np.asarray(tolerance_options['absolute']).reshape(-1)
-                if np.any(tolerance_options['absolute'] < 0):
-                    raise ValueError('The absolute tolerance {} has to be positive.'.format(tolerance_options['absolute']))
-                elif np.any(tolerance_options['absolute'] < min_absolute_tolerance):
-                    util.logging.warn('The absolute tolerance {} is not support. Using smallest supported absolute tolerance {}.'.format(tolerance_options['absolute'], min_absolute_tolerance))
-                    tolerance_options['absolute'][tolerance_options['absolute'] < min_absolute_tolerance] = min_absolute_tolerance
-        
-        if not (len(tolerance_options['absolute']) == 1 or len(tolerance_options['relative']) == 1 or len(tolerance_options['relative']) == len(tolerance_options['absolute'])):
-            raise ValueError('The relative and absolute tolerances habe to be scalaras or arrays of equal length, but the relative tolerance is {} and the absolute is {}.'.format(tolerance_options['relative'], tolerance_options['absolute']))
-        
-        self._tolerance_options = tolerance_options
 
+        ## set absolute option
+        try:
+            absolute = tolerance_options['absolute']
+        except KeyError:
+            absolute = None
+        
+        if absolute is None:
+            absolute = np.asarray([min_absolute_tolerance])
+        else:
+            absolute = np.asanyarray(absolute).reshape(-1)
+            if np.any(absolute < 0):
+                raise ValueError('The absolute tolerance {} has to be positive.'.format(absolute))
+            elif np.any(absolute < min_absolute_tolerance):
+                logger.warn('The absolute tolerance {} is not support. Using smallest supported absolute tolerance {}.'.format(absolute, min_absolute_tolerance))
+                absolute = np.asanyarray(absolute, dtype=np.float64)
+                absolute[absolute < min_absolute_tolerance] = min_absolute_tolerance
+        
+        self._tolerance_options['absolute'] = absolute
+        
+        ## check both options
+        if not (len(self._tolerance_options['absolute']) == 1 or len(self._tolerance_options['relative']) == 1 or len(self._tolerance_options['relative']) == len(self._tolerance_options['absolute'])):
+            raise ValueError('The relative and absolute tolerances habe to be scalaras or arrays of equal length, but the relative tolerance is {} and the absolute is {}.'.format(self._tolerance_options['relative'], self._tolerance_options['absolute']))
+        
         logger.debug('Index database initiated with {} value format and tolerance options {}.'.format(self.value_fmt, self._tolerance_options))
         
-
-    
     
     ## tolerances
     
@@ -99,7 +105,6 @@ class Database:
     
     def are_values_equal(self, v1, v2):
         return self.value_difference(v1, v2) <= 1
-    
     
     
     ## access
@@ -150,7 +155,10 @@ class Database:
 
     @abc.abstractmethod
     def used_indices(self):
-        raise NotImplementedError()    
+        raise NotImplementedError()
+
+    def number_of_used_indices(self):
+        return len(self.used_indices())  
 
     @abc.abstractmethod
     def remove_index(self, index):
@@ -159,6 +167,8 @@ class Database:
 
     def closest_indices(self, value):
         logger.debug('{}: Calculating closest indices for value {}.'.format(self, value))
+        value = np.asanyarray(value)
+        
         ## get all used indices
         used_indices = self.used_indices()
         used_indices = np.asarray(used_indices)
@@ -211,9 +221,9 @@ class Database:
             return None
 
 
-    def get_or_add_index(self, value):
+    def get_or_add_index(self, value, add=True):
         index = self.index(value)
-        if index is None:
+        if index is None and add:
             index = self.add_value(value)
         return index
 
