@@ -5,8 +5,12 @@ import numpy as np
 import h5py
 
 import util.io.fs
+import util.io.universal
 import util.logging
 logger = util.logging.logger
+
+
+## Options File
 
 class OptionsFile():
 
@@ -33,7 +37,6 @@ class OptionsFile():
 
     def __exit__(self, type, value, traceback):
         self.close()
-
 
 
     def __setitem__(self, key, value):
@@ -88,7 +91,6 @@ class OptionsFile():
                 raise TypeError('The value {} for key {} could not be stored, because this type of value is not supported in hdf5.'.format(value, key)) from e
     
 
-
     def __getitem__(self, name):
         ## get value
         try:
@@ -108,8 +110,7 @@ class OptionsFile():
         except KeyError as e:
             raise KeyError('The key {} is not in the option file {}.'.format(name, self.filename)) from e
         #TODO delete empty groups
-        
-
+    
 
     @property
     def __hdf5_file(self):
@@ -133,12 +134,15 @@ class OptionsFile():
 
         try:
             f = h5py.File(file, mode=mode)
-        except OSError:
-            logger.debug('File {} could not been open. Trying read_only mode.'.format(file))
-            f = h5py.File(file, mode='r')
-
-        logger.debug('File {} opened.'.format(file))
-        self.__hdf5_file_object = f
+        except OSError as e:
+            if mode != 'r':
+                logger.debug('File {} could not been open. Trying read_only mode.'.format(file))
+                self.open(file, mode='r')
+            else:
+                raise OSError(None, 'Could not open option file.', file) from e
+        else:
+            logger.debug('File {} opened.'.format(file))
+            self.__hdf5_file_object = f
 
 
     def close(self):
@@ -216,7 +220,6 @@ class OptionsFile():
     ## replace str
 
     def get_all_str_options(self):
-        f = self.__hdf5_file
         string_object_list = []
 
         def append_if_string_option(name, object):
@@ -224,24 +227,46 @@ class OptionsFile():
             try:
                 value = object.value
             except AttributeError:
-                value = None
-
+                pass
             ## check type
-            if type(value) is str:
-                string_object_list.append(name)
+            else:
+                if isinstance(value, str) or (isinstance(value, np.ndarray) and any(tuple(map(lambda v: isinstance(v[np.newaxis][0], str), np.nditer(value, flags=['refs_ok']))))):
+                    string_object_list.append(name)
 
-
+        f = self.__hdf5_file
         f.visititems(append_if_string_option)
 
         return string_object_list
-
+    
 
     def replace_all_str_options(self, old_str, new_str):
-        for option in self.get_all_str_options():
-            old_option = self[option]
-            new_option = old_option.replace(old_str, new_str)
-            if old_option != new_option:
-                self[option] = new_option
-                logger.info('Option {} updated from {} to {}.'.format(option, old_option, new_option))
+        def replace_string_in_option(option, object):
+            ## check if dataset
+            try:
+                value = object.value
+            except AttributeError:
+                pass
+            ## check type
             else:
-                logger.debug('Option {} with value {} does not have to be updated.'.format(option, old_option))
+                ## replace in (scalar) string
+                if isinstance(value, str):
+                    new_value = value.replace(old_str, new_str)
+                ## replace in string array
+                elif isinstance(value, np.ndarray) and all(map(lambda v: isinstance(v[np.newaxis][0], str), np.nditer(value, flags=['refs_ok']))):
+                    new_value = value.copy()
+                    for v in np.nditer(new_value, flags=['refs_ok'], op_flags=['readwrite']):
+                        v[...] = v[np.newaxis][0].replace(old_str, new_str)
+                    new_value = new_value.astype('U')
+                ## otherwise skip
+                else:
+                    new_value = None
+                ## set replaced option value
+                if new_value is not None and np.any(value != new_value):
+                    self[option] = new_value
+                    logger.info('Option {} updated from {} to {}.'.format(option, value, new_value))
+                else:
+                    logger.debug('Option {} with value {} does not have to be updated.'.format(option, value))
+
+        f = self.__hdf5_file
+        f.visititems(replace_string_in_option)
+
