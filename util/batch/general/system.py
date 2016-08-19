@@ -80,7 +80,6 @@ class NodesState():
 
 
 
-
 class NodeSetup:
 
     def __init__(self, memory=None, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
@@ -258,8 +257,6 @@ class NodeSetupIncompleteError(Exception):
 
 
 
-
-
 class BatchSystem():
 
     def __init__(self, commands, queues, max_walltime={}, module_renaming={}, node_infos={}):
@@ -272,7 +269,6 @@ class BatchSystem():
         if not isinstance(node_infos, NodeInfos):
             node_infos = NodeInfos(node_infos)
         self.node_infos = node_infos
-
 
 
     @property
@@ -388,6 +384,7 @@ class BatchSystem():
             command = self.mpi_command.format(command=command, cpus=cpus)
         return command
     
+    
     ## best node setups
     
     def speed(self, node_kind, nodes, cpus):
@@ -476,7 +473,6 @@ class BatchSystem():
         assert nodes is None or best_nodes == nodes or best_nodes == 0
         assert cpus is None or best_cpus == cpus or best_cpus == 0
         return (best_nodes, best_cpus)
-
 
     
     def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf'), walltime=None):
@@ -567,6 +563,7 @@ class BatchSystem():
         raise NotImplementedError()
 
 
+
 class Job():
 
     def __init__(self, batch_system, output_dir, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None):
@@ -588,14 +585,14 @@ class Job():
 
         ## load option file if existing or forced
         if force_load or os.path.exists(option_file_expanded):
-            self.__options = util.options.Options(option_file_expanded, mode='r+', replace_environment_vars_at_get=True)
+            self.__options = util.options.OptionsFile(option_file_expanded, mode='r+', replace_environment_vars_at_get=True)
             logger.debug('Job {} loaded.'.format(option_file_expanded))
 
         ## make new job options file otherwise
         else:
             os.makedirs(output_dir_expanded, exist_ok=True)
 
-            self.__options = util.options.Options(option_file_expanded, mode='w-', replace_environment_vars_at_get=True)
+            self.__options = util.options.OptionsFile(option_file_expanded, mode='w-', replace_environment_vars_at_get=True)
 
             self.options['/job/output_file'] = os.path.join(output_dir, 'job_output.txt')
             self.options['/job/option_file'] = os.path.join(output_dir, 'job_options.txt')
@@ -627,7 +624,6 @@ class Job():
         else:
             job_str = 'not started job with output path {}'.format(job_id, output_dir)
         return job_str
-
 
 
     @property
