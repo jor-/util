@@ -1,6 +1,5 @@
 import numpy as np
-from scipy.interpolate.interpnd import LinearNDInterpolator
-from scipy.interpolate.ndgriddata import NearestNDInterpolator
+import scipy.interpolate
 
 import util.io.object
 import util.parallel.with_multiprocessing
@@ -22,7 +21,6 @@ def get_float_index_for_equidistant_values(value, value_range, dim):
     return index
 
 
-
 def get_nearest_value_in_array(array, value):
     logger.debug('Getting nearest value in array for {}.'.format(value))
 
@@ -35,9 +33,7 @@ def get_nearest_value_in_array(array, value):
     return nearest_value
 
 
-
 ## interpolation
-
 
 def data_with_float_index(data, index):
     ## get data at float index (linear) interpolated
@@ -74,7 +70,6 @@ def data_with_regular_grid(data, points, point_ranges):
         results[i] = data_with_float_index(data, indices[i])
 
     return results
-
 
 
 
@@ -166,11 +161,8 @@ def change_dim(data, dim_index, new_dim):
 
 
 
-
-
-
-
 ## Base Interpolator
+
 class Interpolator_Base():
 
     def __init__(self, data_points, data_values, method, possible_methods, scaling_values=None, copy_arrays=True):
@@ -195,7 +187,6 @@ class Interpolator_Base():
         self.data_values = data_values
 
         assert self._scaling_values is None or len(self._scaling_values) == self._data_points.shape[1]
-
 
 
     @property
@@ -242,11 +233,7 @@ class Interpolator_Base():
             return copy_arrays[index]
 
 
-
     ## prepare values
-
-#     def _modify_data_values(self, data_values):
-#         return data_values
 
     def _prepare_data_values(self, data_values):
         logger.debug('Preparing data values.')
@@ -258,8 +245,6 @@ class Interpolator_Base():
         if data_values.ndim != 1:
             raise ValueError('The data values must have one dimension, but its dimension is {}.'.format(data_values.ndim))
 
-#         data_values = self._modify_data_values(data_values)
-
         assert data_values.ndim == 1
         assert data_values.shape[0] == self.data_points.shape[0]
 
@@ -269,6 +254,7 @@ class Interpolator_Base():
     def _modify_data_points(self, points):
         points = self._scale(points)
         return points
+
 
     def _prepare_data_points(self, data_points):
 
@@ -301,6 +287,7 @@ class Interpolator_Base():
         points = self._scale(points)
         return points
 
+
     def _prepare_interpolation_points(self, interpolation_points):
 
         if self._copy(1):
@@ -326,6 +313,7 @@ class Interpolator_Base():
 
 
     ## scale points
+    
     def _scale(self, points):
         scaling_values = self.scaling_values
 
@@ -342,6 +330,7 @@ class Interpolator_Base():
 
 
     ## interpolate
+    
     def _calculate_interpolation(self, interpolation_points):
         raise NotImplementedError("Please implement this method.")
 
@@ -370,6 +359,7 @@ class Interpolator_Base():
 
 
     ## save and load
+    
     def save(self, file):
         util.io.object.save(file, self)
         logger.debug('Interpolator saved to {}.'.format(file))
@@ -406,7 +396,6 @@ class Interpolator_Values_Changeable(Interpolator_Base):
             logger.debug('Data values in {} interpolator must not be updated, since interpolated is not constructed.'.format(self.method))
 
 
-
     def _get_interpolator(self):
         interpolator = self._interpolator
 
@@ -414,9 +403,9 @@ class Interpolator_Values_Changeable(Interpolator_Base):
             logger.debug('Constructing {} interpolator.'.format(self.method))
             if self.method == 'nearest':
                 tree_options = {'compact_nodes': False, 'balanced_tree': False}
-                interpolator = NearestNDInterpolator(self.data_points, self.data_values, tree_options=tree_options)
+                interpolator = scipy.interpolate.ndgriddata.NearestNDInterpolator(self.data_points, self.data_values, tree_options=tree_options)
             else:
-                interpolator = LinearNDInterpolator(self.data_points, self.data_values)
+                interpolator = scipy.interpolate.interpnd.LinearNDInterpolator(self.data_points, self.data_values)
             self._interpolator = interpolator
         else:
             logger.debug('Returning cached {} interpolator.'.format(self.method))
@@ -433,14 +422,12 @@ class Interpolator_Values_Changeable(Interpolator_Base):
 
 
 
-
-
 ## Changable and partitionable interpolator
 
 class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
-    def __init__(self, data_points, data_values, method='linear', number_of_interpolators=1, total_overlapping=0.5, scaling_values=None, copy_arrays=True, parallel=False):
-        logger.debug('Initiating partitionable interpolator with {} data points, scaling values {} and {} interpolators with total overlapping of {}.'.format(len(data_points), scaling_values, number_of_interpolators, total_overlapping))
+    def __init__(self, data_points, data_values, method='linear', number_of_interpolators=1, single_overlapping_amount=0.5, scaling_values=None, copy_arrays=True, parallel=False):
+        logger.debug('Initiating partitionable interpolator with {} data points, scaling values {} and {} interpolators with single_overlapping_amount of {}.'.format(len(data_points), scaling_values, number_of_interpolators, single_overlapping_amount))
 
         self.parallel = parallel
 
@@ -481,11 +468,12 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         def get_last_index_of_same_value_vectorize(values, indices, step=1):
             last_indices = np.empty_like(indices, dtype=np.int)
             for i in range(len(indices)):
-                last_indices[i] = get_last_index_of_same_value(values, indices[i], step=1)
+                last_indices[i] = get_last_index_of_same_value(values, indices[i], step=step)
             return last_indices
 
 
         interpolation_bound_indices = np.floor(np.arange(0, number_of_interpolators + 1) * data_points_sorted.shape[0] / (number_of_interpolators))
+        interpolation_bound_indices = interpolation_bound_indices.astype(np.int)
         interpolation_bound_indices = get_last_index_of_same_value_vectorize(data_points_sorted[:,0], interpolation_bound_indices, step=-1)
         interpolation_bound_indices[-1] = data_points_sorted.shape[0] - 1
 
@@ -503,32 +491,27 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
 
         ## compute value range indices
-        def get_interpolator_data_values_ranges(data_values_sorted_first_dim, interpolation_bound_indices, total_overlapping=total_overlapping, number_of_interpolators=number_of_interpolators):
+        def get_interpolator_data_values_ranges(data_values_sorted_first_dim, interpolation_bound_indices, single_overlapping_amount):
 
-            overlapping_len = len(data_values_sorted_first_dim) * total_overlapping / number_of_interpolators
+            overlapping_len = len(data_values_sorted_first_dim) * single_overlapping_amount
+            overlapping_interpolation_bound_indices_lower = np.floor(interpolation_bound_indices - overlapping_len)
+            overlapping_interpolation_bound_indices_lower = overlapping_interpolation_bound_indices_lower.astype(np.int)
+            overlapping_interpolation_bound_indices_upper = np.ceil(interpolation_bound_indices + overlapping_len)
+            overlapping_interpolation_bound_indices_upper = overlapping_interpolation_bound_indices_upper.astype(np.int)
 
             number_of_interpolators = len(interpolation_bound_indices) - 1
             interpolator_data_value_ranges = np.empty((number_of_interpolators, 2), dtype=np.int)
-
-            for i in range(number_of_interpolators):
-                 interpolator_data_value_ranges[i] = (get_last_index_of_same_value(data_values_sorted_first_dim, interpolation_bound_indices[i] - overlapping_len, step=-1), get_last_index_of_same_value(data_values_sorted_first_dim, interpolation_bound_indices[i+1] + overlapping_len, step=1) + 1)
+            
+            interpolator_data_value_ranges[:,0] = get_last_index_of_same_value_vectorize(data_values_sorted_first_dim, overlapping_interpolation_bound_indices_lower[:-1], step=-1)
+            interpolator_data_value_ranges[:,1] = get_last_index_of_same_value_vectorize(data_values_sorted_first_dim, overlapping_interpolation_bound_indices_upper[1:], step=1)
 
             return interpolator_data_value_ranges
 
-        data_value_range_indices = get_interpolator_data_values_ranges(data_points_sorted[:,0], interpolation_bound_indices, total_overlapping=total_overlapping)
+        data_value_range_indices = get_interpolator_data_values_ranges(data_points_sorted[:,0], interpolation_bound_indices, single_overlapping_amount)
         self.data_value_range_indices = data_value_range_indices
 
         logger.debug('The data value range indices for the partitioned interpolator are {}.'.format(data_value_range_indices))
 
-
-#
-#     @property
-#     def data_values(self):
-#         return super().data_values
-#
-#     @data_values.setter
-#     def data_values(self, data_values):
-#         super(self.__class__, self.__class__).data_values.__set__(self, data_values[self._indices_sorted_by_first_dim])
 
     def _set_data_values(self, data_values):
         super()._set_data_values(data_values[self._indices_sorted_by_first_dim])
@@ -542,9 +525,11 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
             else:
                 logger.debug('Data values in interpolator with index {} must not be updated, since interpolated is not constructed.'.format(interpolator_index))
 
+
     @property
     def number_of_interpolators(self):
         return len(self._interpolators)
+
 
     def _get_interpolator(self, interpolator_index):
         interpolator = self._interpolators[interpolator_index]
@@ -561,37 +546,10 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         return interpolator
 
 
-
     def _calculate_interpolation(self, interpolation_points):
         ## sort points by first dim
         indices_sorted_by_first_dim = np.argsort(interpolation_points[:,0])
         interpolation_points = interpolation_points[np.argsort(interpolation_points[:,0])]
-
-#         ## interpolate
-#         interpolation_points_dim = len(interpolation_points)
-#         interpolated_values_sorted = np.empty(interpolation_points_dim)
-#         interpolation_bound_values = self.interpolation_bound_values
-#
-#         interpolator_index = 0
-#         point_index_start = 0
-#         point_index_end = 0
-#
-#         # while not all points interpolated
-#         while point_index_end < interpolation_points_dim:
-#             assert interpolator_index < len(interpolation_bound_values) - 1
-#
-#             # search for last point to interpoalte with current interpolator
-#             while point_index_end < interpolation_points_dim and interpolation_points[point_index_end, 0] < interpolation_bound_values[interpolator_index + 1]:
-#                 point_index_end += 1
-#
-#             # if points for current interpolator start interpolation
-#             if point_index_end - 1 >= point_index_start:
-#                 interpolator = self._get_interpolator(interpolator_index)
-#                 interpolated_values_sorted[point_index_start:point_index_end] = interpolator.interpolate(interpolation_points[point_index_start:point_index_end])
-#
-#             interpolator_index += 1
-#             point_index_start = point_index_end
-
 
         ## assign interpolation points to interpolators
         interpolation_points_dim = len(interpolation_points)
@@ -602,49 +560,22 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         end_index = 0
 
         end_indices = [0]
-#         interpolator_indices = []
 
         number_of_interpolators = self.number_of_interpolators
         assert number_of_interpolators == len(interpolation_bound_values) - 1
 
-#         while end_index < interpolation_points_dim:
         for interpolator_index in range(number_of_interpolators):
-#             assert interpolator_index < len(interpolation_bound_values) - 1
-
-            # search for last point to interpolate with current interpolator
             while end_index < interpolation_points_dim and interpolation_points[end_index, 0] < interpolation_bound_values[interpolator_index + 1]:
                 end_index += 1
 
-#             # if points for current interpolator start interpolation
-#             if end_index - 1 >= start_index:
-#                 end_indices.append(end_index)
-#                 interpolator_indices.append(interpolator_index)
-
             end_indices.append(end_index)
-#             interpolator_index += 1
             start_index = end_index
-
-#         number_of_interpolators = interpolator_index
 
         logger.debug('Interpolation points ranges {} assigned to interpolators {} with {} interpolator in use.'.format(end_indices, len(end_indices), number_of_interpolators))
 
-
         ## interpolate
         interpolated_values_sorted = np.empty(interpolation_points_dim)
-#         def calculate_interpolation_for_index(i):
-#             interpolator = self._get_interpolator(interpolator_indices[i])
-#             interpolated_values_sorted[end_indices[i]:end_indices[i+1]] = interpolator.interpolate(interpolation_points[end_indices[i]:end_indices[i+1]])
-#
-#         number_of_interpolator = len(interpolator_indices)
-#         if not self.parallel or self.number_of_interpolators == 1:
-#             logger.debug('Starting serial interpolation.')
-#             for i in range(len(interpolator_indices)):
-#                 calculate_interpolation_for_index(i)
-#         else:
-#             logger.debug('Starting interpolation with {} processes.'.format(number_of_interpolator))
-#             util.parallel.with_multiprocessing.map(calculate_interpolation_for_index, range(number_of_interpolator), number_of_processes=number_of_interpolator, chunksize=1)
 
-#         number_of_interpolators = self.number_of_interpolators
         if not self.parallel or number_of_interpolators <= 1:
             logger.debug('Starting serial interpolation.')
             for interpolator_index in range(number_of_interpolators):
@@ -654,9 +585,6 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
             result = util.parallel.with_multiprocessing.map_parallel(self._calculate_interpolation_for_index_zipped, [(interpolator_index, interpolation_points[end_indices[interpolator_index]:end_indices[interpolator_index+1]]) for interpolator_index in range(number_of_interpolators)], number_of_processes=number_of_interpolators, chunksize=1)
             for interpolator_index in range(number_of_interpolators):
                 interpolated_values_sorted[end_indices[interpolator_index]:end_indices[interpolator_index+1]] = result[interpolator_index]
-
-
-
 
         ## revert sort
         indices_sorted_by_first_dim_rev = np.empty(interpolation_points_dim, dtype=int)
@@ -676,110 +604,9 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         interpolator_index, interpolation_points = zipped
         return self._calculate_interpolation_for_index(interpolator_index, interpolation_points)
 
-#     def interpolate(self, interpolation_points):
-#         interpolation_points_dim = len(interpolation_points)
-#
-#         if interpolation_points_dim > 0:
-#             ## check input
-#             interpolation_points = self._prepare_interpolation_points(interpolation_points)
-#
-#             ## sort points by first dim
-#             indices_sorted_by_first_dim = np.argsort(interpolation_points[:,0])
-#             interpolation_points = interpolation_points[np.argsort(interpolation_points[:,0])]
-#
-#             ## interpolate
-#             logger.debug('Interpolating values with method {} at {} points from {} data points.'.format(self.method, interpolation_points_dim, len(self.data_values)))
-#
-#             interpolated_values_sorted = np.empty(interpolation_points_dim)
-#
-#             interpolation_bound_values = self.interpolation_bound_values
-#
-#             interpolator_index = 0
-#             point_index_start = 0
-#             point_index_end = 0
-#
-#             # while not all points interpolated
-#             while point_index_end < interpolation_points_dim:
-#                 assert interpolator_index < len(interpolation_bound_values) - 1
-#
-#                 # search for last point to interpoalte with current interpolator
-#                 while point_index_end < interpolation_points_dim and interpolation_points[point_index_end, 0] < interpolation_bound_values[interpolator_index + 1]:
-#                     point_index_end += 1
-#
-#                 # if points for current interpolator start interpolation
-#                 if point_index_end - 1 >= point_index_start:
-#                     interpolator = self._get_interpolator(interpolator_index)
-#                     interpolated_values_sorted[point_index_start:point_index_end] = interpolator.interpolate(interpolation_points[point_index_start:point_index_end])
-#
-#                 interpolator_index += 1
-#                 point_index_start = point_index_end
-#
-#             ## revert sort
-#             indices_sorted_by_first_dim_rev = np.empty(interpolation_points_dim, dtype=int)
-#             indices_sorted_by_first_dim_rev[indices_sorted_by_first_dim] = np.arange(interpolation_points_dim)
-#
-#             assert np.all(indices_sorted_by_first_dim[indices_sorted_by_first_dim_rev] == np.arange(interpolation_points_dim))
-#
-#             interpolated_values = interpolated_values_sorted[indices_sorted_by_first_dim_rev]
-#
-#             number_of_interpolated_values = np.logical_not(np.isnan(interpolated_values)).sum()
-#
-#             logger.debug('Values interpolated for {} points.'.format(number_of_interpolated_values))
-#         else:
-#             interpolated_values = np.array(())
-#
-#         assert interpolated_values.ndim == 1
-#         assert interpolated_values.shape[0] == interpolation_points.shape[0]
-#
-#         return interpolated_values
 
 
-#
-# ## Changable and partitionable Interpolator
-# class Interpolator(Interpolator_Base):
-#
-#     def __init__(self, data_points, data_values, number_of_linear_interpolators=1, total_overlapping_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
-#         logger.debug('Initiating linear and nearest interpolator with {} data points, scaling values {}, number of linear interpolators {} and total overlapping of linear interpolators {}.'.format(len(data_points), scaling_values, number_of_linear_interpolators, total_overlapping_linear_interpolators))
-#
-#         self.interpolator_linear = None
-#         self.interpolator_nearest = None
-#
-#         super().__init__(data_points, data_values, method='first_linear_then_nearest', possible_methods=('first_linear_then_nearest',), scaling_values=scaling_values, copy_arrays=copy_arrays)
-#
-#         if number_of_linear_interpolators > 1:
-#             self.interpolator_linear = Interpolator_Values_Changeable_Partitionable(self.data_points, self.data_values, method='linear', number_of_interpolators=number_of_linear_interpolators, total_overlapping=total_overlapping_linear_interpolators, copy_arrays=False, parallel=parallel)
-#         elif number_of_linear_interpolators == 1:
-#             self.interpolator_linear = Interpolator_Values_Changeable(self.data_points, self.data_values, method='linear', copy_arrays=False)
-# #         else:
-# #             self.interpolator_linear = None
-#
-#         self.interpolator_nearest = Interpolator_Values_Changeable(self.data_points, self.data_values, method='nearest', copy_arrays=False)
-#
-#
-#
-#
-#     def _set_data_values(self, data_values):
-#         super()._set_data_values(data_values)
-#
-#         if self.interpolator_linear is not None:
-#             self.interpolator_linear.data_values = self.data_values
-#         if self.interpolator_nearest is not None:
-#             self.interpolator_nearest.data_values = self.data_values
-#
-#
-#     def _calculate_interpolation(self, interpolation_points):
-#         if self.interpolator_linear is not None:
-#             interpolated_values = self.interpolator_linear.interpolate(interpolation_points)
-#             no_value_mask = np.isnan(interpolated_values)
-#             interpolated_values[no_value_mask] = self.interpolator_nearest.interpolate(interpolation_points[no_value_mask])
-#         else:
-#             interpolated_values = self.interpolator_nearest.interpolate(interpolation_points)
-#
-#         assert np.all(np.logical_not(np.isnan(interpolated_values)))
-#
-#         return interpolated_values
-
-## Nearest nad linear Interpolator
+## Nearest and linear Interpolator
 
 
 class Interpolator_Nearest(Interpolator_Values_Changeable):
@@ -791,111 +618,25 @@ class Interpolator_Linear(Interpolator_Values_Changeable):
         super().__init__(data_points, data_values, method='linear', scaling_values=scaling_values, copy_arrays=copy_arrays)
 
 class Interpolator_Linear_Partitionable(Interpolator_Values_Changeable_Partitionable):
-    def __init__(self, data_points, data_values, scaling_values=None, copy_arrays=True, number_of_interpolators=1, total_overlapping=0, parallel=True):
-        super().__init__(data_points, data_values, method='linear', scaling_values=scaling_values, copy_arrays=copy_arrays, number_of_interpolators=number_of_interpolators, total_overlapping=total_overlapping, parallel=parallel)
-
+    def __init__(self, data_points, data_values, scaling_values=None, copy_arrays=True, number_of_interpolators=1, single_overlapping_amount=0, parallel=True):
+        super().__init__(data_points, data_values, method='linear', scaling_values=scaling_values, copy_arrays=copy_arrays, number_of_interpolators=number_of_interpolators, single_overlapping_amount=single_overlapping_amount, parallel=parallel)
 
 
 
 ## Universal interpolator
-# class Interpolator_1(Interpolator_Base):
-#
-#     def __init__(self, data_points, data_values, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, total_overlapping_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
-#
-#         logger.debug('Initiating interpolator {} with {} data points, scaling values {}, number of linear interpolators {} and total overlapping of linear interpolators {}.'.format(method, len(data_points), scaling_values, number_of_linear_interpolators, total_overlapping_linear_interpolators))
-#
-#         self.interpolator_linear = None
-#         self.interpolator_nearest = None
-#
-#         super().__init__(data_points, data_values, method=method, possible_methods=('linear_then_nearest_new_data', 'linear_then_nearest_same_data'), scaling_values=scaling_values, copy_arrays=copy_arrays)
-#
-#         if number_of_linear_interpolators > 1:
-#             self.interpolator_linear = Interpolator_Values_Changeable_Partitionable(self.data_points, self.data_values, method='linear', number_of_interpolators=number_of_linear_interpolators, total_overlapping=total_overlapping_linear_interpolators, copy_arrays=False, parallel=parallel)
-#         elif number_of_linear_interpolators == 1:
-#             self.interpolator_linear = Interpolator_Values_Changeable(self.data_points, self.data_values, method='linear', copy_arrays=False)
-# #         else:
-# #             self.interpolator_linear = None
-#
-#         self.interpolator_nearest = Interpolator_Values_Changeable(self.data_points, self.data_values, method='nearest', copy_arrays=False)
-#
-#
-#
-#
-#     def _set_data_values(self, data_values):
-#         super()._set_data_values(data_values)
-#
-#         if self.interpolator_linear is not None:
-#             self.interpolator_linear.data_values = self.data_values
-#         if self.interpolator_nearest is not None:
-#             self.interpolator_nearest.data_values = self.data_values
-#
-#
-#     def _calculate_interpolation(self, interpolation_points):
-#         if self.interpolator_linear is not None:
-#             interpolated_values = self.interpolator_linear.interpolate(interpolation_points)
-#             no_value_mask = np.isnan(interpolated_values)
-#             interpolated_values[no_value_mask] = self.interpolator_nearest.interpolate(interpolation_points[no_value_mask])
-#         else:
-#             interpolated_values = self.interpolator_nearest.interpolate(interpolation_points)
-#
-#         assert np.all(np.logical_not(np.isnan(interpolated_values)))
-#
-#         return interpolated_values
-#
-# class Interpolator_2(Interpolator_Base):
-#
-#     def __init__(self, data_points, data_values, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, total_overlapping_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
-#
-#         logger.debug('Initiating interpolator {} with {} data points, scaling values {}, number of linear interpolators {} and total overlapping of linear interpolators {}.'.format(method, len(data_points), scaling_values, number_of_linear_interpolators, total_overlapping_linear_interpolators))
-#
-#         self.interpolator = None
-#
-#         super().__init__(data_points, data_values, method=method, possible_methods=('linear_then_nearest_new_data', 'linear_then_nearest_same_data'), scaling_values=scaling_values, copy_arrays=copy_arrays)
-#
-#         if number_of_linear_interpolators > 1:
-#             self.interpolator = Interpolator_Linear_Partitionable(self.data_points, self.data_values, number_of_interpolators=number_of_linear_interpolators, total_overlapping=total_overlapping_linear_interpolators, copy_arrays=False, parallel=parallel)
-#         elif number_of_linear_interpolators == 1:
-#             self.interpolator = Interpolator_Linear(self.data_points, self.data_values, copy_arrays=False)
-#         else:
-#             self.interpolator = Interpolator_Nearest(self.data_points, self.data_values, copy_arrays=False)
-#
-#
-#
-#
-#     def _set_data_values(self, data_values):
-#         super()._set_data_values(data_values)
-#
-#         if self.interpolator is not None:
-#             self.interpolator.data_values = self.data_values
-#
-#
-#     def _calculate_interpolation(self, interpolation_points):
-#         interpolation_values = self.interpolator.interpolate(interpolation_points)
-#         no_value_mask = np.isnan(interpolated_values)
-#
-#         if np.any(no_value_mask):
-#             new_data_points = np.concatenate([self.data_points, interpolation_points[~ no_value_mask]])
-#             new_data_values = np.concatenate([self.data_values, interpolation_values[~ no_value_mask]])
-#             interpolator_nearest = Interpolator_Values_Changeable(self.data_points, self.data_values, method='nearest', copy_arrays=False)
-#             interpolation_values[no_value_mask] = interpolator_nearest.interpolate(interpolation_points[no_value_mask])
-#
-#         assert np.all(np.logical_not(np.isnan(interpolation_values)))
-#
-#         return interpolation_values
-
 
 class Interpolator(Interpolator_Base):
 
-    def __init__(self, data_points, data_values, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, total_overlapping_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
+    def __init__(self, data_points, data_values, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
 
-        logger.debug('Initiating interpolator {} with {} data points, scaling values {}, number of linear interpolators {} and total overlapping of linear interpolators {}.'.format(method, len(data_points), scaling_values, number_of_linear_interpolators, total_overlapping_linear_interpolators))
+        logger.debug('Initiating interpolator {} with {} data points, scaling values {}, number of linear interpolators {} and single overlapping amount of linear interpolators {}.'.format(method, len(data_points), scaling_values, number_of_linear_interpolators, single_overlapping_amount_linear_interpolators))
 
         self.interpolators = []
 
         super().__init__(data_points, data_values, method=method, possible_methods=('linear_then_nearest_new_data', 'linear_then_nearest_same_data'), scaling_values=scaling_values, copy_arrays=copy_arrays)
 
         if number_of_linear_interpolators > 1:
-            interpolator = Interpolator_Linear_Partitionable(self.data_points, self.data_values, number_of_interpolators=number_of_linear_interpolators, total_overlapping=total_overlapping_linear_interpolators, copy_arrays=False, parallel=parallel)
+            interpolator = Interpolator_Linear_Partitionable(self.data_points, self.data_values, number_of_interpolators=number_of_linear_interpolators, single_overlapping_amount=single_overlapping_amount_linear_interpolators, copy_arrays=False, parallel=parallel)
             self.interpolators.append(interpolator)
         elif number_of_linear_interpolators == 1:
             interpolator = Interpolator_Linear(self.data_points, self.data_values, copy_arrays=False)
@@ -907,13 +648,11 @@ class Interpolator(Interpolator_Base):
         assert len(self.interpolators) >= 1
 
 
-
     def _set_data_values(self, data_values):
         super()._set_data_values(data_values)
 
         for interpolator in self.interpolators:
             interpolator.data_values = self.data_values
-
 
 
     def _calculate_interpolation(self, interpolation_points):
@@ -937,14 +676,9 @@ class Interpolator(Interpolator_Base):
 
 
 
-
-
-
-
-
 class Periodic_Interpolator(Interpolator):
 
-    def __init__(self, data_points, data_values, point_range_size, wrap_around_amount=None, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, total_overlapping_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
+    def __init__(self, data_points, data_values, point_range_size, wrap_around_amount=None, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
 
         logger.debug('Initiating periodic interpolator with point_range_size {} and wrap around amount {}.'.format(point_range_size, wrap_around_amount))
 
@@ -959,7 +693,7 @@ class Periodic_Interpolator(Interpolator):
         self._wrap_around_amount = wrap_around_amount
         self._data_indices = np.arange(len(data_points))
 
-        super().__init__(data_points, data_values, method=method, number_of_linear_interpolators=number_of_linear_interpolators, total_overlapping_linear_interpolators=total_overlapping_linear_interpolators, scaling_values=scaling_values, copy_arrays=copy_arrays, parallel=parallel)
+        super().__init__(data_points, data_values, method=method, number_of_linear_interpolators=number_of_linear_interpolators, single_overlapping_amount_linear_interpolators=single_overlapping_amount_linear_interpolators, scaling_values=scaling_values, copy_arrays=copy_arrays, parallel=parallel)
 
         assert len(self._data_points) == len(self._data_values) == len(self._data_indices)
 
@@ -1001,9 +735,8 @@ class Periodic_Interpolator(Interpolator):
 
 
 
-
-
 ## universial interpolation method
-def interpolate(data_points, data_values, interpolation_points, number_of_linear_interpolators=1, total_overlapping_linear_interpolators=0, scaling_values=None):
-    interpolator = Interpolator(data_points, data_values, number_of_linear_interpolators=number_of_linear_interpolators, total_overlapping_linear_interpolators=total_overlapping_linear_interpolators, scaling_values=scaling_values)
+
+def interpolate(data_points, data_values, interpolation_points, number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None):
+    interpolator = Interpolator(data_points, data_values, number_of_linear_interpolators=number_of_linear_interpolators, single_overlapping_amount_linear_interpolators=single_overlapping_amount_linear_interpolators, scaling_values=scaling_values)
     return interpolator.interpolate(interpolation_points)
