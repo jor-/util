@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.stats
 
 import util.math.sort
 import util.io.object
@@ -9,8 +8,11 @@ logger = util.logging.logger
 
 
 def _isdict(d):
-    from blist import sorteddict
-    return isinstance(d, dict) or isinstance(d, sorteddict)
+    if isinstance(d, dict):
+        return True
+    else:
+        from blist import sorteddict
+        return isinstance(d, sorteddict)
 
 
 class MultiDict():
@@ -126,9 +128,12 @@ class MultiDict():
     def append_value(self, key, value):
         self._get_or_init_value_list(key).append(value)
 
-
     def _add_value_lists(self, keys, value_lists, add_function):
         assert callable(add_function)
+        if keys is None:
+            keys = []
+        if value_lists is None:
+            value_lists = []
 
         if len(keys) != len(value_lists):
             raise ValueError('Len of keys {} and len of values {} have to be the same!'.format(len(keys), len(value_lists)))
@@ -156,7 +161,7 @@ class MultiDict():
         logger.debug('Removing value {} for key {}.'.format(value, key))
         value_list = self.get_value_list(key)
         n = len(value_list)
-        value_list[:] = [v for x in value_list if not np.all(np.isclose(v, value))]
+        value_list[:] = [v for v in value_list if not np.all(np.isclose(v, value))]
         if len(value_list) == n:
             raise KeyError('Value {} was not deposited for key {}.'.format(value, key))
         #TODO remove dict entries if list is empty
@@ -313,9 +318,9 @@ class MultiDict():
                     sorted = True
                 m = self.new_like(sorted=sorted)
             if return_type == 'multi_dict_unsorted':
-                m = Multi_Dict(sorted=False)
+                m = MultiDict(sorted=False)
             if return_type == 'multi_dict_sorted':
-                m = Multi_Dict(sorted=True)
+                m = MultiDict(sorted=True)
 
             m.extend_value_lists(keys, value_lists)
 #             try:
@@ -364,7 +369,7 @@ class MultiDict():
         for (key, value) in value_dict.items():
             total_key = key_prefix + (key,)
             if isinstance(value, value_dict_type):
-                yield from self._iterate_generator_value_dict(value, value_dict_type, key_prefix=total_key)
+                yield from self._iterate_generator_value_dict(value, value_dict_type=value_dict_type, key_prefix=total_key)
             else:
                 yield (total_key, value)
 
@@ -568,7 +573,7 @@ class MultiDict():
 
 
     def variances(self, min_values=3, min_variance=0, return_type='array'):
-        logger.debug('Calculate variances of values with at least {} values with mininmal variance {}.'.format(min_values, min_variance))
+        logger.debug('Calculate variances of values with at least {} values with minimal variance {}.'.format(min_values, min_variance))
 
         def calculate_variance(values):
             mean = np.average(values)
@@ -581,7 +586,7 @@ class MultiDict():
 
 
     def standard_deviations(self, min_values=3, min_deviation=0, return_type='array'):
-        logger.debug('Calculate deviations of values with at least {} values with mininmal deviation {}.'.format(min_values, min_deviation))
+        logger.debug('Calculate standard deviations of values with at least {} values with minimal deviation {}.'.format(min_values, min_deviation))
 
         def calculate_deviation(values):
             mean = np.average(values)
@@ -599,6 +604,7 @@ class MultiDict():
 
     def dagostino_pearson_test(self, min_values=50, alpha=0.05, return_type='array'):
         logger.debug('Calculate D´Agostino-Person-test for normality of values with minimal {} values with alpha {}.'.format(min_values, alpha))
+        import scipy.stats
 
         test_values = self.iterate_values(lambda x: scipy.stats.normaltest(x)[1], min_values, return_type=return_type)
 
@@ -614,6 +620,7 @@ class MultiDict():
 
     def shapiro_wilk_test(self, min_values=50, alpha=0.05, return_type='array'):
         logger.debug('Calculate Shapiro-Wilk-test for normality of values with minimal {} values with alpha {}.'.format(min_values, alpha))
+        import scipy.stats
 
         test_values = self.iterate_values(lambda x: scipy.stats.shapiro(x)[1], min_values, return_type=return_type)
 
@@ -629,6 +636,7 @@ class MultiDict():
 
     def anderson_darling_test(self, min_values=50, alpha=0.05, return_type='array'):
         logger.debug('Calculate Anderson-Darling-test for normality of values with minimal {} values with alpha {}.'.format(min_values, alpha))
+        import scipy.stats
 
         def test(x, alpha):
             ## get test values
