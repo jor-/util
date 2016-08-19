@@ -8,7 +8,7 @@ import util.io.fs
 import util.logging
 logger = util.logging.logger
 
-class Options():
+class OptionsFile():
 
     def __init__(self, file, mode='a', replace_environment_vars_at_set=False, replace_environment_vars_at_get=False):
         ## prepare file name
