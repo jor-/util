@@ -1,5 +1,4 @@
 """A setuptools based setup module.
-See:
 https://packaging.python.org/en/latest/distributing.html
 """
 
@@ -14,13 +13,13 @@ with open(readme_file, mode='r', encoding='utf-8') as f:
 setuptools.setup(
     # Name
     name='utillib',
-
-    # Version
-    use_scm_version=True,
     
     # Desctiption
     description='util functions',
     long_description=long_description,
+
+    # Keywords
+    keywords='utility auxiliary functions',
 
     # Homepage
     url='https://github.com/jor-/util',
@@ -28,6 +27,9 @@ setuptools.setup(
     # Author
     author='Joscha Reimer',
     author_email='jor@informatik.uni-kiel.de',
+
+    # Version
+    use_scm_version=True,
 
     # License
     # license='MIT',
@@ -54,9 +56,6 @@ setuptools.setup(
         #'Programming Language :: Python :: 3.5',scikits
     ],
 
-    # Keywords
-    keywords='utility auxiliary functions',
-
     # Packages to install
     packages=setuptools.find_packages(),
 
@@ -77,7 +76,7 @@ setuptools.setup(
         'hdf5': ['h5py'],
         'netcdf': ['netCDF4', 'scipy'],
         'petsc': ['petsc4py'],
-        'cholmod': ['scikit-sparse'],
+        'cholmod': ['scikit-sparse', 'scipy'],
         'scoop': ['scoop'],
         'deap': ['deap'],
         'plot' : ['matplotlib', 'scipy'],
