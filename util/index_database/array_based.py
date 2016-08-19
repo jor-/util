@@ -1,5 +1,7 @@
 import numpy as np
 
+import os
+
 import util.index_database.general
 import util.io.filelock.np
 
@@ -13,13 +15,28 @@ class Database(util.index_database.general.Database):
     def __init__(self, array_file, value_reliable_decimal_places=15, tolerance_options=None):
         ## call super constructor
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
-
+        
         ## set array file
-        self.locked_file = util.io.filelock.np.LockedFile(array_file)
+        self.array_file = array_file
     
     
     def __str__(self):
         return 'Index array database {}'.format(self.locked_file.file)
+    
+    
+    ## setter and getter for file
+    
+    @property
+    def array_file(self):
+        return self.locked_file.file
+    
+    @array_file.setter
+    def array_file(self, array_file): 
+        ## create dir if not existing
+        os.makedirs(os.path.dirname(array_file), exist_ok=True)
+
+        ## set array file
+        self.locked_file = util.io.filelock.np.LockedFile(array_file)
     
     
     ## access
@@ -44,7 +61,7 @@ class Database(util.index_database.general.Database):
     
     def set_value(self, index, value, overwrite=False):
         logger.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
-        value = np.asarray(value)
+        value = np.asanyarray(value)
         
         with self.locked_file.lock_object(exclusive=True):
             try:
@@ -96,7 +113,7 @@ class Database(util.index_database.general.Database):
             db = self.locked_file.load()
             db[index] = db[index] * np.nan
             
-            while np.all(np.isnan(db[-1])):
+            while len(db) > 0 and np.all(np.isnan(db[-1])):
                 db = db[:-1]
 
             self.locked_file.save(db)
@@ -110,36 +127,5 @@ class Database(util.index_database.general.Database):
     def index(self, value):
         with self.locked_file.lock_object(exclusive=False):
             return super().index(value)
-
-
-
-    # def add_value(self, value):
-    #     logger.debug('Adding value {} to {}.'.format(value, self))
-    #     
-    #     with self.locked_file.lock_object(exclusive=True):
-    #         db = self.locked_file.load()
-    #     
-    #         ## get used indices
-    #         used_indices = self.used_indices()
-    #         
-    #         ## create value dir
-    #         index = 0
-    #         created = False
-    #         while not created:
-    #             if not index in used_indices:
-    #                 if index < len(db):
-    #                     db[index] = value
-    #                 else:
-    #                     assert index == len(db)
-    #                     db = np.concatenate(db, value[np.newaxis])
-    #             else:
-    #                 index += 1
-    # 
-    #         ## create value
-    #         self.locked_file.save(db)
-    #     
-    #     ## return index
-    #     logger.debug('Value {} added with index {}.'.format(value, index))
-    #     return index
 
 
