@@ -1,7 +1,7 @@
 QUEUES = ('clexpress', 'clmedium', 'cllong', 'long', 'clbigmem', 'clfocean', 'clfo2', 'feque')
 MAX_WALLTIME = {'clexpress':2, 'clmedium':48, 'cllong':100, 'clbigmem':100, 'clfocean':100, 'clfo2':100, 'feque':10}
 
-MODEL_RENAMING = {'python':'Python3.3.6', 'python3':'Python3.3.6', 'hdf5':'hdf5-1.8.15', 'matlab':'matlab2015a', 'petsc':'petsc-3.3-p4-intel', 'intel': 'intel15.0.3'}
+MODEL_RENAMING = {'python':'Python3.3.6', 'python3':'Python3.3.6', 'hdf5':'hdf5-1.8.15', 'matlab':'matlab2015a', 'petsc':'petsc-3.3-p4-intel', 'intel14': 'intel', 'interlmpi14': 'intelmpi', 'intel16': 'intel16.0.3', 'intelmpi16': 'intelmpi16.0.3'}
 
 COMMANDS = {'mpirun': 'mpirun $NQSII_MPIOPTS -np {cpus:d} {command}',
             'time': 'TIME_FMT="\nStatistics for %C:\nElapsed time: %Es, Exit code: %x\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs"\n/sfs/fs3/sw/tools/time1.7/bin/time -f "$TIME_FMT" {command}',
