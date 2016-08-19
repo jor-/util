@@ -222,10 +222,11 @@ def cholesky(A, ordering_method='default', return_type=RETURN_P_L, use_long=Fals
     p = f.P()
     n = len(p)
     if return_type in (RETURN_P_L, RETURN_P_L_D):
-        P = scipy.sparse.dok_matrix((n,n))
+        P = scipy.sparse.dok_matrix((n,n), dtype=np.int8)
         for i in range(n):
             P[i,p[i]] = 1
         P = P.tocsr()
+        P.astype(np.int8)
 
     ## return P, L
     if return_type in (RETURN_L, RETURN_P_L):
