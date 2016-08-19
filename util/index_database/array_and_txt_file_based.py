@@ -22,9 +22,34 @@ class Database(util.index_database.general.Database):
     
     def __str__(self):
         return 'Index array and file system database'
+    
+    
+    ## setter and getter for files
+    
+    @property
+    def array_file(self):
+        return self.array_db.array_file
+    
+    @array_file.setter
+    def array_file(self, array_file): 
+        self.array_db.array_file = array_file
+    
+    
+    @property
+    def value_file(self):
+        return os.path.join(self.txt_file_db.value_dir, self.txt_file_db.value_filenames[0])
+    
+    @value_file.setter
+    def value_file(self, value_file): 
+        value_dir, value_filename = os.path.split(value_file)
+        if value_dir != self.txt_file_db.value_dir:
+            self.txt_file_db.value_dir = value_dir
+        if value_filename != self.txt_file_db.value_filenames[0]:
+            self.txt_file_db.value_filenames[0] = value_filename
 
     
     ## access
+    
     def get_value(self, index):
         return self.array_db.get_value(index)
 
@@ -48,7 +73,6 @@ class Database(util.index_database.general.Database):
         return index
         
     
-
     def used_indices(self):
         return self.array_db.used_indices()
     
