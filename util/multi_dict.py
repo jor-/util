@@ -379,7 +379,7 @@ class MultiDict():
         yield from self._iterate_generator_value_dict(value_dict)
 
 
-    def iterate_items(self, fun, min_values=1, return_type='array'):
+    def iterate_items(self, fun, min_number_of_values=1, return_type='array'):
         assert callable(fun)
 
         ## init
@@ -388,7 +388,7 @@ class MultiDict():
 
         ## iterate
         for (key, values) in self.iterator_keys_and_value_lists():
-            if len(values) >= min_values:
+            if len(values) >= min_number_of_values:
                 key = np.asarray(key)
                 values = np.asarray(values)
                 new_value = fun(key, values)
@@ -401,9 +401,9 @@ class MultiDict():
         return self._return_items_as_type(new_keys, new_values, return_type=return_type)
 
 
-    def iterate_values(self, fun, min_values=1, return_type='array'):
+    def iterate_values(self, fun, min_number_of_values=1, return_type='array'):
         fun_wrapper = lambda key, values: fun(values)
-        return self.iterate_items(fun_wrapper, min_values=min_values, return_type=return_type)
+        return self.iterate_items(fun_wrapper, min_number_of_values=min_number_of_values, return_type=return_type)
 
 
 
@@ -513,9 +513,9 @@ class MultiDict():
         return self._return_items_as_type(filtered_keys, filtered_value_lists, return_type=return_type)
 
 
-    def filter_min_values(self, min_values=1, return_type='self'):
+    def filter_min_number_of_values(self, min_number_of_values=1, return_type='self'):
         def boolean_filter_function(key, value_list):
-            return len(value_list) >= min_values
+            return len(value_list) >= min_number_of_values
 
         return self.filter_with_boolean_function(boolean_filter_function, return_type=return_type)
 
@@ -560,53 +560,64 @@ class MultiDict():
 
     ## compute values
 
-    def numbers(self, min_values=1, return_type='array'):
-        logger.debug('Calculate numbers of values with at least {} values.'.format(min_values))
+    def numbers(self, min_number_of_values=1, return_type='array'):
+        logger.debug('Calculate numbers of values with at least {} values.'.format(min_number_of_values))
 
-        return self.iterate_values(len, min_values, return_type=return_type)
-
-
-    def means(self, min_values=1, return_type='array'):
-        logger.debug('Calculate means of values with at least {} values.'.format(min_values))
-
-        return self.iterate_values(np.average, min_values, return_type=return_type)
+        return self.iterate_values(len, min_number_of_values, return_type=return_type)
 
 
-    def variances(self, min_values=3, min_variance=0, return_type='array'):
-        logger.debug('Calculate variances of values with at least {} values with minimal variance {}.'.format(min_values, min_variance))
+    def means(self, min_number_of_values=1, min_value=0, return_type='array'):
+        logger.debug('Calculate means of values with at least {} values with minimal mean {}.'.format(min_number_of_values, min_value))
+        if min_value is None:
+            min_value = - np.inf
 
-        def calculate_variance(values):
+        def calculate_function(values):
+            mean = np.average(values)
+            mean = max([mean, min_value])
+            return mean
+
+        return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
+
+
+    def variances(self, min_number_of_values=3, min_value=0, return_type='array'):
+        logger.debug('Calculate variances of values with at least {} values with minimal variance {}.'.format(min_number_of_values, min_value))
+        if min_value is None:
+            min_value = 0
+
+        def calculate_function(values):
             mean = np.average(values)
             number_of_values = values.size
             variance = np.sum((values - mean)**2) / (number_of_values - 1)
-            variance = max([variance, min_variance])
+            variance = max([variance, min_value])
             return variance
 
-        return self.iterate_values(calculate_variance, min_values, return_type=return_type)
+        return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
 
 
-    def standard_deviations(self, min_values=3, min_deviation=0, return_type='array'):
-        logger.debug('Calculate standard deviations of values with at least {} values with minimal deviation {}.'.format(min_values, min_deviation))
+    def standard_deviations(self, min_number_of_values=3, min_value=0, return_type='array'):
+        logger.debug('Calculate standard deviations of values with at least {} values with minimal deviation {}.'.format(min_number_of_values, min_value))
+        if min_value is None:
+            min_value = 0
 
-        def calculate_deviation(values):
+        def calculate_function(values):
             mean = np.average(values)
             number_of_values = values.size
             deviation = (np.sum((values - mean)**2) / (number_of_values - 1))**(1/2)
-            deviation = max([deviation, min_deviation])
+            deviation = max([deviation, min_value])
             return deviation
 
-        return self.iterate_values(calculate_deviation, min_values, return_type=return_type)
+        return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
 
 
 
 
     ## tests for normality
 
-    def dagostino_pearson_test(self, min_values=50, alpha=0.05, return_type='array'):
-        logger.debug('Calculate D´Agostino-Person-test for normality of values with minimal {} values with alpha {}.'.format(min_values, alpha))
+    def dagostino_pearson_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
+        logger.debug('Calculate D´Agostino-Person-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
         import scipy.stats
 
-        test_values = self.iterate_values(lambda x: scipy.stats.normaltest(x)[1], min_values, return_type=return_type)
+        test_values = self.iterate_values(lambda x: scipy.stats.normaltest(x)[1], min_number_of_values, return_type=return_type)
 
         if alpha is not None:
             if return_type == 'array':
@@ -618,11 +629,11 @@ class MultiDict():
         return test_values
 
 
-    def shapiro_wilk_test(self, min_values=50, alpha=0.05, return_type='array'):
-        logger.debug('Calculate Shapiro-Wilk-test for normality of values with minimal {} values with alpha {}.'.format(min_values, alpha))
+    def shapiro_wilk_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
+        logger.debug('Calculate Shapiro-Wilk-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
         import scipy.stats
 
-        test_values = self.iterate_values(lambda x: scipy.stats.shapiro(x)[1], min_values, return_type=return_type)
+        test_values = self.iterate_values(lambda x: scipy.stats.shapiro(x)[1], min_number_of_values, return_type=return_type)
 
         if alpha is not None:
             if return_type == 'array':
@@ -634,8 +645,8 @@ class MultiDict():
         return test_values
 
 
-    def anderson_darling_test(self, min_values=50, alpha=0.05, return_type='array'):
-        logger.debug('Calculate Anderson-Darling-test for normality of values with minimal {} values with alpha {}.'.format(min_values, alpha))
+    def anderson_darling_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
+        logger.debug('Calculate Anderson-Darling-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
         import scipy.stats
 
         def test(x, alpha):
@@ -655,7 +666,7 @@ class MultiDict():
             ## check if test passed
             return test_value <= bound
 
-        test_values = self.iterate_values(lambda x:test(x, alpha), min_values, return_type=return_type)
+        test_values = self.iterate_values(lambda x:test(x, alpha), min_number_of_values, return_type=return_type)
         return test_values
 
 
