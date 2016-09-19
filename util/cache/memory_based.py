@@ -36,7 +36,7 @@ def attribute_dependend_key(key_function, *dependencies):
         if len(dependencies) > 0:
             dependecies_dict = {}
             for dependency in dependencies:
-                value = eval('self.{}'.format(dependency))
+                value = eval(dependency)
                 dependecies_dict[dependency] = value
             
             key = key + cachetools.keys._HashedTuple(_dependency_mark + tuple(itertools.chain(sorted(dependecies_dict.items()))))
