@@ -1,3 +1,5 @@
+import collections.abc
+
 import numpy as np
 import scipy.interpolate
 
@@ -169,15 +171,12 @@ class Interpolator_Base():
         logger.debug('Initiating base interpolator with {} data points with scaling values {}, method {} and possible methods {}.'.format(len(data_points), scaling_values, method, possible_methods))
 
         if scaling_values is not None:
-            scaling_values_len = len(scaling_values)
-            scaling_values_array = np.empty(scaling_values_len)
-            for i in range(scaling_values_len):
-                if scaling_values[i] is not None:
-                    scaling_value_i = scaling_values[i]
-                else:
-                    scaling_value_i = 1
-                scaling_values_array[i] = scaling_value_i
-            scaling_values = scaling_values_array
+            if isinstance(scaling_values, collections.abc.Iterable):
+                scaling_values = tuple(v if v is not None else 1 for v in scaling_values)
+                scaling_values = np.array(scaling_values)
+            else:
+                scaling_values = np.array([scaling_values])
+            assert scaling_values.ndim == 1
 
         self._scaling_values = scaling_values
         self._copy_arrays = np.asanyarray(copy_arrays)
@@ -186,7 +185,7 @@ class Interpolator_Base():
         self.method = method
         self.data_values = data_values
 
-        assert self._scaling_values is None or len(self._scaling_values) == self._data_points.shape[1]
+        assert self._scaling_values is None or len(self._scaling_values) in (1, self._data_points.shape[1])
 
 
     @property
@@ -257,10 +256,9 @@ class Interpolator_Base():
 
 
     def _prepare_data_points(self, data_points):
-
         if self._copy(0):
             logger.debug('Preparing data points with a copy.')
-            data_points = np.array(data_points,copy=True)
+            data_points = np.array(data_points, copy=True)
         else:
             logger.debug('Preparing data points.')
             data_points = np.asanyarray(data_points)
@@ -273,7 +271,7 @@ class Interpolator_Base():
             raise ValueError('No data points passed.')
         if data_points.shape[1] < 2:
             raise ValueError('The data points must be at least 2 dimensional.')
-        if self.scaling_values is not None and data_points.shape[1] != len(self.scaling_values):
+        if self.scaling_values is not None and not len(self.scaling_values) in (1, data_points.shape[1]):
             raise ValueError('The length of the scaling values ({}) must be the number of dimensions of the data points ({}).'.format(len(self.scaling_values), data_points.shape[1]))
 
         data_points = self._modify_data_points(data_points)
@@ -289,10 +287,9 @@ class Interpolator_Base():
 
 
     def _prepare_interpolation_points(self, interpolation_points):
-
         if self._copy(1):
             logger.debug('Preparing interpolation points with a copy.')
-            interpolation_points = np.array(interpolation_points,copy=True)
+            interpolation_points = np.array(interpolation_points, copy=True)
         else:
             logger.debug('Preparing interpolation points.')
             interpolation_points = np.asanyarray(interpolation_points)
@@ -319,10 +316,8 @@ class Interpolator_Base():
 
         if scaling_values is not None and np.any(scaling_values != 1):
             logger.debug('Scaling {} points with values {}.'.format(len(points), scaling_values))
-            for index in range(len(scaling_values)):
-                scaling_value = scaling_values[index]
-                if scaling_value != 1:
-                    points[:, index] *= scaling_value
+            assert len(scaling_values) in (1, points.shape[1])
+            points = points * scaling_values
         else:
             logger.debug('Do not scaling {} points'.format(len(points)))
 
