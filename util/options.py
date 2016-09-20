@@ -134,12 +134,12 @@ class OptionsFile():
 
         try:
             f = h5py.File(file, mode=mode)
-        except OSError:
+        except OSError as e:
             if mode != 'r':
                 logger.debug('File {} could not been open. Trying read_only mode.'.format(file))
                 self.open(file, mode='r')
             else:
-                raise
+                raise OSError('Option file {} could not been open. Error: {}. Error code: {}.'.format(file, e.strerror, e.errno)) from e
         else:
             logger.debug('File {} opened.'.format(file))
             self.__hdf5_file_object = f
