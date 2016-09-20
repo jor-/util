@@ -26,9 +26,9 @@ def add_file_ext(file, sparse_format):
 def save(file, matrix):
     import scipy.sparse
     file = add_file_ext(file, sparse_format=matrix.format)
-    scipy.sparse.save(file, matrix)
+    scipy.sparse.save_npz(file, matrix)
 
 def load(file):
     import scipy.sparse
-    return scipy.sparse.load(file)
+    return scipy.sparse.load_npz(file)
 
