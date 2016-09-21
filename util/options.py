@@ -1,5 +1,6 @@
 import os.path
 import stat
+import collections
 
 import numpy as np
 import h5py
@@ -45,11 +46,12 @@ class OptionsFile():
             raise ValueError('Value None is not allowed (for key {}).'.format(key))
         
         ## replace env
-        value = self._replace_environment_vars(value, self.replace_environment_vars_at_set)
+        if self.replace_environment_vars_at_set:
+            value = self._replace_environment_vars(value)
 
         ## check if writable
         if not self.is_writable():
-            raise OSError('Option file is not writable.')
+            raise OSError('Option file {} is not writable.'.format(self.filename))
         
         ## insert supported types
         try:
@@ -99,7 +101,8 @@ class OptionsFile():
             raise KeyError('The key {} is not in the option file {}.'.format(name, self.filename)) from e
         value = item.value
         ## replace env
-        value = self._replace_environment_vars(value, self.replace_environment_vars_at_get)
+        if self.replace_environment_vars_at_get:
+            value = self._replace_environment_vars(value)
         ## return
         return value
 
@@ -120,6 +123,9 @@ class OptionsFile():
         else:
             raise ValueError('File is closed.')
 
+
+    def __str__(self):
+        return 'Option file {}'.format(self.filename)
 
     @property
     def filename(self):
@@ -158,10 +164,20 @@ class OptionsFile():
 
 
     @staticmethod
-    def _replace_environment_vars(value, replace=True):
-        if replace and (isinstance(value, str) or isinstance(value, bytes)):
-            value = os.path.expanduser(value)
-            value = os.path.expandvars(value)
+    def _replace_environment_vars(value):
+        def is_str(value):
+            return isinstance(value, str) or isinstance(value, bytes)
+        
+        def expand(value):
+            if is_str(value):
+                value = os.path.expanduser(value)
+                value = os.path.expandvars(value)
+            return value
+
+        if is_str(value):
+            value = expand(value)
+        elif isinstance(value, collections.Iterable) and any(map(is_str, value)):
+            value = tuple(map(expand, value))
         return value
 
 
