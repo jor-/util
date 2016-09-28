@@ -2,7 +2,7 @@ import numpy as np
 
 
 
-def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps=np.spacing(1), use_always_typical_x=True):
+def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps=None, use_always_typical_x=True):
     x = np.asanyarray(x)
     
     ## init unpassed values
@@ -18,10 +18,12 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
     ## set h factors according to accuracy
     if accuracy_order == 1:
         h_factors = (1,)
-        eta = eps**(1/2)
+        if eps is None:
+            eps = np.spacing(1)**(1/2)
     elif accuracy_order == 2:
         h_factors = (1, -1)
-        eta = eps**(1/3)
+        if eps is None:
+            eps = np.spacing(1)**(1/3)
     else:
         raise ValueError('Accuracy order {} not supported.'.format(accuracy_order))
     
@@ -30,10 +32,6 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
         f_x =  f(x)
 
     ## init values
-    try:
-        l = len(f_x)
-    except TypeError:
-        l = 1
     n = len(x)
     m = len(h_factors)
     df = None
@@ -49,7 +47,7 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
                 typical_x_i = np.abs(typical_x[i])
             else:
                 typical_x_i = np.max([np.abs(typical_x[i]), np.abs(x[i])])
-            h[j] = h_factors[j] * eta * typical_x_i
+            h[j] = h_factors[j] * eps * typical_x_i
             if accuracy_order == 1 and x[i] < 0:
                 h[j] = - h[j]
             x_h = np.array(x, dtype=np.float64, copy=True)
