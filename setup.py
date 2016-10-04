@@ -59,12 +59,8 @@ setuptools.setup(
     license = 'GPLv3+',
 
     # Classifiers
-    # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers = [
         # Development Status
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
         'Development Status :: 3 - Alpha',
 
         # Intended Audience, Topic
@@ -93,18 +89,18 @@ setuptools.setup(
     ],
     extras_require = {
         'cache': ['cachetools'],
+        'hdf5': ['h5py'],
         'options': ['h5py'],
         'sorted_multi_dict': ['blist'],
         'colored_log': ['colorlog'],
-        'hdf5': ['h5py'],
-        'netcdf': ['netCDF4', 'scipy'],
         'petsc': ['petsc4py'],
-        'cholmod': ['scikit-sparse', 'scipy'],
-        'scoop': ['scoop'],
-        'deap': ['deap'],
-        'plot' : ['matplotlib', 'scipy'],
         'sparse' : ['scipy'],
         'interpolate' : ['scipy'],
         'multi_dict_stats' : ['scipy'],
+        'cholmod': ['scikit-sparse', 'scipy'],
+        'netcdf': ['netCDF4', 'scipy'],
+        'plot' : ['matplotlib', 'scipy'],
+        'scoop': ['scoop'],
+        'deap': ['deap'],
     },
 )
