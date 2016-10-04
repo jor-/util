@@ -8,12 +8,28 @@ What is this?
 This is a collection of Python modules containing auxiliary functions used in several other projects.
 
 
+Installation
+------------
+
+This package can be installed using pip (recommended way):
+
+    ``pip3 install utillib``
+
+or by downloading and running:
+
+    ``python3 setup.py install``
+
+
 Web sites
 ---------
 
-The user's site is:
+The source code of this package is hosted on:
 
     https://github.com/jor-/util
+
+A Python wheel is available on:
+    
+    https://pypi.python.org/pypi/utillib
 
 
 Author
