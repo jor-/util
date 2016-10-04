@@ -5,7 +5,7 @@ UTIL
 What is this?
 --------------
 
-This is a collection of Python modules containing auxiliary functions used in serveral other projects.
+This is a collection of Python modules containing auxiliary functions used in several other projects.
 
 
 Web sites
@@ -25,7 +25,7 @@ Joscha Reimer
 
 
 Copyright
--------
+---------
 
 Copyright (C) 2011-2016  Joscha Reimer jor@informatik.uni-kiel.de
 
