@@ -26,6 +26,30 @@ def add_file_ext_if_needed(file, ext):
         return file + ext
 
 
+## walk
+
+def walk_all_in_dir(dir, file_function=None, dir_function=None, topdown=True, exclude_dir=True):
+    for (dirpath, dirnames, filenames) in os.walk(dir, topdown=topdown):
+            if file_function is not None:
+                for filename in filenames:
+                    current_file = os.path.join(dirpath, filename)
+                    file_function(current_file)
+            if dir_function is not None:
+                for dirname in dirnames:
+                    current_dir = os.path.join(dirpath, dirname)
+                    dir_function(current_dir)
+    if not exclude_dir and dir_function is not None:
+        dir_function(dir)
+
+
+def walk_all_files_in_dir(dir, function, topdown=True):
+    walk_all_in_dir(dir, file_function=function, dir_function=None, topdown=topdown, exclude_dir=True)
+
+
+def walk_all_dirs_in_dir(dir, function, topdown=True, exclude_dir=True):
+    walk_all_in_dir(dir, file_function=None, dir_function=function, topdown=topdown, exclude_dir=exclude_dir)
+
+
 ## get files
 
 def find_with_condition_function(path, condition_function, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
@@ -234,20 +258,6 @@ def flush_and_close(file):
     while not os.path.exists(file.name):
         logger.warning('File {} is not available after flush and fsync. Waiting.'.format(file.name))
         time.sleep(1)
-
-
-def walk_all_in_dir(dir, file_function=None, dir_function=None, topdown=True, exclude_dir=True):
-    for (dirpath, dirnames, filenames) in os.walk(dir, topdown=topdown):
-            if file_function is not None:
-                for filename in filenames:
-                    current_file = os.path.join(dirpath, filename)
-                    file_function(current_file)
-            if dir_function is not None:
-                for dirname in dirnames:
-                    current_dir = os.path.join(dirpath, dirname)
-                    dir_function(current_dir)
-    if not exclude_dir and dir_function is not None:
-        dir_function(dir)
 
 
 ## fd functions
