@@ -8,6 +8,8 @@ import util.batch.general.system
 import util.logging
 logger = util.logging.logger
 
+from util.batch.general.system import *
+
 
 
 ## batch setup
@@ -133,7 +135,3 @@ class Job(util.batch.general.system.Job):
             content.append('')
         return os.linesep.join(content)
 
-
-## imports from util.batch.general.system
-
-from util.batch.general.system import NodeSetup, NodeSetupIncompleteError, JobError, JobExitCodeError
