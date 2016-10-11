@@ -102,3 +102,31 @@ class Database(util.index_database.general.Database):
             txt_file_db_value = self.txt_file_db.get_value(index)
             if not self.array_db.has_value(index) or not self.are_values_equal(self.array_db.get_value(index), txt_file_db_value):
                 self.array_db.set_value(index, txt_file_db_value, overwrite=False)
+    
+    
+    ## check integrity
+    
+    def check_integrity(self):
+        ## check if differenet indices
+        array_db = self.array_db
+        file_db = self.txt_file_db
+
+        file_used_indices = file_db.used_indices()
+        array_used_indices = array_db.used_indices()
+        file_used_indices = set(file_used_indices)
+        array_used_indices = set(array_used_indices)
+
+        diff = array_used_indices - file_used_indices
+        if len(diff) > 0:
+            raise util.index_database.general.DatabaseError('Array db has values at indices {} and file db has no values their!'.format(diff))
+        diff = file_used_indices - array_used_indices
+        if len(diff) > 0:
+            raise util.index_database.general.DatabaseError('File db has values at indices {} and array db has no values their!'.format(diff))
+
+        ## check if differenet values
+        for index in array_used_indices:
+            v_a = array_db.get_value(index)
+            v_f = file_db.get_value(index)
+            if not array_db.are_values_equal(v_a, v_f):
+                raise util.index_database.general.DatabaseError('Array db and file db value at index {} are not equal: {} != {}!'.format(index, v_a, v_f))
+    
