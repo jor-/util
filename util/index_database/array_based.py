@@ -90,6 +90,19 @@ class Database(util.index_database.general.Database):
             return super().add_value(value)
 
 
+    def all_values(self):
+        try:
+            db = self.locked_file.load()
+        except FileNotFoundError:
+            return ()
+        else:
+            used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
+            used_values = db[used_mask]
+            
+            logger.debug('{}: Got {} used values.'.format(self, len(used_values)))
+            return used_values
+
+
     def used_indices(self):
         try:
             db = self.locked_file.load()

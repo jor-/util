@@ -71,6 +71,9 @@ class Database(util.index_database.general.Database):
                 self.array_db.remove_index(index)
                 raise e
         return index
+
+    def all_values(self):
+        return self.array_db.all_values()
         
     
     def used_indices(self):
@@ -99,4 +102,3 @@ class Database(util.index_database.general.Database):
             txt_file_db_value = self.txt_file_db.get_value(index)
             if not self.array_db.has_value(index) or not self.are_values_equal(self.array_db.get_value(index), txt_file_db_value):
                 self.array_db.set_value(index, txt_file_db_value, overwrite=False)
-        

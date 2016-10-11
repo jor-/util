@@ -152,6 +152,9 @@ class Database:
         logger.debug('{}: Value {} added with index {}.'.format(self, value, index))
         return index
 
+    def all_values(self):
+        np.vstack(map(self.get_value, self.used_indices))
+
     
     ## access to indices
     
