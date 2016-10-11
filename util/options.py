@@ -1,6 +1,7 @@
 import os.path
 import stat
 import collections
+import copy
 
 import numpy as np
 import h5py
@@ -449,6 +450,10 @@ class OptionsBase():
     
     def _has_value(self, option):
         return option in self._options
+    
+    ## copy
+    def copy(self):
+        return copy.deepcopy(self)
 
 
 
