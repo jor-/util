@@ -42,7 +42,7 @@ class ObservableDict(util.observable.base.Observable, dict):
         new_keys_values = []
         for key, value in update_dict.items():
             try:
-                old_value = self[key]:
+                old_value = self[key]
             except KeyError:
                 new_keys_values.append((key, value))
             else:
