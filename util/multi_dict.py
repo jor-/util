@@ -42,12 +42,7 @@ class MultiDict():
     ## str
 
     def __str__(self):
-        name = self.__class__.__name__
-        if self.sorted:
-            name = name + '(Sorted)'
-        else:
-            name = name + '(Unsorted)'
-        return name
+        return str(self.value_dict)
 
 
     ## mapping methods
