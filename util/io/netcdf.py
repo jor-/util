@@ -63,5 +63,5 @@ def load(file, data_name):
     else:
         return load_with_scipy(file, data_name)
     
-    raise ImportError('Could not import netCDF4 nor scipy.io'.)
+    raise ImportError('Could not import netCDF4 nor scipy.io.')
     
