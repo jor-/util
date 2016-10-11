@@ -12,7 +12,11 @@ class Database(util.index_database.fs_based.Database):
     
     ## load and save
     def _load_file(self, value_file):
-        return np.loadtxt(value_file)
+        value = np.loadtxt(value_file)
+        if value.ndim == 0:
+            value = value.reshape(-1)
+        assert value.ndim == 1
+        return value
     
     def _save_file(self, value_file, value):
         np.savetxt(value_file, value, fmt=self.value_fmt)
