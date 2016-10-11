@@ -884,6 +884,71 @@ class Job():
 
         if options is not None:
             options.close()
+    
+    
+    ## check integrity
+
+    def check_integrity(self, should_be_started=False, should_be_readonly=False):
+        
+        ## check if options entires exist
+        self.option_file
+        self.output_file
+        self.unfinished_file
+        self.finished_file
+        self.id_file
+        
+        ## check if started, running and finished state
+        is_started = self.is_started()
+        is_running = self.is_running()
+        
+        if is_started or should_be_started:
+            job_id = self.id
+            try:
+                is_running_batch_system = self.batch_system.is_job_running(job_id)
+            except:
+                pass
+            else:
+                if is_running != is_running_batch_system:
+                    raise JobError(self, 'Its is not clear if the job is running!')
+        
+        if is_started and not is_running:
+            is_finished = self.is_finished(check_exit_code=True)
+            if not is_finished:
+                raise JobError(self, 'The job should finished but it is not!')
+        
+        ## check errors in output file
+        if is_started and os.path.exists(self.output_file) or is_finished:
+            output = self.output
+            for line in output.splitlines():
+                line_lower = line.lower()
+                if ('error' in line_lower and not 'error_path' in line_lower) or 'warning' in line_lower or 'fatal' in line_lower or 'permission denied' in line_lower:
+                    raise JobError(self, 'There are errors in the job output file: {}!'.format(line))
+        
+        ## check read only
+        if should_be_readonly and not self.options.is_read_only():
+            raise JobError(self, 'Job option file is writeable!')
+        
+        ## check files
+        output_dir = self.output_dir
+        def check_if_file_exists(file, should_exists=True):
+            if not file.startswith(output_dir):
+                raise JobError(self, 'Job option {} should start with {} but its is {}.'.format(file_key, output_dir, file))
+            exists =  os.path.exists(file)
+            if should_exists and not exists:
+                raise JobError(self, 'File {} does not exist.'.format(file))
+            if not should_exists and exists:
+                raise JobError(self, 'File {} should not exist.'.format(file))
+        
+        if is_started:
+            check_if_file_exists(self.option_file)
+            check_if_file_exists(self.id_file)        
+        if is_finished:
+            check_if_file_exists(self.output_file)
+            check_if_file_exists(self.finished_file)
+            check_if_file_exists(self.unfinished_file, should_exists=False)
+        if is_running:
+            check_if_file_exists(self.finished_file, should_exists=False)
+            check_if_file_exists(self.unfinished_file)
             
 
 
