@@ -128,11 +128,11 @@ class NodeSetup:
         self.setup[key] = value
 
     def __str__(self):
-        dict_str = str(self.setup).replace(": inf", ": float('inf')")
+        dict_str = str(self.setup).replace(': inf', ': float("inf")')
         return '{}(**{})'.format(self.__class__.__name__, dict_str)
     
     def __repr__(self):
-        dict_str = str(self.setup).replace(": inf", ": float('inf')")
+        dict_str = str(self.setup).replace(': inf', ': float("inf")')
         return '{}.{}(**{})'.format(self.__class__.__module__, self.__class__.__name__, dict_str)
         
 
@@ -363,7 +363,7 @@ class BatchSystem():
         if not os.path.exists(job_file):
             raise FileNotFoundError(job_file)
 
-        submit_output = subprocess.check_output((self.submit_command, job_file)).decode("utf-8")
+        submit_output = subprocess.check_output((self.submit_command, job_file)).decode('utf-8')
         submit_output = submit_output.strip()
         job_id = self._get_job_id_from_submit_output(submit_output)
 
@@ -633,17 +633,17 @@ class Job():
 
     ## option properties
 
-    def option_value(self, name, not_exist_okay=True, replace_environment_vars=True):
+    def option_value(self, name, not_exist_okay=False, replace_environment_vars=True):
         replace_environment_vars_old = self.options.replace_environment_vars_at_get
         self.options.replace_environment_vars_at_get = replace_environment_vars
         try:
-            if not_exist_okay:
-                try:
-                    return self.options[name]
-                except KeyError:
-                    return None
-            else:
+            try:
                 return self.options[name]
+            except KeyError:
+                if not_exist_okay:
+                    return None
+                else:
+                    raise
         finally:
             self.options.replace_environment_vars_at_get = replace_environment_vars_old
 
@@ -653,46 +653,43 @@ class Job():
         try:
             return self.options['/job/id']
         except KeyError:
-            raise KeyError('Job with option file ' + self.options.filename + ' is not started!')
+            raise JobNotStartedError(self)
 
     @property
     def output_dir(self):
-        return os.path.dirname(self.option_value('/job/output_file', False))
+        return os.path.dirname(self.option_value('/job/output_file', not_exist_okay=False))
 
     @property
     def output_dir_not_expanded(self):
-        return os.path.dirname(self.option_value('/job/output_file', False, replace_environment_vars=False))
-
-    @property
-    def option_file(self):
-        return self.option_value('/job/option_file', False)
-
-    @property
-    def unfinished_file(self):
-        return self.option_value('/job/unfinished_file', False)
-
-    @property
-    def finished_file(self):
-        return self.option_value('/job/finished_file', False)
-
-    @property
-    def id_file(self):
-        return self.option_value('/job/id_file', True)
+        return os.path.dirname(self.option_value('/job/output_file', not_exist_okay=False, replace_environment_vars=False))
 
     @property
     def output_file(self):
-        return self.option_value('/job/output_file', True)
+        return self.option_value('/job/output_file', not_exist_okay=False)
 
     @property
     def output(self):
         output_file = self.output_file
-        if output_file is not None and os.path.exists(output_file):
-            with open(output_file, 'r') as file:
-                output = file.read()
-        else:
-            output = None
+        with open(output_file, 'r') as file:
+            output = file.read()
         return output
 
+    @property
+    def option_file(self):
+        return self.option_value('/job/option_file', not_exist_okay=False)
+
+    @property
+    def unfinished_file(self):
+        return self.option_value('/job/unfinished_file', not_exist_okay=False)
+
+    @property
+    def finished_file(self):
+        return self.option_value('/job/finished_file', not_exist_okay=False)
+
+    @property
+    def id_file(self):
+        return self.option_value('/job/id_file', not_exist_okay=False)
+    
     @property
     def exit_code(self):
         ## check if finished file exists
@@ -713,23 +710,23 @@ class Job():
 
     @property
     def cpu_kind(self):
-        return self.option_value('/job/cpu_kind', True)
+        return self.option_value('/job/cpu_kind', not_exist_okay=True)
 
     @property
     def nodes(self):
-        return self.option_value('/job/nodes', True)
+        return self.option_value('/job/nodes', not_exist_okay=True)
 
     @property
     def cpus(self):
-        return self.option_value('/job/cpus', True)
+        return self.option_value('/job/cpus', not_exist_okay=True)
 
     @property
     def queue(self):
-        return self.option_value('/job/queue', True)
+        return self.option_value('/job/queue', not_exist_okay=True)
 
     @property
     def walltime_hours(self):
-        return self.option_value('/job/walltime_hours', True)
+        return self.option_value('/job/walltime_hours', not_exist_okay=True)
 
 
     ## init methods
@@ -817,20 +814,20 @@ class Job():
             if check_exit_code:
                 exit_code = self.exit_code
                 if exit_code != 0:
-                    raise JobExitCodeError(self.id, self.output_dir, exit_code, self.output)
+                    raise JobExitCodeError(self)
             return self.output_file is None or os.path.exists(self.output_file)
         
         ## if finished file odes not exist, check if running
-        elif self.is_started() and not self.batch_system.is_job_running(self.id) and not os.path.exists(self.finished_file):
+        elif self.is_started() and not self.batch_system.is_job_running(self.id):
             time.sleep(60)
             if os.path.exists(self.finished_file):
                 return self.is_finished(check_exit_code=check_exit_code)
             else:
                 output = self.output
                 if self.exceeded_walltime_error_message is not None and self.exceeded_walltime_error_message in output:
-                    raise JobExceededWalltimeError(self.id, self.output_dir, self.walltime_hours, output)
+                    raise JobExceededWalltimeError(self)
                 else:
-                    raise JobError(self.id, self.output_dir, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), output)
+                    raise JobError(self, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), output)
         
         ## if not not started or running, return false
         else:
@@ -887,23 +884,52 @@ class Job():
 
         if options is not None:
             options.close()
-
+            
 
 
 class JobError(Exception):
-    def __init__(self, job_id, output_path, error_message, ouput=None):
-        error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_path, error_message)
-        if ouput is not None:
-            error_message = error_message + '\nThe job output was:\n{}'.format(ouput)
+    def __init__(self, job, error_message, include_output=False):
+        ## store job
+        self.job = job
+        
+        ## construct error message
+        output_dir = job.output_dir
+        if job.is_started:
+            job_id = job.id
+            error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_dir, error_message)
+        else:        
+            error_message = 'An error accured in job stored at {}: {}'.format(output_dir, error_message)
+
+        ## add output
+        if include_output:
+            try:
+                output = job.output
+            except OSError:
+                pass
+            else:
+                error_message = error_message + '\nThe job output was:\n{}'.format(output)
+        
+        ## super call
         super().__init__(error_message)
 
-class JobExitCodeError(JobError):
-    def __init__(self, job_id, output_path, exit_code, ouput=None):
-        error_message = 'The command of the job exited with code {}.'.format(exit_code)
-        super().__init__(job_id, output_path, error_message, ouput=ouput)
+class JobNotStartedError(JobError):
+    def __init__(self, job):
+        error_message = 'The job is not started!'
+        super().__init__(job)
 
+class JobExitCodeError(JobError):
+    def __init__(self, job):
+        self.exit_code = job.exit_code
+        error_message = 'The command of the job exited with code {}.'.format(self.exit_code)
+        super().__init__(job, error_message, include_output=True)
 
 class JobExceededWalltimeError(JobError):
-    def __init__(self, job_id, output_path, walltime, ouput=None):
-        error_message = 'The job {} exceeded walltime {}.'.format(job_id, walltime)
-        super().__init__(job_id, output_path, error_message, ouput=ouput)
+    def __init__(self, job):
+        self.walltime = job.walltime_hours
+        error_message = 'The job exceeded walltime {}.'.format(self.walltime)
+        super().__init__(job, error_message)
+
+class JobMissingOptionError(JobError):
+    def __init__(self, job, option):
+        error_message = 'Job option {} is missing!'.format(option)
+        super().__init__(job, error_message)
