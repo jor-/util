@@ -54,17 +54,13 @@ class MultiDict():
 
     def get_value_list(self, key):
         value = self.value_dict
-        try:
-            for i in range(len(key)):
-                if not _isdict(value):
-                    raise KeyError('Key {} not applicable. Under key {} is a value of type {}.'.format(key, key[:i], type(value)))
-                try:
-                    value = value[key[i]]
-                except TypeError as e:
-                    raise KeyError('Key {} not applicable. The {}th value of the key is of type {}.'.format(key, i, type(key[i]))) from e
-        except KeyError as e:
-            # raise KeyError(key) from e
-            value = []
+        for i in range(len(key)):
+            if not _isdict(value):
+                raise KeyError('Key {} not applicable. Under key {} is a value of type {}.'.format(key, key[:i], type(value)))
+            try:
+                value = value[key[i]]
+            except TypeError as e:
+                raise KeyError('Key {} not applicable. The {}th value of the key is of type {}.'.format(key, i, type(key[i]))) from e
         return value
 
     def __getitem__(self, key):
