@@ -107,7 +107,7 @@ class Database:
         return self.value_difference(v1, v2) <= 1
     
     
-    ## access
+    ## access to values
 
     @abc.abstractmethod
     def get_value(self, index):
@@ -152,7 +152,9 @@ class Database:
         logger.debug('{}: Value {} added with index {}.'.format(self, value, index))
         return index
 
-
+    
+    ## access to indices
+    
     @abc.abstractmethod
     def used_indices(self):
         raise NotImplementedError()
@@ -229,17 +231,23 @@ class Database:
 
 
 
-class DatabaseIndexError(IndexError):
-    
-    def __init__(self, index):
+
+class DatabaseError(Exception):
+    def __init__(self, database, message):
+        self.database = database
+        message = '{}: {}'.format(database, message)
+        super().__init__(message)
+
+
+class DatabaseIndexError(DatabaseError, IndexError):
+    def __init__(self, database, index):
         message = 'Database has no value at index {}.'.format(index)
-        super().__init__(message)
+        super().__init__(database, message)
 
 
-class DatabaseOverwriteError(Exception):    
-
-    def __init__(self, index):
+class DatabaseOverwriteError(DatabaseError):    
+    def __init__(self, database, index):
         message = 'Database has value at index {}. Overwrite is not permitted.'.format(index)
-        super().__init__(message)
+        super().__init__(database, message)
     
         

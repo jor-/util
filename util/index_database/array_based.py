@@ -46,15 +46,15 @@ class Database(util.index_database.general.Database):
         try:
             db = self.locked_file.load()
         except FileNotFoundError:
-            raise util.index_database.general.DatabaseIndexError(index)
+            raise util.index_database.general.DatabaseIndexError(self, index)
         ## get value at index
         try:
             value = db[index]
         except IndexError:
-            raise util.index_database.general.DatabaseIndexError(index)
+            raise util.index_database.general.DatabaseIndexError(self, index)
         ## check if valid value is at index 
         if np.all(np.isnan(value)):
-            raise util.index_database.general.DatabaseIndexError(index)
+            raise util.index_database.general.DatabaseIndexError(self, index)
         else:
             return value
     
@@ -75,7 +75,7 @@ class Database(util.index_database.general.Database):
                         db[index] = value
                     else:
                         logger.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
-                        raise util.index_database.general.DatabaseOverwriteError(index)
+                        raise util.index_database.general.DatabaseOverwriteError(self, index)
                 else:
                     db_extension_len = index - len(db) + 1
                     db_extension = np.empty([db_extension_len, db.shape[1]]) * np.nan
@@ -108,7 +108,7 @@ class Database(util.index_database.general.Database):
         
         with self.locked_file.lock_object(exclusive=True):
             if not self.has_value(index):
-                raise util.index_database.general.DatabaseIndexError(index)
+                raise util.index_database.general.DatabaseIndexError(self, index)
             
             db = self.locked_file.load()
             db[index] = db[index] * np.nan

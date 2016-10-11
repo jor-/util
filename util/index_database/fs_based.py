@@ -112,7 +112,7 @@ class Database(util.index_database.general.Database):
             try:
                 current_value_array = self._load_file(value_file)
             except FileNotFoundError:
-                raise util.index_database.general.DatabaseIndexError(index)
+                raise util.index_database.general.DatabaseIndexError(self, index)
             value_array.append(current_value_array)
 
         ## return as one array
@@ -148,7 +148,7 @@ class Database(util.index_database.general.Database):
                 util.io.fs.make_read_only(value_file)
             else:
                 logger.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
-                raise util.index_database.general.DatabaseOverwriteError(index)
+                raise util.index_database.general.DatabaseOverwriteError(self, index)
     
     
     def used_indices(self):
@@ -184,5 +184,5 @@ class Database(util.index_database.general.Database):
         try:
             util.io.fs.remove_recursively(base_dir_including_index, force=force, exclude_dir=False)
         except FileNotFoundError:
-            raise util.index_database.general.DatabaseIndexError(index)
+            raise util.index_database.general.DatabaseIndexError(self, index)
             
