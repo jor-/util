@@ -4,6 +4,8 @@ import sys
 
 import util.parallel.is_running
 
+LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
+
 
 def get_logger_logging():
     return logging.getLogger()
@@ -40,7 +42,7 @@ def is_debug():
 
 class Logger():
 
-    def __init__(self, disp_stdout=True, log_file=None):
+    def __init__(self, disp_stdout=True, log_file=None, level='DEBUG'):
         disp_stdout = disp_stdout or (disp_stdout is None and log_file is None)
         self.enabled = disp_stdout or log_file is not None
 
@@ -49,7 +51,7 @@ class Logger():
             self.handlers = []
 
             ## set logger
-            logger.level = logging.DEBUG
+            logger.setLevel(level)
             self.logger = logger
 
             ## create formatter
@@ -84,32 +86,6 @@ class Logger():
                     handler.setFormatter(formatter_stdout)
                     self.add_handler(handler)
 
-                    # ## set color formatter
-                    # try:
-                    #     import colorlog
-                    # except ImportError:
-                    #     colorlog = None
-                    #     logger.warn('The package colorlog is not installed. Using uncolored logging.')
-                    # if colorlog is not None:
-                    #     formatter = colorlog.ColoredFormatter(
-                    #         "%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(module)s:%(lineno)d -> %(message)s",
-                    #         datefmt=None,
-                    #         reset=True,
-                    #         log_colors={'DEBUG':    'cyan',
-                    #                     'INFO':     'green',
-                    #                     'WARNING':  'yellow',
-                    #                     'ERROR':    'red',
-                    #                     'CRITICAL': 'red,bg_white'},
-                    #         secondary_log_colors={},
-                    #         style='%')
-                    # else:
-                    #     formatter = logging.Formatter(
-                    #         "%(levelname)-8s %(module)s:%(lineno)d -> %(message)s",
-                    #         datefmt=None,
-                    #         style='%')
-                    # for handler in logger.handlers:
-                    #     handler.setFormatter(formatter)
-
             ## add log file handler
             if log_file is not None and log_file != '':
                 try:
@@ -119,33 +95,16 @@ class Logger():
                 handler = logging.FileHandler(log_file)
                 handler.setFormatter(formatter_normal)
                 self.add_handler(handler)
+
             ## add null handler if no other handler
             if not logger.hasHandlers():
                 self.add_handler(logging.NullHandler())
-
-    #         ## set formatter
-    #         formatter = logging.Formatter(fmt="{levelname}:{pathname}:{lineno} ->  {message}", style='{')
-    #         for handler in logger.handlers:
-    #             handler.setFormatter(formatter)
 
             ## debug infos
             if disp_stdout:
                 logger.debug('Logger {} configured with output to stdout.'.format(logger.name))
             if log_file is not None:
                 logger.debug('Logger {} configured with output to file {}.'.format(logger.name, log_file))
-
-
-#         if disp_stdout:
-#             logging.basicConfig(format="{levelname}:{pathname}:{lineno} ->  {message}", style='{', level=logging.DEBUG)
-#         else:
-#             try:
-#                 os.remove(log_file)
-#             #except FileNotFoundError:
-#             except (OSError, IOError):
-#                 pass
-#             logging.basicConfig(format="{levelname}:{pathname}:{lineno} ->  {message}", style='{', level=logging.DEBUG, filename=log_file)
-#             if disp_stdout:
-#                 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
     def __del__(self):
         self.close()
@@ -166,10 +125,6 @@ class Logger():
     def close(self):
         if self.enabled:
             self.remove_all_handler()
-#         for handler in self.logger.handlers:
-#             handler.flush()
-#             handler.close()
-#         logging.shutdown()
 
     ## handler
 
