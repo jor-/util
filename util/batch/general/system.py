@@ -915,6 +915,8 @@ class Job():
             is_finished = self.is_finished(check_exit_code=True)
             if not is_finished:
                 raise JobError(self, 'The job should finished but it is not!')
+        else:
+            is_finished = self.is_finished(check_exit_code=False)
         
         ## check errors in output file
         if is_started and os.path.exists(self.output_file) or is_finished:
