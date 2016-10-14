@@ -21,7 +21,7 @@ class Database(util.index_database.general.Database):
     
     
     def __str__(self):
-        return 'Index array and file system database'
+        return '{} and {}'.format(self.array_db, self.txt_file_db)
     
     
     ## setter and getter for files
@@ -118,15 +118,15 @@ class Database(util.index_database.general.Database):
 
         diff = array_used_indices - file_used_indices
         if len(diff) > 0:
-            raise util.index_database.general.DatabaseError('Array db has values at indices {} and file db has no values their!'.format(diff))
+            raise util.index_database.general.DatabaseError(self, 'Array db has values at indices {} and file db has no values their!'.format(diff))
         diff = file_used_indices - array_used_indices
         if len(diff) > 0:
-            raise util.index_database.general.DatabaseError('File db has values at indices {} and array db has no values their!'.format(diff))
+            raise util.index_database.general.DatabaseError(self, 'File db has values at indices {} and array db has no values their!'.format(diff))
 
         ## check if differenet values
         for index in array_used_indices:
             v_a = array_db.get_value(index)
             v_f = file_db.get_value(index)
             if not array_db.are_values_equal(v_a, v_f):
-                raise util.index_database.general.DatabaseError('Array db and file db value at index {} are not equal: {} != {}!'.format(index, v_a, v_f))
+                raise util.index_database.general.DatabaseError(self, 'Array db and file db value at index {} are not equal: {} != {}!'.format(index, v_a, v_f))
     
