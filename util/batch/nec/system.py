@@ -34,15 +34,8 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         return job_id
 
 
-    def job_state(self, job_id):
-        ## get state of job
-        output = subprocess.check_output((self.status_command, job_id)).decode("utf-8")
-        logger.debug('qstat result:\n{}'.format(output.strip()))
-        return output
-
-
     def is_job_running(self, job_id):
-        output = self.job_state(job_id)
+        output = self.job_state(job_id, return_output=True)
         return 'RequestID' in output
 
 

@@ -363,13 +363,32 @@ class BatchSystem():
         if not os.path.exists(job_file):
             raise FileNotFoundError(job_file)
 
-        submit_output = subprocess.check_output((self.submit_command, job_file)).decode('utf-8')
-        submit_output = submit_output.strip()
+        process_result = subprocess.run((self.submit_command, job_file), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        logger.debug('Job submit result is {}.'.format(process_result))
+        submit_output = process_result.stdout.decode('utf-8').strip()
         job_id = self._get_job_id_from_submit_output(submit_output)
 
         logger.debug('Started job has ID {}.'.format(job_id))
 
         return job_id
+    
+
+    def job_state(self, job_id, return_output=True, status_command_args=None):
+        ## input values
+        if status_command_args is None:
+            status_command_args = ()
+        else:
+            status_command_args = tuple(status_command_args)
+        
+        ## run status command
+        process_args = (self.status_command,) + status_command_args + (job_id,)
+        process_result = subprocess.run(process_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        logger.debug('Status command result: {}'.format(process_result))
+        
+        ## return output
+        if return_output:
+            output = process_result.stdout.decode("utf-8")
+            return output
 
 
     def is_mpi_used(self, modules):
@@ -618,11 +637,8 @@ class Job():
         try:
             job_id = self.id
         except KeyError:
-            job_id = None
-        if job_id is not None:
-            job_str = 'job {} with output path {}'.format(job_id, output_dir)
-        else:
-            job_str = 'not started job with output path {}'.format(job_id, output_dir)
+            job_id = '(not started)'
+        job_str = 'job {} with output path {}'.format(job_id, output_dir)
         return job_str
 
 
@@ -803,10 +819,11 @@ class Job():
     def is_started(self):
         try:
             self.options['/job/id']
-            return True
         except KeyError:
             return False
-
+        else:
+            return True
+    
 
     def is_finished(self, check_exit_code=True):
         ## if finished file exists, check exit code and output file
@@ -961,7 +978,7 @@ class JobError(Exception):
         
         ## construct error message
         output_dir = job.output_dir
-        if job.is_started:
+        if job.is_started():
             job_id = job.id
             error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_dir, error_message)
         else:        
@@ -982,7 +999,7 @@ class JobError(Exception):
 class JobNotStartedError(JobError):
     def __init__(self, job):
         error_message = 'The job is not started!'
-        super().__init__(job)
+        super().__init__(job, error_message)
 
 class JobExitCodeError(JobError):
     def __init__(self, job):

@@ -30,34 +30,36 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         return submit_output
 
 
-    def job_state(self, job_id):
+    def job_state(self, job_id, return_output=True):
         ## remove suffix from job id
         SUFFIX = '.rz.uni-kiel.de'
         if job_id.endswith(SUFFIX):
             job_id = job_id[:-len(SUFFIX)]
-
-        ## get state of job
-        process = subprocess.Popen((self.status_command, '-a', job_id), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        qstat_result = process.communicate()[0].decode("utf-8")
-        qstat_returncode = process.returncode
-
-        logger.debug('qstat result: {} with exit code: {}'.format(qstat_result, qstat_returncode))
-
-        ## 255 => cannot connect to server
-        if qstat_returncode == 255:
-            raise ConnectionError(qstat_result)
-
-        return qstat_returncode
+        
+        ## call super
+        return super().job_state(job_id, return_output=return_output, status_command_args=('-a',))
 
 
     def is_job_running(self, job_id):
-        qstat_returncode = self.job_state(job_id)
-        return qstat_returncode == 0
-
+        try:
+            self.job_state(job_id, return_output=False)
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 255:   # 255 => cannot connect to server
+                raise
+            return False
+        else:
+            return True
 
     def is_job_finished(self, job_id):
-        qstat_returncode = self.job_state(job_id)
-        return qstat_returncode == 35 or qstat_returncode == 153
+        try:
+            self.job_state(job_id, return_output=False)
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 255:   # 255 => cannot connect to server
+                raise
+            else:
+                return e.returncode == 35 or e.returncode == 153
+        else:
+            return False
 
 
     ## node setups
