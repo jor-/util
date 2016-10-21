@@ -3,7 +3,7 @@ import os.path
 
 import numpy as np
 import scipy.sparse
-import scikits.sparse.cholmod
+import sksparse.cholmod
 
 import util.math.matrix
 import util.math.sparse.check
@@ -127,14 +127,14 @@ def approximate_positive_definite(A, min_abs_value=0, ordering_method='natural',
         ## compute cholesky factor
         try:
             try:
-                f = scikits.sparse.cholmod.cholesky(A, ordering_method=ordering_method, use_long=use_long)
-            except scikits.sparse.cholmod.CholmodTooLargeError as e:
+                f = sksparse.cholmod.cholesky(A, ordering_method=ordering_method, use_long=use_long)
+            except sksparse.cholmod.CholmodTooLargeError as e:
                 if not use_long:
                     warnings.warn('Problem to large for int, switching to long.')
                     return approximate_positive_definite(A, min_diag_value=min_diag_value, min_abs_value=min_abs_value, use_long=True)
                 else:
                     raise
-        except scikits.sparse.cholmod.CholmodNotPositiveDefiniteError as e:
+        except sksparse.cholmod.CholmodNotPositiveDefiniteError as e:
             f = e.factor
         
         ## calculate LD and d
@@ -207,14 +207,14 @@ def cholesky(A, ordering_method='default', return_type=RETURN_P_L, use_long=Fals
     ## calculate cholesky decomposition
     try:
         try:
-            f = scikits.sparse.cholmod.cholesky(A, ordering_method=ordering_method, use_long=use_long)
-        except scikits.sparse.cholmod.CholmodTooLargeError as e:
+            f = sksparse.cholmod.cholesky(A, ordering_method=ordering_method, use_long=use_long)
+        except sksparse.cholmod.CholmodTooLargeError as e:
             if not use_long:
                 warnings.warn('Problem to large for int, switching to long.')
                 return cholesky(A, ordering_method=ordering_method, return_type=return_type, use_long=True)
             else:
                 raise
-    except scikits.sparse.cholmod.CholmodNotPositiveDefiniteError as e:
+    except sksparse.cholmod.CholmodNotPositiveDefiniteError as e:
         raise util.math.matrix.NoPositiveDefiniteMatrixError(A, 'Row/column {} makes matrix not positive definite.'.format(e.column))
     del A
 
