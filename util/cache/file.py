@@ -10,7 +10,7 @@ logger = util.logging.logger
 
 def decorator(cache_file_function=None):
     
-    def decorate_function(function, cache_file_function=None):
+    def decorate(function, cache_file_function=None):
         ## if no cache file function is passed used passed cache file function name or default cache file function name 
         cache_file_function_defined = not (cache_file_function is None or isinstance(cache_file_function, str))
         if not cache_file_function_defined:
@@ -22,7 +22,7 @@ def decorator(cache_file_function=None):
                 function_name = function.__name__
                 cache_file_function_name = '{function_name}_cache_file'.format(function_name=function_name)
         
-        def function_wrapper(*args, **kargs):            
+        def wrapper(*args, **kargs):            
             ## calculate cache file
             if cache_file_function_defined:
                 cache_file = cache_file_function(*args, **kargs)
@@ -58,8 +58,9 @@ def decorator(cache_file_function=None):
                 value = function(*args, **kargs)
             
             return value
-        
-        return function_wrapper
+
+        wrapper = util.cache.auxiliary.set_wrapper_attributes(wrapper, function)
+        return wrapper
     
-    return lambda function: decorate_function(function, cache_file_function=cache_file_function)
+    return lambda function: decorate(function, cache_file_function=cache_file_function)
 
