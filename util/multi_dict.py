@@ -51,11 +51,11 @@ class MultiDict():
         value = self.value_dict
         for i in range(len(key)):
             if not _isdict(value):
-                raise KeyError('Key {} not applicable. Under key {} is a value of type {}.'.format(key, key[:i], type(value)))
+                raise KeyError('No value for key {} available. (Under key {} is a value of type {}).'.format(key, key[:i], type(value)))
             try:
                 value = value[key[i]]
-            except TypeError as e:
-                raise KeyError('Key {} not applicable. The {}th value of the key is of type {}.'.format(key, i, type(key[i]))) from e
+            except KeyError as e:
+                raise KeyError('No value for key {} available. (Miss at the {}th index.'.format(key, i)) from e
         return value
 
     def __getitem__(self, key):
