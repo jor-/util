@@ -1,6 +1,8 @@
 import logging
 import os
 import sys
+import socket
+
 
 import util.parallel.is_running
 
@@ -111,7 +113,8 @@ class Logger():
 
     def __enter__(self):
         if self.enabled:
-            self.logger.info('Starting logging.')
+            self.logger.info('Starting logging at {}.'.format(socket.gethostname()
+))
         return self
 
     def __exit__(self, eType, eValue, eTrace):
