@@ -31,7 +31,7 @@ def decorator(cache_file_function=None):
                 try:
                     self = args[0]
                 except IndexError:
-                    logger.warn('This is not a method call! Cache file {} is not defined. Using no cache!'.format(cache_file_function_name))
+                    logger.warn('Can not use default cache file function name, because cache file {} is not defined and this is not a method call! Using no cache!'.format(cache_file_function_name))
                 else:
                     try:
                         cache_file_function_by_name = getattr(self, cache_file_function_name)
