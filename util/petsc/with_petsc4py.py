@@ -42,17 +42,6 @@ def load_petsc_mat(file):
 def petsc_vec_to_array(vec):
     logger.debug('Converting petsc vector to array.')
     array = np.array(vec, copy=True)
-
-#     ownership_range = vec.getOwnershipRange()
-#     size_local = ownership_range[1] - ownership_range[0]
-#     size_global = vec.getSize()
-#
-#     array = np.empty(size_global, dtype=dtype)
-#
-#     for i_local in range(size_local):
-#         i_global = y_ownership_range[0] + i_local
-
-
     return array
 
 
@@ -61,7 +50,7 @@ def petsc_mat_to_array(mat, dtype=float):
     shape = mat.getSize()
     array = np.zeros(shape, dtype=dtype)
 
-    #get values row by row since petsc matrix are sparce
+    #get values row by row since petsc matrix are sparse
     for i in range(shape[0]):
         row = mat.getRow(i)
         indices = row[0]
@@ -74,7 +63,7 @@ def petsc_mat_to_array(mat, dtype=float):
 
 def load_petsc_vec_to_numpy_array(file):
     vec = load_petsc_vec(file)
-    array = petsc_vec_to_array(vec, dtype=dtype)
+    array = petsc_vec_to_array(vec)
     vec.destroy()
 
     return array
