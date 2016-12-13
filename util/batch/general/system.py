@@ -712,7 +712,7 @@ class Job():
 
     ## write job file methods
 
-    def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None):
+    def set_job_options(self, job_name, nodes_setup, queue=None, cpu_kind=None):
         ## check qeue and walltime
         queue = self.batch_system.check_queue(queue)
         walltime_hours = nodes_setup.walltime
