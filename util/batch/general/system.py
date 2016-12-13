@@ -14,10 +14,10 @@ logger = util.logging.logger
 
 
 class NodeInfos():
-    
+
     def __init__(self, node_infos):
         self.node_infos = node_infos
-    
+
     def kinds(self):
         return tuple(self.node_infos.keys())
 
@@ -50,14 +50,14 @@ class NodeInfos():
 
 
 class NodesState():
-    
+
     def __init__(self, nodes_state):
         self.nodes_state = nodes_state
-    
+
     def nodes_state_for_kind(self, kind):
         nodes_state_values_for_kind = self.nodes_state_values_for_kind(kind)
         return NodesState({kind: nodes_state_values_for_kind})
-    
+
     def nodes_state_values_for_kind(self, kind):
         try:
             nodes_state_values_for_kind = self.nodes_state[kind]
@@ -65,7 +65,7 @@ class NodesState():
             logger.warning('Node kind {} not found in nodes state {}.'.format(kind, self.nodes_state))
             nodes_state_values_for_kind = [np.array([]), np.array([])]
         return nodes_state_values_for_kind
-    
+
     def free_cpus(self, kind, required_memory=0):
         if required_memory == 0:
             free_cpus = self.nodes_state_values_for_kind(kind)[0]
@@ -83,11 +83,11 @@ class NodesState():
 class NodeSetup:
 
     def __init__(self, memory=None, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf'), check_for_better=False, walltime=None):
-        
+
         ## set batch system
         from util.batch.universal.system import BATCH_SYSTEM
         self.batch_system = BATCH_SYSTEM
-        
+
         ## check input
         assert nodes is None or nodes >= 1
         assert cpus is None or cpus >= 1
@@ -97,16 +97,16 @@ class NodeSetup:
         assert total_cpus_max is None or nodes is None or cpus is None or total_cpus_max >= nodes * cpus
         assert total_cpus_max is None or nodes is None or total_cpus_max >= nodes
         assert total_cpus_max is None or cpus is None or total_cpus_max >= cpus
-        
+
         if node_kind is not None and cpus is not None:
             max_cpus = self.batch_system.node_infos.cpus(node_kind)
             if cpus > max_cpus:
-                raise ValueError('For node kind {} are maximal {} cpus per node available but {} are reqeusted'.format(node_kind, max_cpus, cpus))      
-        
+                raise ValueError('For node kind {} are maximal {} cpus per node available but {} are requested'.format(node_kind, max_cpus, cpus))
+
         if node_kind is not None and nodes is not None:
             max_nodes = self.batch_system.node_infos.nodes(node_kind)
             if nodes > max_nodes:
-                raise ValueError('For node kind {} are maximal {} nodes available but {} are reqeusted'.format(node_kind, max_nodes, nodes))
+                raise ValueError('For node kind {} are maximal {} nodes available but {} are requested'.format(node_kind, max_nodes, nodes))
 
         ## prepare input
         if node_kind is not None and not isinstance(node_kind, str) and len(node_kind) == 1:
@@ -119,7 +119,7 @@ class NodeSetup:
         ## save setup
         setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_leave_free': nodes_leave_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
         self.setup = setup
-        
+
 
     def __getitem__(self, key):
         return self.setup[key]
@@ -130,11 +130,11 @@ class NodeSetup:
     def __str__(self):
         dict_str = str(self.setup).replace(': inf', ': float("inf")')
         return '{}(**{})'.format(self.__class__.__name__, dict_str)
-    
+
     def __repr__(self):
         dict_str = str(self.setup).replace(': inf', ': float("inf")')
         return '{}.{}(**{})'.format(self.__class__.__module__, self.__class__.__name__, dict_str)
-        
+
 
     def __copy__(self):
         copy = type(self)(**self.setup)
@@ -198,11 +198,11 @@ class NodeSetup:
     @property
     def memory(self):
         return self.setup['memory']
-    
+
     @memory.setter
     def memory(self, memory):
         self.setup['memory'] = memory
-    
+
 
     @property
     def node_kind(self):
@@ -223,7 +223,7 @@ class NodeSetup:
     @property
     def walltime(self):
         return self.setup['walltime']
-    
+
     @walltime.setter
     def walltime(self, walltime):
         self.setup['walltime'] = walltime
@@ -232,7 +232,7 @@ class NodeSetup:
     @property
     def total_cpus_min(self):
         return self.setup['total_cpus_min']
-    
+
     @total_cpus_min.setter
     def total_cpus_min(self, total_cpus_min):
         self.setup['total_cpus_min'] = total_cpus_min
@@ -241,7 +241,7 @@ class NodeSetup:
     @property
     def nodes_max(self):
         return self.setup['nodes_max']
-    
+
     @nodes_max.setter
     def nodes_max(self, nodes_max):
         self.setup['nodes_max'] = nodes_max
@@ -259,13 +259,13 @@ class NodeSetupIncompleteError(Exception):
 
 class BatchSystem():
 
-    def __init__(self, commands, queues, max_walltime={}, module_renaming={}, node_infos={}):
+    def __init__(self, commands, queues, pre_commands={}, max_walltime={}, node_infos={}):
+        logger.debug('{} initiating with commands {}, queues {}, pre_commands {} and max_walltime {}.'.format(self, commands, queues, pre_commands, max_walltime))
         self.commands = commands
-        logger.debug('{} initiating with commands {}, queues {}, max_walltime {} and module_renaming {}.'.format(self, commands, queues, max_walltime, module_renaming))
+        self.pre_commands = pre_commands
         self.queues = queues
         self.max_walltime = max_walltime
-        self.module_renaming = module_renaming
-        
+
         if not isinstance(node_infos, NodeInfos):
             node_infos = NodeInfos(node_infos)
         self.node_infos = node_infos
@@ -273,23 +273,33 @@ class BatchSystem():
 
     @property
     def mpi_command(self):
-        return self.commands['mpirun']
+        return self.command('mpirun')
 
     @property
     def time_command(self):
-        return self.commands['time']
+        return self.command('time')
 
     @property
     def submit_command(self):
-        return self.commands['sub']
+        return self.command('sub')
 
     @property
     def status_command(self):
-        return self.commands['stat']
+        return self.command('stat')
 
     @property
     def nodes_command(self):
-        return self.commands['nodes']
+        return self.command('nodes')
+
+
+    def command(self, name):
+        return self.commands[name]
+
+    def pre_command(self, name):
+        try:
+            return self.pre_commands[name]
+        except KeyError:
+            return ''
 
 
     def __str__(self):
@@ -323,38 +333,6 @@ class BatchSystem():
         return walltime_hours
 
 
-    def check_modules(self, modules):
-        if len(modules) > 0:
-            modules = list(modules)
-
-            ## add required modules
-            for module_requested, modules_required in [('petsc', ('intelmpi', 'intel')), ('intelmpi', ('intel',)), ('hdf5', ('intel',))]:
-                if module_requested in modules:
-                    for module_required in modules_required:
-                        if module_required not in modules:
-                            logger.warning('Module "{}" needs module "{}" to be loaded first.'.format(module_requested, module_required))
-                            modules = [module_required] + modules
-
-            ## check positions
-            first_index = 0
-            for module in  ('intel', 'intelmpi'):
-                if module in modules and modules[first_index] != module:
-                    logger.warning('Module "{}" has to be at position {}.'.format(module, first_index))
-                    modules.remove(module)
-                    modules = [module] + modules
-                first_index += 1
-
-            ## rename modules
-            for i in range(len(modules)):
-                module = modules[i]
-                try:
-                    module_new = self.module_renaming[module]
-                except KeyError:
-                    module_new = module
-                modules[i] = module_new
-        return modules
-
-
     ## other methods
 
     def start_job(self, job_file):
@@ -371,7 +349,7 @@ class BatchSystem():
         logger.debug('Started job has ID {}.'.format(job_id))
 
         return job_id
-    
+
 
     def job_state(self, job_id, return_output=True, status_command_args=None):
         ## input values
@@ -379,53 +357,40 @@ class BatchSystem():
             status_command_args = ()
         else:
             status_command_args = tuple(status_command_args)
-        
+
         ## run status command
         process_args = (self.status_command,) + status_command_args + (job_id,)
         process_result = subprocess.run(process_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         logger.debug('Status command result: {}'.format(process_result))
-        
+
         ## return output
         if return_output:
             output = process_result.stdout.decode("utf-8")
             return output
 
 
-    def is_mpi_used(self, modules):
-        for module in modules:
-            if 'intelmpi' in module:
-                return True
-        return False
-
-
-    def add_mpi_to_command(self, command, cpus, use_mpi=True):
-        if use_mpi:
-            command = self.mpi_command.format(command=command, cpus=cpus)
-        return command
-    
-    
     ## best node setups
-    
+
     def speed(self, node_kind, nodes, cpus):
         return self.node_infos.speed(node_kind) * nodes * cpus
-    
-    
+
+
     def is_free(self, memory, node_kind, nodes, cpus):
         ## get nodes with required memory
         nodes_state = self._nodes_state()
         free_cpus = nodes_state.free_cpus(node_kind, required_memory=memory)
-        
+
         ## calculate useable nodes
         free_nodes = free_cpus[free_cpus >= cpus].size
         free_nodes = free_nodes - self.node_infos.leave_free(node_kind)
-        
+
         return free_nodes >= nodes
-    
-    
+
+
     @staticmethod
     def _best_cpu_configurations_for_state(nodes_state, node_kind, memory_required, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
         logger.debug('Getting best cpu configuration for node state {} with memory {}, nodes {}, cpus {}, nodes max {} and nodes left free {}.'.format(nodes_state, memory_required, nodes, cpus, nodes_max, nodes_leave_free))
-    
+
         ## check input
         if nodes_max <= 0:
             raise ValueError('nodes_max {} has to be greater 0.'.format(nodes_max))
@@ -444,60 +409,60 @@ class BatchSystem():
         if nodes is not None and cpus is not None:
             if nodes * cpus > total_cpus_max:
                 raise ValueError('total_cpus_max {} has to be greater or equal to nodes {} multiplied with cpus {}.'.format(total_cpus_max, nodes, cpus))
-    
+
         ## get only nodes with required memory
         free_cpus = nodes_state.free_cpus(node_kind, required_memory=memory_required)
-    
+
         ## calculate best configuration
         best_nodes = 0
         best_cpus = 0
-    
+
         if len(free_cpus) > 0:
             ## chose numbers of cpus to check
             if cpus is not None:
                 cpus_to_check = (cpus,)
             else:
                 cpus_to_check = range(max(free_cpus), 0, -1)
-    
+
             ## get number of nodes for each number of cpus
             for cpus_to_check_i in cpus_to_check:
                 ## calculate useable nodes (respect max nodes and left free nodes)
                 free_nodes = free_cpus[free_cpus >= cpus_to_check_i].size
                 free_nodes = free_nodes - nodes_leave_free
                 free_nodes = min(free_nodes, nodes_max)
-    
+
                 ## respect fix number of nodes if passed
                 if nodes is not None:
                     if free_nodes >= nodes:
                         free_nodes = nodes
                     else:
                         free_nodes = 0
-    
+
                 ## respect total max cpus
                 while free_nodes * cpus_to_check_i > total_cpus_max:
                     if free_nodes > 1:
                         free_nodes -= 1
                     else:
                         cpus_to_check_i = total_cpus_max
-    
+
                 ## check if best configuration
                 if free_nodes * cpus_to_check_i > best_nodes * best_cpus:
                     best_nodes = free_nodes
                     best_cpus = cpus_to_check_i
-    
+
         logger.debug('Best CPU configuration is for this kind: {}'.format((best_nodes, best_cpus)))
-    
+
         assert best_nodes <= nodes_max
         assert best_nodes * best_cpus <= total_cpus_max
         assert nodes is None or best_nodes == nodes or best_nodes == 0
         assert cpus is None or best_cpus == cpus or best_cpus == 0
         return (best_nodes, best_cpus)
 
-    
+
     def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf'), walltime=None):
 
         logger.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_max {} and walltime {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, walltime))
-    
+
         ## chose node kinds if not passed
         if node_kind is None:
             if walltime is None:
@@ -509,13 +474,13 @@ class BatchSystem():
         elif isinstance(node_kind, str):
             node_kind = (node_kind,)
         nodes_state = self._nodes_state()
-    
+
         ## init
         best_kind = node_kind[0]
         best_nodes = 0
         best_cpus = 0
         best_cpu_power = 0
-    
+
         ## calculate best CPU configuration
         for node_kind_i in node_kind:
             nodes_cpu_power_i = self.node_infos.speed(node_kind_i)
@@ -523,35 +488,35 @@ class BatchSystem():
             nodes_max_i = min(nodes_max, nodes_max_i)
             nodes_leave_free_i = self.node_infos.leave_free(node_kind_i)
             nodes_leave_free_i = max(nodes_leave_free, nodes_leave_free_i)
-            
+
             (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state, node_kind_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i, total_cpus_max=total_cpus_max)
 
             logger.debug('Best CPU configurations for {}GB memory with node kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {} and total_cpus_max {} is {}.'.format(memory_required, node_kind_i, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, (best_nodes_i, best_cpus_i)))
-    
+
             if nodes_cpu_power_i * best_cpus_i * best_nodes_i > best_cpu_power * best_cpus * best_nodes:
                 best_kind = node_kind_i
                 best_nodes = best_nodes_i
                 best_cpus = best_cpus_i
                 best_cpu_power = nodes_cpu_power_i
-        
+
         ## return
         best_configuration = (best_kind, best_nodes, best_cpus)
-    
+
         logger.debug('Best CPU configuration is: {}.'.format(best_configuration))
-    
+
         assert best_kind in node_kind
         assert best_nodes <= nodes_max
         assert best_nodes * best_cpus <= total_cpus_max
         return best_configuration
 
-    
+
     def wait_for_needed_resources(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf')):
         logger.debug('Waiting for at least {} CPUs with {}GB memory, with node_kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_min {} and total_cpus_max {}.'.format(total_cpus_min, memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_min, total_cpus_max))
-    
+
         ## check input
         if total_cpus_min > total_cpus_max:
             raise ValueError('total_cpus_max has to be greater or equal to total_cpus_min, but {} < {}.'.format(total_cpus_max, total_cpus_min))
-    
+
         ## calculate
         best_nodes = 0
         best_cpus = 0
@@ -563,7 +528,7 @@ class BatchSystem():
             if not resources_free:
                 logger.debug('No enough resources free. {} CPUs available, but {} CPUs needed. Waiting ...'.format(cpus_avail, total_cpus_min))
                 time.sleep(60)
-    
+
         return (best_cpu_kind, best_nodes, best_cpus)
 
 
@@ -595,7 +560,7 @@ class Job():
         if output_dir is None:
             raise ValueError('The output dir is not allowed to be None.')
         output_dir_expanded = os.path.expandvars(output_dir)
-        
+
         ## get option file
         try:
             option_file_expanded = os.path.join(output_dir_expanded, 'job_options.hdf5')
@@ -705,7 +670,7 @@ class Job():
     @property
     def id_file(self):
         return self.option_value('/job/id_file', not_exist_okay=False)
-    
+
     @property
     def exit_code(self):
         ## check if finished file exists
@@ -745,7 +710,7 @@ class Job():
         return self.option_value('/job/walltime_hours', not_exist_okay=True)
 
 
-    ## init methods
+    ## write job file methods
 
     def init_job_file(self, job_name, nodes_setup, queue=None, cpu_kind=None):
         ## check qeue and walltime
@@ -766,23 +731,27 @@ class Job():
 
 
     @abc.abstractmethod
-    def _make_job_file_header(self, use_mpi):
+    def _job_file_header(self, use_mpi=True):
         raise NotImplementedError()
 
-    @abc.abstractmethod
-    def _make_job_file_modules(self, modules):
-        raise NotImplementedError()
-
-    def _make_job_file_command(self, run_command, pre_run_command=None, add_timing=True):
+    def _job_file_command(self, command, pre_command=None, add_timing=True, use_mpi=True):
+        ## add mpi
+        if use_mpi:
+            cpus = self.options['/job/nodes'] * self.options['/job/cpus']
+            command = self.batch_system.mpi_command.format(command=command, cpus=cpus)
+        ## add timing
         if add_timing:
-            run_command = self.batch_system.time_command.format(command=run_command)
+            command = self.batch_system.time_command.format(command=command)
+        ## add start
         content = []
         content.append('touch {}'.format(self.options['/job/unfinished_file']))
         content.append('echo "Job started."')
         content.append('')
-        if pre_run_command is not None:
-            content.append(pre_run_command)
-        content.append(run_command)
+        ## add commands
+        if pre_command is not None:
+            content.append(pre_command)
+        content.append(command)
+        ## add exit
         content.append('')
         content.append('EXIT_CODE=$?')
         content.append('echo "Job finished with exit code $EXIT_CODE."')
@@ -793,15 +762,10 @@ class Job():
         return os.linesep.join(content)
 
 
-    def write_job_file(self, run_command, pre_run_command=None, modules=()):
-        modules = self.batch_system.check_modules(modules)
-        use_mpi = self.batch_system.is_mpi_used(modules)
-        cpus = self.options['/job/nodes'] * self.options['/job/cpus']
-        run_command = self.batch_system.add_mpi_to_command(run_command, cpus, use_mpi=use_mpi)
+    def write_job_file(self, command, pre_command=None, use_mpi=True):
+        job_file_command = self._job_file_header(use_mpi=use_mpi) + os.linesep + self._job_file_command(command, pre_command=pre_command, use_mpi=use_mpi)
         with open(self.option_file, mode='w') as file:
-            file.write(self._make_job_file_header(use_mpi=use_mpi))
-            file.write(self._make_job_file_modules(modules))
-            file.write(self._make_job_file_command(run_command, pre_run_command=pre_run_command))
+            file.write(job_file_command)
 
 
     ## other methods
@@ -823,7 +787,7 @@ class Job():
             return False
         else:
             return True
-    
+
 
     def is_finished(self, check_exit_code=True):
         ## if finished file exists, check exit code and output file
@@ -833,7 +797,7 @@ class Job():
                 if exit_code != 0:
                     raise JobExitCodeError(self)
             return self.output_file is None or os.path.exists(self.output_file)
-        
+
         ## if finished file odes not exist, check if running
         elif self.is_started() and not self.batch_system.is_job_running(self.id):
             time.sleep(60)
@@ -845,7 +809,7 @@ class Job():
                     raise JobExceededWalltimeError(self)
                 else:
                     raise JobError(self, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), output)
-        
+
         ## if not not started or running, return false
         else:
             return False
@@ -901,23 +865,23 @@ class Job():
 
         if options is not None:
             options.close()
-    
-    
+
+
     ## check integrity
 
     def check_integrity(self, should_be_started=False, should_be_readonly=False):
-        
+
         ## check if options entires exist
         self.option_file
         self.output_file
         self.unfinished_file
         self.finished_file
         self.id_file
-        
+
         ## check if started, running and finished state
         is_started = self.is_started()
         is_running = self.is_running()
-        
+
         if is_started or should_be_started:
             job_id = self.id
             try:
@@ -927,14 +891,14 @@ class Job():
             else:
                 if is_running != is_running_batch_system:
                     raise JobError(self, 'Its is not clear if the job is running!')
-        
+
         if is_started and not is_running:
             is_finished = self.is_finished(check_exit_code=True)
             if not is_finished:
                 raise JobError(self, 'The job should finished but it is not!')
         else:
             is_finished = self.is_finished(check_exit_code=False)
-        
+
         ## check errors in output file
         if is_started and os.path.exists(self.output_file) or is_finished:
             output = self.output
@@ -942,25 +906,25 @@ class Job():
                 line_lower = line.lower()
                 if ('error' in line_lower and not 'error_path' in line_lower) or 'warning' in line_lower or 'fatal' in line_lower or 'permission denied' in line_lower:
                     raise JobError(self, 'There are errors in the job output file: {}!'.format(line))
-        
+
         ## check read only
         if should_be_readonly and not self.options.is_read_only():
             raise JobError(self, 'Job option file is writeable!')
-        
+
         ## check files
         output_dir = self.output_dir
         def check_if_file_exists(file, should_exists=True):
             if not file.startswith(output_dir):
-                raise JobError(self, 'Job option {} should start with {} but its is {}.'.format(file_key, output_dir, file))
+                raise JobError(self, 'Job option should start with {} but its is {}.'.format(output_dir, file))
             exists =  os.path.exists(file)
             if should_exists and not exists:
                 raise JobError(self, 'File {} does not exist.'.format(file))
             if not should_exists and exists:
                 raise JobError(self, 'File {} should not exist.'.format(file))
-        
+
         if is_started:
             check_if_file_exists(self.option_file)
-            check_if_file_exists(self.id_file)        
+            check_if_file_exists(self.id_file)
         if is_finished:
             check_if_file_exists(self.output_file)
             check_if_file_exists(self.finished_file)
@@ -968,20 +932,20 @@ class Job():
         if is_running:
             check_if_file_exists(self.finished_file, should_exists=False)
             check_if_file_exists(self.unfinished_file)
-            
+
 
 
 class JobError(Exception):
     def __init__(self, job, error_message, include_output=False):
         ## store job
         self.job = job
-        
+
         ## construct error message
         output_dir = job.output_dir
         if job.is_started():
             job_id = job.id
             error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_dir, error_message)
-        else:        
+        else:
             error_message = 'An error accured in job stored at {}: {}'.format(output_dir, error_message)
 
         ## add output
@@ -992,7 +956,7 @@ class JobError(Exception):
                 pass
             else:
                 error_message = error_message + '\nThe job output was:\n{}'.format(output)
-        
+
         ## super call
         super().__init__(error_message)
 

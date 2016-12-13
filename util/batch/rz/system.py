@@ -18,8 +18,8 @@ from util.batch.general.system import *
 class BatchSystem(util.batch.general.system.BatchSystem):
 
     def __init__(self):
-        from util.batch.rz.constants import COMMANDS, QUEUES, MAX_WALLTIME, MODEL_RENAMING, NODE_INFOS
-        super().__init__(COMMANDS, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING, node_infos=NODE_INFOS)
+        from util.batch.rz.constants import COMMANDS, QUEUES, PRE_COMMANDS, MAX_WALLTIME, NODE_INFOS
+        super().__init__(COMMANDS, QUEUES, pre_commands=PRE_COMMANDS, max_walltime=MAX_WALLTIME, node_infos=NODE_INFOS)
 
 
     def __str__(self):
@@ -35,7 +35,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         SUFFIX = '.rz.uni-kiel.de'
         if job_id.endswith(SUFFIX):
             job_id = job_id[:-len(SUFFIX)]
-        
+
         ## call super
         return super().job_state(job_id, return_output=return_output, status_command_args=('-a',))
 
@@ -63,10 +63,10 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
 
     ## node setups
-    
+
     def _nodes_state_one_kind(self, kind):
         logger.debug('Getting nodes state for kind {}.'.format(kind))
-    
+
         ## grep free nodes
         def grep_qnodes(expression):
             command = '{} | grep -E {}'.format(self.nodes_command, expression)
@@ -75,9 +75,9 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             except subprocess.CalledProcessError as e:
                 logger.warning('Command {} returns with exit code {} and output "{}"'.format(command, e.returncode, e.output.decode("utf-8")))
                 grep_result = 'offline'
-    
+
             return grep_result
-    
+
         # 24 f_ocean Barcelona nodes (8 CPUs per node, 2.1 GHz) (f_ocean queue)
         if kind == 'f_ocean' or  kind == 'barcelona':
             grep_result = grep_qnodes('"rzcl05[1-9]|rzcl06[0-9]|rzcl07[0-4]"')
@@ -107,20 +107,20 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             grep_result = grep_qnodes('"rzcl11[8-9]|rzcl1[2-3][0-9]|rzcl14[0-3]"')
         else:
             raise ValueError('Unknown CPU kind: ' + kind)
-    
+
         logger.debug(grep_result)
-    
+
         ## extract free cpus and memory from grep result
         grep_result_lines = grep_result.splitlines()
-    
+
         number_of_nodes = len(grep_result_lines)
         free_cpus = np.empty(number_of_nodes, dtype=np.uint32)
         free_memory = np.empty(number_of_nodes, dtype=np.uint32)
-    
+
         # format: "rzcl179 (7/12) (41943040kb/49449316kb) (free) (1285234.rzcluster/6)"
         for i in range(number_of_nodes):
             grep_result_line = grep_result_lines[i]
-    
+
             # check if node down
             if 'down' in grep_result_line or 'state-unknown' in grep_result_line or 'offline' in grep_result_line:
                 free_cpus[i] = 0
@@ -128,13 +128,13 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             # calculte free cpus and memory
             else:
                 grep_result_line_split = grep_result_line.split()
-    
+
                 grep_cpus = [int(int_str) for int_str in re.findall('\d+', grep_result_line_split[1])]
                 grep_memory = [int(int_str) for int_str in re.findall('\d+', grep_result_line_split[2])]
-    
+
                 free_cpus[i] = grep_cpus[1] - grep_cpus[0]
                 free_memory[i] = int(np.floor((grep_memory[1] - grep_memory[0]) / (1024**2)))
-    
+
         return (free_cpus, free_memory)
 
 
@@ -143,7 +143,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         for kind in self.node_infos.kinds():
             state[kind] = self._nodes_state_one_kind(kind)
         return util.batch.general.system.NodesState(state)
-    
+
 
 
 BATCH_SYSTEM = BatchSystem()
@@ -193,7 +193,7 @@ class Job(util.batch.general.system.Job):
         super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind)
 
 
-    def _make_job_file_header(self, use_mpi):
+    def _job_file_header(self, use_mpi=True):
         content = []
         ## shell
         content.append('#!/bin/bash')
@@ -218,19 +218,5 @@ class Job(util.batch.general.system.Job):
         ## return
         content.append('')
         content.append('')
-        return os.linesep.join(content)
-
-
-    def _make_job_file_modules(self, modules):
-        content = []
-        if len(modules) > 0:
-            ## init module system
-            content.append('. /usr/share/Modules/init/bash')
-            ## system modules
-            for module in modules:
-                content.append('module load {}'.format(module))
-            content.append('module list')
-            content.append('')
-            content.append('')
         return os.linesep.join(content)
 

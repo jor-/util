@@ -17,8 +17,8 @@ from util.batch.general.system import *
 class BatchSystem(util.batch.general.system.BatchSystem):
 
     def __init__(self):
-        from util.batch.nec.constants import COMMANDS, QUEUES, MAX_WALLTIME, MODEL_RENAMING, NODE_INFOS
-        super().__init__(COMMANDS, QUEUES, max_walltime=MAX_WALLTIME, module_renaming=MODEL_RENAMING, node_infos=NODE_INFOS)
+        from util.batch.nec.constants import COMMANDS, QUEUES, PRE_COMMANDS, MAX_WALLTIME, NODE_INFOS
+        super().__init__(COMMANDS, QUEUES, pre_commands=PRE_COMMANDS, max_walltime=MAX_WALLTIME, node_infos=NODE_INFOS)
 
 
     def __str__(self):
@@ -42,29 +42,29 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def _nodes_state(self):
         output = subprocess.check_output(self.nodes_command).decode('utf8')
         lines = output.splitlines()
-        
+
         state = {}
-        
+
         for line in lines:
             line = line.strip()
             for node_kind in self.node_infos.kinds():
                 if line.startswith(node_kind):
                     line_splitted = line.split(' ')
                     number_of_free_nodes = int(line_splitted[-1])
-                    
+
                     if number_of_free_nodes < 0:
                         logger.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
                         number_of_free_nodes = 0
-                    
+
                     logger.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
                     free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
                     free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
-                    
+
                     state[node_kind] = (free_cpus, free_memory)
-        
+
         return util.batch.general.system.NodesState(state)
 
-        
+
 
 BATCH_SYSTEM = BatchSystem()
 
@@ -88,7 +88,7 @@ class Job(util.batch.general.system.Job):
         super().init_job_file(job_name, nodes_setup, queue=queue, cpu_kind=None)
 
 
-    def _make_job_file_header(self, use_mpi):
+    def _job_file_header(self, use_mpi=True):
         content = []
         ## shell
         content.append('#!/bin/bash')
@@ -114,17 +114,5 @@ class Job(util.batch.general.system.Job):
         ## return
         content.append('')
         content.append('')
-        return os.linesep.join(content)
-
-
-    def _make_job_file_modules(self, modules):
-        content = []
-        if len(modules) > 0:
-            ## system modules
-            for module in modules:
-                content.append('module load {}'.format(module))
-            content.append('module list')
-            content.append('')
-            content.append('')
         return os.linesep.join(content)
 
