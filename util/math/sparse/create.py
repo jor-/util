@@ -52,13 +52,6 @@ def csr_matrix(value_function, shape, value_range, dtype=None, number_of_process
 
 
 
-def diag(d):
-    n = len(d)
-    D = scipy.sparse.dia_matrix((d[np.newaxis,:], [0]), shape=(n,n))
-    return D
-
-
-
 def list_to_array(values, dtype=None):
     # a = np.asarray(values, dtype=dtype) #-> numpy bug
     n = len(values)
@@ -89,8 +82,8 @@ class InsertableMatrix():
         assert len(self.row_indices) == len(self.colum_indices) == len(self.data)
         assert len(self.data) == self.nnz + 1
         self.nnz = self.nnz + 1
-    
-    
+
+
     def __setitem__(self, index, value):
         i, j = index
         self.insert(i, j, value)
