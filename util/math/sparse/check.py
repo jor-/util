@@ -42,8 +42,8 @@ def permutation_matrix(A):
 def min_dtype(A, min_dtype):
     min_dtype = np.dtype(min_dtype)
     if A.dtype < min_dtype:
-        logger.debug('Converting matrix {!r} to type {}.'.format(A, dtype))
-        A = A.astype(dtype)
+        logger.debug('Converting matrix {!r} to type {}.'.format(A, min_dtype))
+        A = A.astype(min_dtype)
     return A
 
 
