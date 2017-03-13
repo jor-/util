@@ -7,7 +7,15 @@ def load(variable_name):
         raise EnvironmentLookupError(variable_name)
 
 
+class EnvironmentLookupError(LookupError):
+
+    def __init__(self, variable_name):
+        message = 'Environment variable {} is not set!'.format(variable_name)
+        super().__init__(message)
+
+
 PYTHONPATH_ENV_NAME = 'PYTHONPATH'
+
 def pythonpath():
     try:
         return os.environ[PYTHONPATH_ENV_NAME]
@@ -15,8 +23,8 @@ def pythonpath():
         return ''
 
 
-class EnvironmentLookupError(LookupError):
+CONDA_ENV_NAME = 'CONDA_DEFAULT_ENV'
 
-    def __init__(self, variable_name):
-        message = 'Environment variable {} is not set!'.format(variable_name)
-        super().__init__(message)
+def conda_env():
+    return os.environ[CONDA_ENV_NAME]
+
