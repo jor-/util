@@ -738,7 +738,8 @@ class Job():
         ## add mpi
         if use_mpi:
             cpus = self.options['/job/nodes'] * self.options['/job/cpus']
-            command = self.batch_system.mpi_command.format(command=command, cpus=cpus)
+            if cpus > 1:
+                command = self.batch_system.mpi_command.format(command=command, cpus=cpus)
         ## add timing
         if add_timing:
             command = self.batch_system.time_command.format(command=command)
