@@ -100,7 +100,7 @@ setuptools.setup(
         'optimize' : ['scipy'],
         'interpolate' : ['scipy>=0.17'],
         'sparse' : ['scipy>=0.19'],
-        'cholmod': ['scikit-sparse>=0.4', 'scipy>=0.19'],
+        'cholmod': ['scikit-sparse>=0.4.1', 'scipy>=0.19'],
         'netcdf': ['netCDF4', 'scipy'],
         'plot' : ['matplotlib'],
         'scoop': ['scoop'],
