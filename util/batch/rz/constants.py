@@ -14,7 +14,7 @@ COMMANDS = {
     'sub': '/opt/pbs/default/bin/qsub',
     'stat': '/opt/pbs/default/bin/qstat',
     'nodes': '/usr/local/bin/qnodes',
-    'python': '/home/sunip229/local/bin/python3'
+    'python': 'python3'
 }
 
 NODE_INFOS = {

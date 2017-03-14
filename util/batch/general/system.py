@@ -6,6 +6,7 @@ import time
 
 import numpy as np
 
+import util.io.env
 import util.io.fs
 import util.options
 
@@ -299,6 +300,13 @@ class BatchSystem():
         try:
             return self.pre_commands[name]
         except KeyError:
+            if name in ('python', 'python3'):
+                try:
+                    conda_env = util.io.env.conda_env()
+                except util.io.env.EnvironmentLookupError:
+                    pass
+                else:
+                    return '. activate {}'.format(conda_env)
             return ''
 
 

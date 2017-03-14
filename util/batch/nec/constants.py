@@ -4,8 +4,7 @@ QUEUES = ('clexpress', 'clmedium', 'cllong', 'long', 'clbigmem', 'clfocean', 'cl
 MAX_WALLTIME = {'clexpress':2, 'clmedium':48, 'cllong':100, 'clbigmem':100, 'clfocean':100, 'clfo2':100, 'feque':10}
 
 PRE_COMMANDS = {
-    'mpirun': os.linesep.join(['module load intel16.0.3', 'module load intelmpi16.0.3', 'module list']),
-    'python': '. activate python_with_own_scipy'
+    'mpirun': os.linesep.join(['module load intel16.0.3', 'module load intelmpi16.0.3', 'module list'])
 }
 PRE_COMMANDS['metos3d'] = PRE_COMMANDS['mpirun']
 
