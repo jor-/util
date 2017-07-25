@@ -192,13 +192,6 @@ def make_read_only(*files, not_exist_ok=False):
             remove_write_permission(file)
 
 
-def make_read_only_recursively(path, exclude_dir=True):
-    logger.debug('Making recursively all files in {} read-only.'.format(path))
-    file_function = lambda file: make_read_only(file)
-    dir_function = lambda file: make_read_only(file)
-    walk_all_in_dir(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
-
-
 def make_writable(file, not_exist_ok=False):
     if not_exist_ok:
         try:
@@ -208,13 +201,6 @@ def make_writable(file, not_exist_ok=False):
             pass
     else:
         add_write_permission(file)
-
-
-def make_writable_recursively(path, exclude_dir=True):
-    logger.debug('Making recursively all files in {} writeable.'.format(path))
-    file_function = lambda file: make_writable(file)
-    dir_function = lambda file: make_writable(file)
-    walk_all_in_dir(path, file_function, dir_function, exclude_dir=exclude_dir, topdown=False)
 
 
 ## remove
