@@ -50,6 +50,13 @@ def walk_all_dirs_in_dir(directory, function, topdown=True, exclude_dir=True):
     walk_all_in_dir(directory, file_function=None, dir_function=function, topdown=topdown, exclude_dir=exclude_dir)
 
 
+def apply_recursively(directory, function, topdown=True):
+    if os.path.isfile(directory):
+        function(directory)
+    else:
+        walk_all_in_dir(directory, file_function=function, dir_function=function, topdown=topdown, exclude_dir=False)
+
+
 ## get files
 
 def find_with_condition_function(path, condition_function, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
