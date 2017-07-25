@@ -28,8 +28,8 @@ def add_file_ext_if_needed(file, ext):
 
 ## walk
 
-def walk_all_in_dir(dir, file_function=None, dir_function=None, topdown=True, exclude_dir=True):
-    for (dirpath, dirnames, filenames) in os.walk(dir, topdown=topdown):
+def walk_all_in_dir(directory, file_function=None, dir_function=None, topdown=True, exclude_dir=True):
+    for (dirpath, dirnames, filenames) in os.walk(directory, topdown=topdown):
             if file_function is not None:
                 for filename in filenames:
                     current_file = os.path.join(dirpath, filename)
@@ -39,15 +39,15 @@ def walk_all_in_dir(dir, file_function=None, dir_function=None, topdown=True, ex
                     current_dir = os.path.join(dirpath, dirname)
                     dir_function(current_dir)
     if not exclude_dir and dir_function is not None:
-        dir_function(dir)
+        dir_function(directory)
 
 
-def walk_all_files_in_dir(dir, function, topdown=True):
-    walk_all_in_dir(dir, file_function=function, dir_function=None, topdown=topdown, exclude_dir=True)
+def walk_all_files_in_dir(directory, function, topdown=True):
+    walk_all_in_dir(directory, file_function=function, dir_function=None, topdown=topdown, exclude_dir=True)
 
 
-def walk_all_dirs_in_dir(dir, function, topdown=True, exclude_dir=True):
-    walk_all_in_dir(dir, file_function=None, dir_function=function, topdown=topdown, exclude_dir=exclude_dir)
+def walk_all_dirs_in_dir(directory, function, topdown=True, exclude_dir=True):
+    walk_all_in_dir(directory, file_function=None, dir_function=function, topdown=topdown, exclude_dir=exclude_dir)
 
 
 ## get files
@@ -55,16 +55,16 @@ def walk_all_dirs_in_dir(dir, function, topdown=True, exclude_dir=True):
 def find_with_condition_function(path, condition_function, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
     ## use absolute path
     path = os.path.abspath(path)
-    
+
     ## definde append filtered result function
     filtered_results = []
-    
+
     def append_filtered(filename):
         if use_absolute_filenames:
             filename = os.path.join(path, filename)
         if condition_function(filename):
             filtered_results.append(filename)
-    
+
     ## filter recursive
     if os.path.exists(path):
         if recursive:
@@ -76,30 +76,30 @@ def find_with_condition_function(path, condition_function, exclude_files=False, 
                 dir_filter_function = append_filtered
             else:
                 dir_filter_function = None
-            
+
             walk_all_in_dir(path, file_function=file_filter_function, dir_function=dir_filter_function, topdown=True, exclude_dir=True)
-    
+
     ## filter not recursive
         else:
             for filename in os.listdir(path):
                 append_filtered(filename)
-            
+
             if exclude_files:
                 if use_absolute_filenames:
                     filtered_results = [file for file in filtered_results if not os.path.isfile(file)]
                 else:
-                    filtered_results = [file for file in filtered_results if not os.path.isfile(os.path.join(path, file))]            
+                    filtered_results = [file for file in filtered_results if not os.path.isfile(os.path.join(path, file))]
             if exclude_dirs:
                 if use_absolute_filenames:
                     filtered_results = [file for file in filtered_results if not os.path.isdir(file)]
                 else:
-                    filtered_results = [file for file in filtered_results if not os.path.isdir(os.path.join(path, file))]     
-    
+                    filtered_results = [file for file in filtered_results if not os.path.isdir(os.path.join(path, file))]
+
     ## path is not existing
     else:
         filtered_results = []
-    
-    ## return 
+
+    ## return
     return filtered_results
 
 
@@ -171,7 +171,7 @@ def add_group_permissions(file, read=True, write=True, execute=True):
         permission_new = permission_new | stat.S_IXGRP
     os.chmod(file, permission_new)
     logger.debug('Adding group permission (read={read}, write={write}, execute={execute}) to {file}. Mode changed from {permission_old} to {permission_new}.'.format(file=file, permission_old=oct(permission_old)[-3:], permission_new=oct(permission_new)[-3:], read=read, write=write, execute=execute))
-    
+
 
 def make_read_only(*files, not_exist_ok=False):
     for file in files:
@@ -220,15 +220,15 @@ def _remove_general(remove_function, file, force=False, not_exist_okay=False):
             raise
     except PermissionError:
         if force:
-            (dir, filename) = os.path.split(file)
-            make_writable(dir)
+            (directory, filename) = os.path.split(file)
+            make_writable(directory)
             remove_function(file)
         else:
             raise
-    
 
-def remove_dir(dir, force=False, not_exist_okay=False):
-    _remove_general(os.rmdir, dir, force=force, not_exist_okay=not_exist_okay)
+
+def remove_dir(directory, force=False, not_exist_okay=False):
+    _remove_general(os.rmdir, directory, force=force, not_exist_okay=not_exist_okay)
 
 
 def remove_file(file, force=False, not_exist_okay=False):
@@ -242,11 +242,16 @@ def remove_universal(file, force=False, not_exist_okay=False):
         remove_dir(file, force=force, not_exist_okay=not_exist_okay)
 
 
-def remove_recursively(dir, force=False, not_exist_okay=False, exclude_dir=False):
+def remove_recursively(directory, force=False, not_exist_okay=False, exclude_dir=False):
     try:
-        remove_file(dir, force=force, not_exist_okay=not_exist_okay)
+        remove_file(directory, force=force, not_exist_okay=not_exist_okay)
     except IsADirectoryError:
-        walk_all_in_dir(dir, lambda file: remove_file(file, force=force, not_exist_okay=not_exist_okay), lambda dir: remove_dir(dir, force=force, not_exist_okay=not_exist_okay), exclude_dir=exclude_dir, topdown=False)
+        walk_all_in_dir(
+            directory,
+            lambda x: remove_file(x, force=force, not_exist_okay=not_exist_okay),
+            lambda x: remove_dir(x, force=force, not_exist_okay=not_exist_okay),
+            exclude_dir=exclude_dir,
+            topdown=False)
 
 
 ## utility functions
@@ -288,7 +293,7 @@ def fd_is_file(fd, file, not_exist_okay=False):
             return False
         else:
             raise
-    
+
     ## check if same device and inode
     return fd_stat.st_dev == file_stat.st_dev and fd_stat.st_ino == file_stat.st_ino
-     
+
