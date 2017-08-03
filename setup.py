@@ -91,7 +91,7 @@ setuptools.setup(
         'optimize' : ['scipy'],
         'interpolate' : ['scipy>=0.17'],
         'sparse' : ['scipy>=0.19'],
-        'netcdf': ['netCDF4', 'scipy'],
+        'netcdf': ['scipy'],
         'plot' : ['matplotlib'],
         'scoop': ['scoop'],
         'deap': ['deap'],
