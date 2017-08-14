@@ -18,16 +18,15 @@ class FileLock:
     def __init__(self, file, exclusive=True, timeout=None, sleep=0.5):
         self._lock_count = 0
         self._file = file
-        self._want_exclusive = exclusive
-        self._is_exclusive = exclusive
+        self._exclusive = exclusive
         self._timeout = timeout
         self._sleep = sleep
         self._fd = None
         logger.debug('{}: Initiating file lock with timeout {} and sleep {}.'.format(self, timeout, sleep))
-    
-    
+
+
     def __str__(self):
-        if self._is_exclusive:
+        if self._exclusive:
             return 'File lock (exclusive) for {}'.format(self.file)
         else:
             return 'File lock (shared) for {}'.format(self.file)
@@ -44,27 +43,25 @@ class FileLock:
 
     @property
     def exclusive(self):
-        return self._is_exclusive
-    
+        return self._exclusive
+
     @exclusive.setter
-    def exclusive(self, want_exclusive):
-        if self._want_exclusive != want_exclusive:
-            if want_exclusive and self._lock_count > 0 and not self._is_exclusive:
-                raise ValueError('Lock is acquired as shared lock. To change to exclusive lock, first release this lock.')
-            self._want_exclusive = want_exclusive
-            logger.debug('{}: exclusive changed to {}.'.format(self, self._want_exclusive))
-    
-    
+    def exclusive(self, exclusive):
+        if self.is_locked() and self.exclusive != exclusive:
+            raise ValueError('You have to relase the lock first to change its exclusive property.')
+        self._exclusive = exclusive
+
+
     def is_locked(self, exclusive_is_okay=True, shared_is_okay=True):
-        return self._lock_count > 0 and ((self._is_exclusive and exclusive_is_okay) or (not self._is_exclusive and shared_is_okay))
-    
+        return self._lock_count > 0 and ((self._exclusive and exclusive_is_okay) or (not self._exclusive and shared_is_okay))
+
     def lock_object(self, exclusive=True):
-        self.want_exclusive = exclusive
+        self.exclusive = exclusive
         return self
 
 
     ## acquire and release
-    
+
     def _open_lockfile(self):
         if self._fd is None:
             ## prepare flags and mode
@@ -81,20 +78,20 @@ class FileLock:
                     raise
             else:
                 logger.debug('{}: Lock file {} opened.'.format(self, self.lockfile))
-    
-    
+
+
     def _close_lockfile(self):
         ## close
         if self._fd is not None:
             os.close(self._fd)
             self._fd = None
             logger.debug('{}: Lock file {} closed.'.format(self, self.lockfile))
-    
-    
-    def _lock_lockfile(self, exclusive=True, blocking=True):  
-        assert self._fd is not None   
+
+
+    def _lock_lockfile(self, exclusive=True, blocking=True):
+        assert self._fd is not None
         assert self._lock_count == 0
-           
+
         ## prepare lock flags
         if exclusive:
             lock_flags = fcntl.LOCK_EX
@@ -104,35 +101,38 @@ class FileLock:
             lock_flags = lock_flags | fcntl.LOCK_NB
         ## lock
         fcntl.flock(self._fd, lock_flags)
-        self._is_exclusive = exclusive
+        self._exclusive = exclusive
         self._lock_count = 1
         logger.debug('{}: Lock file {} locked with exclusive={}.'.format(self, self.lockfile, exclusive))
-    
-    
+
+        assert self.is_locked(exclusive_is_okay=exclusive, shared_is_okay=not exclusive)
+
+
     def _unlock_lockfile(self):
         assert self._fd is not None
+
         ## unlock
         if self._lock_count > 0:
             fcntl.flock(self._fd, fcntl.LOCK_UN)
             self._lock_count = 0
             logger.debug('{}: Lock file {} unlocked.'.format(self, self.lockfile))
-    
+
+        assert not self.is_locked()
+
 
     def _acquire(self, exclusive=True, timeout=None):
         ## save start time for timeout
         if timeout is not None:
             start_time = time.time()
-        
-        ## save lock type
-        self._is_exclusive = exclusive
+
         logger.debug('{}: Acquiring with timeout {}.'.format(self, timeout))
-        
+
         has_lock = False
         try:
-            while not has_lock:        
+            while not has_lock:
                 ## open file
                 self._open_lockfile()
-                
+
                 ## try to get lock
                 try:
                     self._lock_lockfile(exclusive=exclusive, blocking=timeout is None)
@@ -150,13 +150,13 @@ class FileLock:
                     else:
                         logger.debug('{}: Fresh acquired.'.format(self))
                         has_lock = True
-                
+
                 ## handle timout
                 if not has_lock:
                     ## if timeout reached, raise FileLockTimeoutError
                     if timeout is not None and time.time() > (start_time + timeout):
                         logger.debug('{}: Could not be acquired. Timeout {} reached.'.format(self, timeout))
-                        raise util.io.filelock.general.FileLockTimeoutError(self.lockfile, timeout) from e
+                        raise util.io.filelock.general.FileLockTimeoutError(self.lockfile, timeout)
                     ## else wait
                     else:
                         time.sleep(self._sleep)
@@ -164,15 +164,16 @@ class FileLock:
             self._unlock_lockfile()
             self._close_lockfile()
             raise
-        
+
         assert self._lock_count > 0
         assert self._fd is not None
         assert self.is_locked(exclusive_is_okay=exclusive, shared_is_okay=not exclusive)
-    
-    
+        logger.debug('{}: Acquired.'.format(self))
+
+
     def acquire(self):
         if self._lock_count == 0:
-            self._acquire(exclusive=self._want_exclusive, timeout=self._timeout)
+            self._acquire(exclusive=self._exclusive, timeout=self._timeout)
         else:
             self._lock_count = self._lock_count + 1
         logger.debug('{}: Now aquired {} times. (One time added).'.format(self, self._lock_count))
@@ -180,7 +181,7 @@ class FileLock:
 
     def _release(self):
         try:
-        
+
             ## try to get exclusive lock
             if not self.is_locked(exclusive_is_okay=True, shared_is_okay=False):
                 self._unlock_lockfile()
@@ -189,7 +190,7 @@ class FileLock:
                     assert self.is_locked(exclusive_is_okay=True, shared_is_okay=False)
                 except util.io.filelock.general.FileLockTimeoutError:
                     logger.debug('{}: Could not remove lock file {}. It is locked by another process.'.format(self, self.lockfile))
-            
+
             ## if exclusive lock, remove lock file
             if self.is_locked(exclusive_is_okay=True, shared_is_okay=False):
                 assert self._fd is not None
@@ -204,12 +205,12 @@ class FileLock:
                         raise
                 else:
                     logger.debug('{}: Lock file {} removed.'.format(self, self.lockfile))
-        
+
         ## cleanup
         finally:
             self._unlock_lockfile()
             self._close_lockfile()
-        
+
         assert self._lock_count == 0
         assert self._fd is None
         assert not self.is_locked()
@@ -220,11 +221,11 @@ class FileLock:
         if self._lock_count == 1:
             self._release()
         elif self._lock_count > 1:
-            self._lock_count = self._lock_count - 1        
+            self._lock_count = self._lock_count - 1
             logger.debug('{}: Now aquired {} times. (One time removed).'.format(self, self._lock_count))
         else:
             logger.debug('{}: Must not be released since it is not aquired.'.format(self))
-            
+
 
     def __enter__(self):
         self.acquire()
@@ -232,11 +233,11 @@ class FileLock:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.release()
-    
+
     def __del__(self):
         if self._lock_count > 1:
             self._release()
-        
+
 
 
 
@@ -248,36 +249,36 @@ class LockedFile(FileLock):
         self.cache_beyond_lock = cache_beyond_lock
         self.file_value = None
         self.cached_file_modified_time = None
-    
-    
+
+
     def _release(self):
         if not self.cache_beyond_lock:
             self.file_value = None
         super()._release()
-    
-    
+
+
     ## modified time
-    
+
     def modified_time(self):
         return os.stat(self.file).st_mtime_ns
-    
+
     ## cache functions
-    
+
     def _cache_set_value(self, value):
         self.file_value = value
         if self.cache_beyond_lock:
             self.cached_file_modified_time = self.modified_time()
-    
+
     def _cache_is_valid(self):
         return self.file_value is not None and (not self.cache_beyond_lock or self.cached_file_modified_time == self.modified_time())
-        
-    
+
+
     ## load
-    
+
     @abc.abstractmethod
     def _load(self, file):
         pass
-        
+
     def load(self):
         if not self._cache_is_valid():
             logger.debug('Locked file {}: Loading value.'.format(self.file))
@@ -287,20 +288,20 @@ class LockedFile(FileLock):
             logger.debug('Locked file {}: Value loaded.'.format(self.file))
         else:
             value = self.file_value
-        
+
         assert value is not None
-        return value  
+        return value
 
 
     ## save
     @abc.abstractmethod
     def _save(self, file, value):
         pass
-    
+
     def save(self, value):
         logger.debug('Locked file {}: Saving content.'.format(self.file))
         with self.lock_object(exclusive=True):
             self._save(self.file, value)
             self._cache_set_value(value)
         logger.debug('Locked file {}: Content saved.'.format(self.file))
-    
+
