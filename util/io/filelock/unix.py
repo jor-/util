@@ -79,6 +79,8 @@ class FileLock:
             else:
                 logger.debug('{}: Lock file {} opened.'.format(self, self.lockfile))
 
+        assert self._fd is not None
+
 
     def _close_lockfile(self):
         ## close
@@ -86,6 +88,8 @@ class FileLock:
             os.close(self._fd)
             self._fd = None
             logger.debug('{}: Lock file {} closed.'.format(self, self.lockfile))
+
+        assert self._fd is None
 
 
     def _lock_lockfile(self, exclusive=True, blocking=True):
@@ -109,10 +113,10 @@ class FileLock:
 
 
     def _unlock_lockfile(self):
-        assert self._fd is not None
-
         ## unlock
         if self._lock_count > 0:
+            assert self._fd is not None
+
             fcntl.flock(self._fd, fcntl.LOCK_UN)
             self._lock_count = 0
             logger.debug('{}: Lock file {} unlocked.'.format(self, self.lockfile))
@@ -165,9 +169,8 @@ class FileLock:
             self._close_lockfile()
             raise
 
-        assert self._lock_count > 0
-        assert self._fd is not None
         assert self.is_locked(exclusive_is_okay=exclusive, shared_is_okay=not exclusive)
+        assert util.io.fs.fd_is_file(self._fd, self.lockfile, not_exist_okay=False)
         logger.debug('{}: Acquired.'.format(self))
 
 
@@ -187,14 +190,11 @@ class FileLock:
                 self._unlock_lockfile()
                 try:
                     self._acquire(exclusive=True, timeout=0)
-                    assert self.is_locked(exclusive_is_okay=True, shared_is_okay=False)
                 except util.io.filelock.general.FileLockTimeoutError:
                     logger.debug('{}: Could not remove lock file {}. It is locked by another process.'.format(self, self.lockfile))
 
             ## if exclusive lock, remove lock file
             if self.is_locked(exclusive_is_okay=True, shared_is_okay=False):
-                assert self._fd is not None
-                assert self.lockfile is not None
                 assert util.io.fs.fd_is_file(self._fd, self.lockfile, not_exist_okay=False)
                 try:
                     os.remove(self.lockfile)
@@ -211,8 +211,6 @@ class FileLock:
             self._unlock_lockfile()
             self._close_lockfile()
 
-        assert self._lock_count == 0
-        assert self._fd is None
         assert not self.is_locked()
         logger.debug('{}: Entirely released.'.format(self))
 
