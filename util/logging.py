@@ -3,7 +3,6 @@ import os
 import sys
 import socket
 
-
 import util.parallel.is_running
 
 LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
@@ -12,9 +11,11 @@ LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
 def get_logger_logging():
     return logging.getLogger()
 
+
 def get_logger_multiprocessing():
     import multiprocessing
     return multiprocessing.get_logger()
+
 
 def get_logger_scoop():
     import scoop
@@ -36,6 +37,13 @@ def get_logger():
 
 
 logger = get_logger()
+debug = logger.debug
+info = logger.info
+warning = logger.warning
+warn = warning
+error = logger.error
+exception = logger.exception
+critical = logger.critical
 
 
 def is_debug():
@@ -53,6 +61,7 @@ class Logger():
             self.handlers = []
 
             ## set logger
+            level = level.upper()
             logger.setLevel(level)
             self.logger = logger
 
