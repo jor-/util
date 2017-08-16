@@ -5,7 +5,6 @@ import util.math.optimize.universal
 import util.math.finite_differences
 
 import util.logging
-logger = util.logging.logger
 
 
 
@@ -39,9 +38,9 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
     else:
         local_methods = ('SLSQP', 'BFGS', 'TNC')
 
-    logger.debug('Glocal method {} chosen with local methods {}.'.format(global_method, local_methods))
+    util.logging.debug('Glocal method {} chosen with local methods {}.'.format(global_method, local_methods))
     if bounds is not None:
-        logger.debug('Using bounds {} for the optimization.'.format(bounds))
+        util.logging.debug('Using bounds {} for the optimization.'.format(bounds))
 
     ## prepare local options
     if ineq_constraints is None:
@@ -78,9 +77,9 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
 
     disp = util.logging.is_debug()
     if disp:
-        logger.debug('Debug output in optimization enabled.')
+        util.logging.debug('Debug output in optimization enabled.')
     else:
-        logger.debug('Debug output in optimization disabled.')
+        util.logging.debug('Debug output in optimization disabled.')
 
     local_minimizer_options = {'method':'', 'jac':jac, 'bounds':bounds, 'constraints':constraints, 'options':{'maxiter': local_max_iterations, 'maxfun': local_max_fun_evals, 'disp':disp}}
 #     local_minimizer_options = {'method':'', 'jac':jac, 'constraints':constraints, 'options':{'maxiter': local_max_iterations, 'maxfun': local_max_fun_evals, 'disp':disp}}
@@ -113,7 +112,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
             local_minimizer_options['method'] = local_method
             for x0 in x0s:
                 result = scipy.optimize.minimize(f, x0, **local_minimizer_options)
-                logger.debug('Minimization with local method {} started from {} stopped with the following results: {}'.format(local_method, x0, result))
+                util.logging.debug('Minimization with local method {} started from {} stopped with the following results: {}'.format(local_method, x0, result))
 
                 if result.success and result.fun < f_min:
                     x_min = result.x
@@ -156,7 +155,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
         for local_method in local_methods:
             local_minimizer_options['method'] = local_method
             result = scipy.optimize.basinhopping(f, x0, minimizer_kwargs=local_minimizer_options, niter=global_iterations, disp=disp, accept_test=constraints_test, stepsize=global_stepsize, interval=global_stepsize_update_interval)
-            logger.debug('Minimization basin hopping with local method {} started from {} stopped with the following results: {}'.format(local_method, x0, result))
+            util.logging.debug('Minimization basin hopping with local method {} started from {} stopped with the following results: {}'.format(local_method, x0, result))
             if result.fun < f_min:
                 x_min = result.x
                 f_min = result.fun

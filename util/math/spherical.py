@@ -1,12 +1,11 @@
 import numpy as np
 
-import logging
-logger = logging.getLogger(__name__)
+import util.logging
 
 
 def to_cartesian(points, measure='degree', surface_radius=None):
 
-    logger.debug('Converting {} coordinates to cartesian coordinates with surface radius {}.'.format(measure, surface_radius))
+    util.logging.debug('Converting {} coordinates to cartesian coordinates with surface radius {}.'.format(measure, surface_radius))
 
     ## check input
     if measure not in ('degree', 'radian'):
@@ -35,17 +34,17 @@ def to_cartesian(points, measure='degree', surface_radius=None):
 
     ## convert degree to radian
     if measure == 'degree':
-        logger.debug('Converting degree to radian.')
+        util.logging.debug('Converting degree to radian.')
         longitude = np.pi * longitude / 180
         latitude = np.pi * latitude / 180
 
     ## convert radius
     if surface_radius is not None:
-        logger.debug('Setting radius to surface radius {} minus radius.'.format(surface_radius))
+        util.logging.debug('Setting radius to surface radius {} minus radius.'.format(surface_radius))
         r = surface_radius - r
 
     ## calculate cartesian
-    logger.debug('Calulating cartesian coordinates.')
+    util.logging.debug('Calulating cartesian coordinates.')
 
     long_sin = np.sin(longitude)
     long_cos = np.cos(longitude)

@@ -3,7 +3,6 @@ import numpy as np
 # import itertools
 
 import util.logging
-logger = util.logging.logger
 
 from .constants import MODES
 
@@ -15,7 +14,7 @@ def max_parallel_mode():
         max_parallel_mode = MODES['scoop']
     else:
         max_parallel_mode = MODES['multiprocessing']
-    logger.debug('Maximal parallel mode is {}.'.format(max_parallel_mode))
+    util.logging.debug('Maximal parallel mode is {}.'.format(max_parallel_mode))
     return max_parallel_mode
 
 
@@ -24,13 +23,13 @@ def max_parallel_mode():
 ## map functions
 
 # def map_serial_with_args(function, values, *args):
-#     logger.debug('Mapping function with {} args of types {} to values in serial.'.format(len(args), tuple(map(type, args))))
+#     util.logging.debug('Mapping function with {} args of types {} to values in serial.'.format(len(args), tuple(map(type, args))))
 #
 #     values = args_generator_with_indices(values, args)
 #     results = itertools.starmap(function, values)
 #     results = tuple(results)
 #
-#     logger.debug('Serial calculation with {} results completed.'.format(len(results)))
+#     util.logging.debug('Serial calculation with {} results completed.'.format(len(results)))
 #
 #     return results
 
@@ -47,7 +46,7 @@ def max_parallel_mode():
 #         import util.parallel.with_multiprocessing
 #         results = util.parallel.with_multiprocessing.map_parallel(function, values)
 #     else:
-#         logger.debug('Calculating in serial.')
+#         util.logging.debug('Calculating in serial.')
 #         results = map(function, values)
 #
 #     return results
@@ -74,17 +73,17 @@ def map_parallel_with_args(function, values, *args, parallel_mode=MODES['scoop']
 
 
 # def create_array(shape, function, args=None, parallel_mode=MODES['scoop']):
-#     logger.debug('Creating array with shape {} with parallel mode {}.'.format(shape, parallel_mode))
+#     util.logging.debug('Creating array with shape {} with parallel mode {}.'.format(shape, parallel_mode))
 #
 #     ## check that mode is not in use
 #     if parallel_mode > CURRENT_MODE:
-#         logger.debug('Parallel mode {} used before. Switching to parallel mode {}.'.format(parallel_mode, CURRENT_MODE))
+#         util.logging.debug('Parallel mode {} used before. Switching to parallel mode {}.'.format(parallel_mode, CURRENT_MODE))
 #         parallel_mode = CURRENT_MODE
 #
 #     ## check if scoop running otherwise fallback
 #     if parallel_mode == MODES['scoop'] and not util.parallel.is_running.scoop_module():
 #         parallel_mode = MODES['multiprocessing']
-#         logger.debug('Scoop is not running falling back to parallel mode {}.'.format(parallel_mode))
+#         util.logging.debug('Scoop is not running falling back to parallel mode {}.'.format(parallel_mode))
 #
 # #     ## if multiprocessing share arrays
 # #     if parallel_mode == MODES['multiprocessing']:
@@ -98,7 +97,7 @@ def map_parallel_with_args(function, values, *args, parallel_mode=MODES['scoop']
 #
 #     ## create array
 #     array = np.array(list(results))
-#     logger.debug('Calculation completed. Got {} results.'.format(len(array)))
+#     util.logging.debug('Calculation completed. Got {} results.'.format(len(array)))
 #     array = array.reshape(shape)
 #     return array
 
@@ -106,24 +105,24 @@ def map_parallel_with_args(function, values, *args, parallel_mode=MODES['scoop']
 ## create array
 
 def create_array(shape, function, *args, parallel_mode=MODES['scoop'], number_of_processes=None, chunksize=1, share_args=True):
-    logger.debug('Creating array with shape {} with parallel mode {}.'.format(shape, parallel_mode))
+    util.logging.debug('Creating array with shape {} with parallel mode {}.'.format(shape, parallel_mode))
 
     ## check that mode is not in use
     if parallel_mode > CURRENT_MODE:
-        logger.debug('Parallel mode {} used before. Switching to parallel mode {}.'.format(parallel_mode, CURRENT_MODE))
+        util.logging.debug('Parallel mode {} used before. Switching to parallel mode {}.'.format(parallel_mode, CURRENT_MODE))
         parallel_mode = CURRENT_MODE
 
     ## check if scoop running otherwise fallback
     if parallel_mode == MODES['scoop'] and not util.parallel.is_running.scoop_module():
         parallel_mode = MODES['multiprocessing']
-        logger.debug('Scoop is not running falling back to parallel mode {}.'.format(parallel_mode))
+        util.logging.debug('Scoop is not running falling back to parallel mode {}.'.format(parallel_mode))
 
     ## execute in parallel
     results = map_parallel_with_args(function, np.ndindex(*shape), *args, parallel_mode=parallel_mode, number_of_processes=number_of_processes, chunksize=chunksize, share_args=share_args)
 
     ## create array
     array = np.array(tuple(results))
-#     logger.debug('Calculation completed. Got {} results.'.format(len(array)))
+#     util.logging.debug('Calculation completed. Got {} results.'.format(len(array)))
     array = array.reshape(shape)
     return array
 
@@ -132,13 +131,13 @@ def create_array(shape, function, *args, parallel_mode=MODES['scoop'], number_of
 ## args generators
 
 def args_generator_with_shape(shape, args, index_position=0):
-    logger.debug('Creating arg generator for shape {} and {} args with index position {}.'.format(shape, len(args), index_position))
+    util.logging.debug('Creating arg generator for shape {} and {} args with index position {}.'.format(shape, len(args), index_position))
     indices = np.ndindex(*shape)
     args_generator_with_indices(indices, args, index_position=index_position)
 
 
 def args_generator_with_indices(indices, args, index_position=0):
-    logger.debug('Creating arg generator for indices and {} args of types {} with index position {}.'.format(len(args), tuple(map(type, args)), index_position))
+    util.logging.debug('Creating arg generator for indices and {} args of types {} with index position {}.'.format(len(args), tuple(map(type, args)), index_position))
 
     ## make list of function args
     if args is not None:
@@ -152,7 +151,7 @@ def args_generator_with_indices(indices, args, index_position=0):
     ## return function to compute function args with current index
     for index in indices:
         args_list[index_position] = index
-#         logger.debug('Returning index {} together with {} args.'.format(index, len(args)))
+#         util.logging.debug('Returning index {} together with {} args.'.format(index, len(args)))
         yield tuple(args_list)
 
 
@@ -177,18 +176,18 @@ def eval_function_with_index_and_args(args):
 # #             results = util.parallel.with_scoop.map_parallel(function, values)
 # #             scoop_error = False
 # #         except RuntimeWarning:
-# #             logger.debug('Scoop is not loaded as module.')
+# #             util.logging.debug('Scoop is not loaded as module.')
 # #             scoop_error = True
 # #
 # #     if not parallel or scoop_error:
-# #         logger.debug('Calculating in serial.')
+# #         util.logging.debug('Calculating in serial.')
 # #         results = map(function, values)
-# #         logger.debug('Serial calculation completed.')
+# #         util.logging.debug('Serial calculation completed.')
 #
 #     if parallel:
 #         results = util.parallel.with_scoop.map_parallel(function, values)
 #     else:
-#         logger.debug('Calculating in serial.')
+#         util.logging.debug('Calculating in serial.')
 #         results = map(function, values)
 #
 #     return results
@@ -196,11 +195,11 @@ def eval_function_with_index_and_args(args):
 #
 #
 # def create_array(shape, function, args=None, index_position=0, parallel=True):
-#     logger.debug('Creating array with shape {} in parallel {}.'.format(shape, parallel))
+#     util.logging.debug('Creating array with shape {} in parallel {}.'.format(shape, parallel))
 #
 #     ## check if scoop running
 #     if parallel and not util.parallel.is_running.scoop_module():
-#         logger.debug('Scoop is not running falling back to serial mode.')
+#         util.logging.debug('Scoop is not running falling back to serial mode.')
 #         parallel = False
 #
 #     ## execute in parallel
@@ -208,22 +207,22 @@ def eval_function_with_index_and_args(args):
 #
 #     ## create array
 #     array = np.array(list(results))
-#     logger.debug('Calculation completed. Got {} results.'.format(len(array)))
+#     util.logging.debug('Calculation completed. Got {} results.'.format(len(array)))
 #     array = array.reshape(shape)
 #     return array
 #
 #
 # # def create_array(shape, function, args=None, constants=True, index_position=0, parallel=True):
-# #     logger.debug('Creating array with shape {} in parallel {}.'.format(shape, parallel))
+# #     util.logging.debug('Creating array with shape {} in parallel {}.'.format(shape, parallel))
 # #
 # #     ## check if scoop running
 # #     if parallel and not util.parallel.is_running.scoop_module():
-# #         logger.debug('Scoop is not running falling back to serial mode.')
+# #         util.logging.debug('Scoop is not running falling back to serial mode.')
 # #         parallel = False
 # #
 # #
 # #     def args_function_generator(shape, args, constants, index_position, parallel):
-# #         logger.debug('Create arg function generator.')
+# #         util.logging.debug('Create arg function generator.')
 # #
 # #         ## make list of function args
 # #         if args is not None:
@@ -246,7 +245,7 @@ def eval_function_with_index_and_args(args):
 # #                 args_list[index_position] = index
 # #                 return tuple(args_list)
 # #
-# #         logger.debug('Arg function generator created.')
+# #         util.logging.debug('Arg function generator created.')
 # #
 # #         ## return function to compute function args with current index
 # #         indices = np.ndindex(*shape)
@@ -271,6 +270,6 @@ def eval_function_with_index_and_args(args):
 # #
 # #     ## create array
 # #     array = np.array(list(results))
-# #     logger.debug('Got {} results in parallel.'.format(len(array)))
+# #     util.logging.debug('Got {} results in parallel.'.format(len(array)))
 # #     array = array.reshape(shape)
 # #     return array

@@ -1,14 +1,13 @@
 import numpy as np
 from petsc4py import PETSc as petsc
 
-import logging
-logger = logging.getLogger(__name__)
+import util.logging
 
 
 ## save petsc
 
 def save_petsc(file, petsc_object):
-    logger.debug('Saving petsc object to %s.', file)
+    util.logging.debug('Saving petsc object to %s.', file)
 
     viewer = petsc.Viewer().createBinary(file, petsc.Viewer.Mode.WRITE)
     petsc_object.view(viewer)
@@ -19,7 +18,7 @@ def save_petsc(file, petsc_object):
 ## load petsc
 
 def load_petsc_vec(file):
-    logger.debug('Loading petsc vector from %s.', file)
+    util.logging.debug('Loading petsc vector from %s.', file)
 
     viewer = petsc.Viewer().createBinary(file, petsc.Viewer.Mode.READ)
     vec = petsc.Vec().load(viewer)
@@ -29,7 +28,7 @@ def load_petsc_vec(file):
 
 
 def load_petsc_mat(file):
-    logger.debug('Loading petsc matrix from %s.', file)
+    util.logging.debug('Loading petsc matrix from %s.', file)
 
     viewer = petsc.Viewer().createBinary(file, petsc.Viewer.Mode.READ)
     mat = petsc.Mat().load(viewer)
@@ -40,13 +39,13 @@ def load_petsc_mat(file):
 
 
 def petsc_vec_to_array(vec):
-    logger.debug('Converting petsc vector to array.')
+    util.logging.debug('Converting petsc vector to array.')
     array = np.array(vec, copy=True)
     return array
 
 
 def petsc_mat_to_array(mat, dtype=float):
-    logger.debug('Converting petsc matrix to array.')
+    util.logging.debug('Converting petsc matrix to array.')
     shape = mat.getSize()
     array = np.zeros(shape, dtype=dtype)
 
@@ -82,7 +81,7 @@ def load_petsc_mat_to_array(file, dtype=float):
 
 def create_petsc_vec_by_function(function, n, finish_assembly=True):
     ## create vec
-    logger.debug('Creating petsc vec of length %d from function.', n)
+    util.logging.debug('Creating petsc vec of length %d from function.', n)
 
     vec = petsc.Vec()
     vec.createMPI(n, comm=petsc.COMM_WORLD)
@@ -91,11 +90,11 @@ def create_petsc_vec_by_function(function, n, finish_assembly=True):
         vec.setValue(i, function(i))
 
     ## assembly
-    logger.debug('Beginning assembly.')
+    util.logging.debug('Beginning assembly.')
     vec.assemblyBegin()
 
     if finish_assembly:
-        logger.debug('Ending assembly.')
+        util.logging.debug('Ending assembly.')
         vec.assemblyEnd()
 
     return vec
@@ -115,7 +114,7 @@ def create_petsc_mat_by_function(function, size, finish_assembly=True):
             raise TypeError('Size has to be an int or a tuple of length one or two, but its zype is %s.' % type(size))
 
     ## create mat
-    logger.debug('Converting array to petsc mat.')
+    util.logging.debug('Converting array to petsc mat.')
 
     mat = petsc.Mat()
     mat.createDense([n,m], comm=petsc.COMM_WORLD)
@@ -124,11 +123,11 @@ def create_petsc_mat_by_function(function, size, finish_assembly=True):
         mat.setValue(i, j, function(i,j))
 
     ## assembly
-    logger.debug('Beginning assembly.')
+    util.logging.debug('Beginning assembly.')
     mat.assemblyBegin(petsc.Mat.AssemblyType.FINAL)
 
     if finish_assembly:
-        logger.debug('Ending assembly.')
+        util.logging.debug('Ending assembly.')
         mat.assemblyEnd(petsc.Mat.AssemblyType.FINAL)
 
     return mat
@@ -145,7 +144,7 @@ def array_to_petsc_vec(array, finish_assembly=True):
         raise ValueError('array has to be a vector, but it´s shape is %s.' % array.shape)
 
     ## create vec
-    logger.debug('Converting array to petsc vec.')
+    util.logging.debug('Converting array to petsc vec.')
 
     function = lambda i: array[i]
     vec = create_petsc_vec_by_function(function, n, finish_assembly=finish_assembly)
@@ -161,7 +160,7 @@ def array_to_petsc_mat(array, finish_assembly=True):
         raise ValueError('array has to be a matrix, but it´s shape is %s.' % array.shape)
 
     ## create mat
-    logger.debug('Converting array to petsc mat.')
+    util.logging.debug('Converting array to petsc mat.')
 
     function = lambda i,j: array[i,j]
     mat = create_petsc_mat_by_function(function, (n, m), finish_assembly=finish_assembly)
@@ -181,7 +180,7 @@ def print_petsc(petsc_object):
 def solve_linear_equations(A, b, solver_type=petsc.KSP.Type.CG, monitor=True):
     n = b.getSize()
 
-    logger.debug('Prepare for solving linear equation system of size %d with solver %s.' % (n, solver_type))
+    util.logging.debug('Prepare for solving linear equation system of size %d with solver %s.' % (n, solver_type))
 
     if monitor:
         petsc_opts = petsc.Options()
@@ -199,7 +198,7 @@ def solve_linear_equations(A, b, solver_type=petsc.KSP.Type.CG, monitor=True):
     pc = ksp.getPC()
     pc.setType(petsc.PC.Type.NONE)
 
-    logger.debug('Solving linear equation system.')
+    util.logging.debug('Solving linear equation system.')
 
     if monitor:
         ksp.view(petsc.Viewer.STDOUT())
@@ -212,7 +211,7 @@ def solve_linear_equations(A, b, solver_type=petsc.KSP.Type.CG, monitor=True):
     pc.destroy()
     ksp.destroy()
 
-    logger.debug('Linear equation system solved.')
+    util.logging.debug('Linear equation system solved.')
 
     return x
 
@@ -228,7 +227,7 @@ class Matrix_Shell_Petsc:
         return self.covariance_model.n
 
     def mult(self, context, x, y):
-        logger.debug('Multiplying petsc matrix with vector without explicit matrix.')
+        util.logging.debug('Multiplying petsc matrix with vector without explicit matrix.')
 
         ## copy x to local vec
         scatter, x_local = petsc.Scatter.toAll(x)

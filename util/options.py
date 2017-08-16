@@ -9,7 +9,6 @@ import h5py
 import util.io.fs
 import util.io.universal
 import util.logging
-logger = util.logging.logger
 
 
 ## Options File
@@ -137,18 +136,18 @@ class OptionsFile():
     def open(self, file, mode='a'):
         self.close()
 
-        logger.debug('Opening option file {} with mode {}.'.format(file, mode))
+        util.logging.debug('Opening option file {} with mode {}.'.format(file, mode))
 
         try:
             f = h5py.File(file, mode=mode)
         except OSError as e:
             if mode != 'r':
-                logger.debug('File {} could not been open. Trying read_only mode.'.format(file))
+                util.logging.debug('File {} could not been open. Trying read_only mode.'.format(file))
                 self.open(file, mode='r')
             else:
                 raise OSError('Option file {} could not been open. Error: {}. Error code: {}.'.format(file, e.strerror, e.errno)) from e
         else:
-            logger.debug('File {} opened.'.format(file))
+            util.logging.debug('File {} opened.'.format(file))
             self.__hdf5_file_object = f
 
 
@@ -159,7 +158,7 @@ class OptionsFile():
             file = None
 
         if file is not None:
-            logger.debug('Closing option file {}.'.format(file.filename))
+            util.logging.debug('Closing option file {}.'.format(file.filename))
             file.close()
             self.__hdf5_file_object = None
 
@@ -194,24 +193,24 @@ class OptionsFile():
 
     def make_writable(self):
         if not self.is_writable():
-            logger.debug('Opening {} writable.'.format(self.filename))
+            util.logging.debug('Opening {} writable.'.format(self.filename))
             file = self.filename
             self.close()
             util.io.fs.make_writable(file)
             self.open(file)
         else:
-            logger.debug('File {} is writable.'.format(self.filename))
+            util.logging.debug('File {} is writable.'.format(self.filename))
         assert self.is_writable
 
     def make_read_only(self):
         if not self.is_read_only():
-            logger.debug('Opening {} read_only.'.format(self.filename))
+            util.logging.debug('Opening {} read_only.'.format(self.filename))
             file = self.filename
             self.close()
             util.io.fs.make_read_only(file)
             self.open(file, 'r')
         else:
-            logger.debug('File {} is read_only.'.format(self.filename))
+            util.logging.debug('File {} is read_only.'.format(self.filename))
         assert self.is_read_only
 
 
@@ -280,9 +279,9 @@ class OptionsFile():
                 ## set replaced option value
                 if new_value is not None and np.any(value != new_value):
                     self[option] = new_value
-                    logger.info('Option {} updated from {} to {}.'.format(option, value, new_value))
+                    util.logging.info('Option {} updated from {} to {}.'.format(option, value, new_value))
                 else:
-                    logger.debug('Option {} with value {} does not have to be updated.'.format(option, value))
+                    util.logging.debug('Option {} with value {} does not have to be updated.'.format(option, value))
 
         f = self.__hdf5_file
         f.visititems(replace_string_in_option)
@@ -342,7 +341,7 @@ class OptionsBase():
     NON_OPTION_NAMES = ('_options', '_option_names')
     
     def __init__(self, options=None, default_options=None, option_names=None):
-        logger.debug('Initiating {} with options {}, default_options {} and option_names {}.'.format(type(self).__name__, options, default_options, option_names))
+        util.logging.debug('Initiating {} with options {}, default_options {} and option_names {}.'.format(type(self).__name__, options, default_options, option_names))
         self._option_names = option_names
         self._options = {}
 
@@ -416,25 +415,25 @@ class OptionsBase():
     ## get and set options method
     
     def _get_option(self, option):
-        logger.debug('Getting option {}.'.format(option))
+        util.logging.debug('Getting option {}.'.format(option))
         try:
             return self._options[option]
         except KeyError:
-            logger.debug('Option {} is not set.'.format(option))
+            util.logging.debug('Option {} is not set.'.format(option))
             raise NoneSetOptionError(option, self)
     
     
     def _set_option(self, option, value):
-        logger.debug('Setting option {}.'.format(option))
+        util.logging.debug('Setting option {}.'.format(option))
         self._options[option] = value
     
     
     def _del_option(self, option, not_exist_okay=False):
-        logger.debug('Deleting option {} with not_exist_okay {}.'.format(option, not_exist_okay))
+        util.logging.debug('Deleting option {} with not_exist_okay {}.'.format(option, not_exist_okay))
         try:
             del self._options[option]
         except KeyError:
-            logger.debug('Option {} is not set.'.format(option))
+            util.logging.debug('Option {} is not set.'.format(option))
             if not not_exist_okay:
                 raise NoneSetOptionError(option, self)
     
@@ -633,7 +632,7 @@ class OptionsWithCache(OptionsBase):
         
     
     def _recalculated_option_value(self, option):
-        logger.debug('Recalculating option {}.'.format(option))
+        util.logging.debug('Recalculating option {}.'.format(option))
         calculation_method_name = self.CALCULATION_METHOD_NAME.format(option)
         try:
             value = getattr(self, calculation_method_name)

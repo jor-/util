@@ -1,13 +1,12 @@
 import numpy as np
 
-import logging
-logger = logging.getLogger(__name__)
+import util.logging
 
 
 PETSC_VEC_HEADER = 1211214
 
 def load_petsc_vec_to_numpy_array(file):
-    logger.debug('Loading petsc vector from {} to numpy vector.'.format(file))
+    util.logging.debug('Loading petsc vector from {} to numpy vector.'.format(file))
 
     with open(file, "rb") as file_object:
         ## omit header
@@ -24,7 +23,7 @@ def load_petsc_vec_to_numpy_array(file):
 
 
 def save_numpy_array_to_petsc_vec(file, vec):
-    logger.debug('Saving numpy vector to petsc vector in {}.'.format(file))
+    util.logging.debug('Saving numpy vector to petsc vector in {}.'.format(file))
 
     with open(file, mode='xb') as file_object:
         ## write header
@@ -43,7 +42,7 @@ def save_numpy_array_to_petsc_vec(file, vec):
 
 
 def load_petsc_mat_to_array(file, dtype=float):
-    logger.debug('Loading petsc matrix from %s.', file)
+    util.logging.debug('Loading petsc matrix from %s.', file)
 
     ## open file
     f = open(file, "rb")

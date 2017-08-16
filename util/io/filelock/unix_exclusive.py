@@ -5,11 +5,10 @@ import time
 import util.io.filelock.general
 
 import util.logging
-logger = util.logging.get_logger()
 
 
 # class FileLockTimeoutError(TimeoutError):
-#     
+#
 #     def __init__(self, lock_filename, timeout, pid):
 #         self.lock_filename = lock_filename
 #         self.timeout = timeout
@@ -27,13 +26,13 @@ class FileLock(object):
         self.sleep_time = sleep_time
         self.pid = os.getpid()
         self.fd = None
-    
-    
+
+
     def lock_pid(self):
         """
         Get the pid of the lock.
         """
-        
+
         if os.path.exists(self.lock_filename):
             return int(open(self.lock_filename).read())
         else:
@@ -44,44 +43,44 @@ class FileLock(object):
         """
         See if the lock exists and is belongs to this process.
         """
-        
+
         ## get pid of lock
         lock_pid = self.lock_pid()
 
         ## not locked
         if lock_pid is None:
-            logger.debug('Lock {} is not aquired.'.format(self.lock_filename))
+            util.logging.debug('Lock {} is not aquired.'.format(self.lock_filename))
             return False
-        
+
         ## locked by me
         if self.pid == lock_pid:
-            logger.debug('Lock {} is aquired by me (pid: {}).'.format(self.lock_filename, self.pid))
+            util.logging.debug('Lock {} is aquired by me (pid: {}).'.format(self.lock_filename, self.pid))
             return True
 
         ## locked by alive process
         try:
             os.kill(lock_pid, 0)
-            logger.debug('Lock {} is aquired by another (alive) process (pid: {}).'.format(self.lock_filename, lock_pid))
-        
+            util.logging.debug('Lock {} is aquired by another (alive) process (pid: {}).'.format(self.lock_filename, lock_pid))
+
         ## locked by dead process
         except OSError:
-            logger.debug('Lock {} is aquired by a dead process (pid: {}).'.format(self.lock_filename, lock_pid))
+            util.logging.debug('Lock {} is aquired by a dead process (pid: {}).'.format(self.lock_filename, lock_pid))
             try:
                 lock_fd = os.open(self.lock_filename, os.O_RDWR)
             except FileNotFoundError:
-                logger.debug('The lock is now removed by another process.')
+                util.logging.debug('The lock is now removed by another process.')
             else:
                 try:
                     fcntl.lockf(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 except BlockingIOError:
-                    logger.debug('The lock will be removed by another process.')
+                    util.logging.debug('The lock will be removed by another process.')
                 else:
                     if self.lock_pid() == lock_pid:
                         os.remove(self.lock_filename)
                         fcntl.lockf(lock_fd, fcntl.LOCK_UN)
-                        logger.debug('The lock is removed by me.')
+                        util.logging.debug('The lock is removed by me.')
                     else:
-                        logger.debug('The lock is substituted by another lock.')
+                        util.logging.debug('The lock is substituted by another lock.')
                 os.close(lock_fd)
         return False
 
@@ -90,18 +89,18 @@ class FileLock(object):
         """
         Try to aquire the lock once.
         """
-        
+
         if self.is_locked_by_me():
             return True
         else:
             try:
                 self.fd = os.open(self.lock_filename, os.O_CREAT | os.O_RDWR | os.O_EXCL)
             except FileExistsError:
-                logger.debug('I tried to get the lock {}, but another process was faster.'.format(self.lock_filename))
+                util.logging.debug('I tried to get the lock {}, but another process was faster.'.format(self.lock_filename))
                 return False
             else:
                 os.write(self.fd, str(self.pid).encode('utf-8'))
-                logger.debug('I got the lock {}.'.format(self.lock_filename))
+                util.logging.debug('I got the lock {}.'.format(self.lock_filename))
                 return True
 
 
@@ -109,28 +108,28 @@ class FileLock(object):
         """
         Try to aquire the lock.
         """
-        
+
         if self.timeout is not None:
             sleep_intervals = int(self.timeout / self.sleep_time)
         else:
             sleep_intervals = float('inf')
-        
+
         while not self.acquire_try_once() and sleep_intervals > 0:
             time.sleep(self.sleep_time)
             sleep_intervals -= 1
-        
+
         if not self.is_locked_by_me():
             raise util.io.filelock.general.FileLockTimeoutError(self.lock_filename, self.timeout)
-    
+
 
     def release(self):
         """
         Release the lock.
         """
-        
+
         if self.is_locked_by_me():
             os.remove(self.lock_filename)
-            logger.debug('The lock {} is released by me (pid: {}).'.format(self.lock_filename, self.pid))
+            util.logging.debug('The lock {} is released by me (pid: {}).'.format(self.lock_filename, self.pid))
         if self.fd:
             os.close(self.fd)
             self.fd = None
@@ -149,7 +148,7 @@ class FileLock(object):
 
 
 class TestFileLock(object):
-    
+
     def __init__(self):
         self.filename = 'test.txt'
         self.lock_filename = '{}.lock'.format(self.filename)

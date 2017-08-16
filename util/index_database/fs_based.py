@@ -8,7 +8,6 @@ import util.io.fs
 import util.index_database.general
 
 import util.logging
-logger = util.logging.logger
 
 
 
@@ -124,7 +123,7 @@ class Database(util.index_database.general.Database):
 
 
     def set_value(self, index, value, overwrite=False):
-        logger.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
+        util.logging.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
         
         ## check value and make it as two dim array
         value = np.asanyarray(value)        
@@ -147,7 +146,7 @@ class Database(util.index_database.general.Database):
                 self._save_file(value_file, value[i])
                 util.io.fs.make_read_only(value_file)
             else:
-                logger.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
+                util.logging.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
                 raise util.index_database.general.DatabaseOverwriteError(self, index)
     
     
@@ -168,18 +167,18 @@ class Database(util.index_database.general.Database):
             index = int(extracted)
             used_indices.append(index)
         
-        logger.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
+        util.logging.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
         return used_indices
     
     
     def remove_index(self, index, force=False):
-        logger.debug('{}: Removing index {}.'.format(self, index))
+        util.logging.debug('{}: Removing index {}.'.format(self, index))
         
         ## get topmost dir with index
         base_dir_including_index = self._base_dir_including_index.format(index)
 
         ## remove directory
-        logger.debug('{}: Removing value dir {}.'.format(self, base_dir_including_index))
+        util.logging.debug('{}: Removing value dir {}.'.format(self, base_dir_including_index))
         assert base_dir_including_index.startswith(self._base_dir) and len(base_dir_including_index) > len(self._base_dir)
         try:
             util.io.fs.remove_recursively(base_dir_including_index, force=force, exclude_dir=False)

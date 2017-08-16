@@ -5,7 +5,6 @@ import numpy as np
 import re
 
 import logging
-logger = logging.getLogger(__name__)
 
 
 

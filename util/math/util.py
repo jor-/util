@@ -1,11 +1,10 @@
 import numpy as np
 
 import util.logging
-logger = util.logging.logger
 
 
 def max_dtype(a, b):
-    logger.debug('Calculating max dtype of {} and {}.'.format(a,b))
+    util.logging.debug('Calculating max dtype of {} and {}.'.format(a,b))
 
     if isinstance(a, np.floating):
         if isinstance(b, np.integer):
@@ -48,6 +47,6 @@ def min_int_dtype(*values, unsigned=False):
     dtype = int_dtypes[i]
     
     ## return 
-    logger.debug('Minimal int dtype (unsigned={}) for values {} is {}.'.format(unsigned, values, dtype))
+    util.logging.debug('Minimal int dtype (unsigned={}) for values {} is {}.'.format(unsigned, values, dtype))
     return dtype
 

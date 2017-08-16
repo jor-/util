@@ -6,7 +6,6 @@ import scipy.interpolate
 import util.io.object
 import util.parallel.with_multiprocessing
 import util.logging
-logger = util.logging.logger
 
 
 
@@ -24,13 +23,13 @@ def get_float_index_for_equidistant_values(value, value_range, dim):
 
 
 def get_nearest_value_in_array(array, value):
-    logger.debug('Getting nearest value in array for {}.'.format(value))
+    util.logging.debug('Getting nearest value in array for {}.'.format(value))
 
     distance = np.sum((array - value)**2,axis=-1)
     index = np.argmin(distance)
     nearest_value = array[index]
 
-    logger.debug('Nearest value in array for {} is {}.'.format(value, nearest_value))
+    util.logging.debug('Nearest value in array for {} is {}.'.format(value, nearest_value))
 
     return nearest_value
 
@@ -76,7 +75,7 @@ def data_with_regular_grid(data, points, point_ranges):
 
 
 def wrap_around(values, index, value_range_len, amount=1, return_also_indices=False):
-    logger.debug('Wrapping around index {} with an amount of {} and value range len {}.'.format(index, amount, value_range_len))
+    util.logging.debug('Wrapping around index {} with an amount of {} and value range len {}.'.format(index, amount, value_range_len))
 
     if amount < 0 or amount > 1:
         raise ValueError('Amount has to be between 0 and 1, but its {}.'.format(amount))
@@ -85,7 +84,7 @@ def wrap_around(values, index, value_range_len, amount=1, return_also_indices=Fa
     values_len = len(values)
     values_len_amount = int(np.round(values_len * amount))
 
-    logger.debug('Adding two times {} data values.'.format(values_len_amount-1))
+    util.logging.debug('Adding two times {} data values.'.format(values_len_amount-1))
 
     if amount != 0 and amount != 1:
         value_indices = np.argsort(values[:,index])
@@ -125,7 +124,7 @@ def change_dim(data, dim_index, new_dim):
     new_data = np.empty(new_shape, dtype=data.dtype)
     if new_dim < old_dim:
         step = int(old_dim / new_dim)
-        logger.debug('Averaging dim {} to new dim {} with step {}.'.format(old_dim, new_dim, step))
+        util.logging.debug('Averaging dim {} to new dim {} with step {}.'.format(old_dim, new_dim, step))
 
         index_list = [Ellipsis,] * data.ndim
         for i in range(new_dim):
@@ -137,7 +136,7 @@ def change_dim(data, dim_index, new_dim):
 
     elif new_dim > old_dim:
         step = int(new_dim / old_dim)
-        logger.debug('Linear interpolating dim {} to new dim {} with step {}.'.format(old_dim, new_dim, step))
+        util.logging.debug('Linear interpolating dim {} to new dim {} with step {}.'.format(old_dim, new_dim, step))
 
         index_list = [Ellipsis,] * data.ndim
         for i in range(new_dim):
@@ -168,7 +167,7 @@ def change_dim(data, dim_index, new_dim):
 class Interpolator_Base():
 
     def __init__(self, data_points, data_values, method, possible_methods, scaling_values=None, copy_arrays=True):
-        logger.debug('Initiating base interpolator with {} data points with scaling values {}, method {} and possible methods {}.'.format(len(data_points), scaling_values, method, possible_methods))
+        util.logging.debug('Initiating base interpolator with {} data points with scaling values {}, method {} and possible methods {}.'.format(len(data_points), scaling_values, method, possible_methods))
 
         if scaling_values is not None:
             if isinstance(scaling_values, collections.abc.Iterable):
@@ -202,7 +201,7 @@ class Interpolator_Base():
 
     def _set_data_values(self, data_values):
         self._data_values = self._prepare_data_values(data_values)
-        logger.debug('{} data values set.'.format(len(self._data_values)))
+        util.logging.debug('{} data values set.'.format(len(self._data_values)))
 
     @property
     def possible_methods(self):
@@ -235,7 +234,7 @@ class Interpolator_Base():
     ## prepare values
 
     def _prepare_data_values(self, data_values):
-        logger.debug('Preparing data values.')
+        util.logging.debug('Preparing data values.')
 
         data_values = np.ascontiguousarray(data_values, dtype=np.double)
 
@@ -257,10 +256,10 @@ class Interpolator_Base():
 
     def _prepare_data_points(self, data_points):
         if self._copy(0):
-            logger.debug('Preparing data points with a copy.')
+            util.logging.debug('Preparing data points with a copy.')
             data_points = np.array(data_points, copy=True)
         else:
-            logger.debug('Preparing data points.')
+            util.logging.debug('Preparing data points.')
             data_points = np.asanyarray(data_points)
 
         if data_points.ndim == 1:
@@ -288,10 +287,10 @@ class Interpolator_Base():
 
     def _prepare_interpolation_points(self, interpolation_points):
         if self._copy(1):
-            logger.debug('Preparing interpolation points with a copy.')
+            util.logging.debug('Preparing interpolation points with a copy.')
             interpolation_points = np.array(interpolation_points, copy=True)
         else:
-            logger.debug('Preparing interpolation points.')
+            util.logging.debug('Preparing interpolation points.')
             interpolation_points = np.asanyarray(interpolation_points)
 
         if interpolation_points.ndim == 1:
@@ -315,11 +314,11 @@ class Interpolator_Base():
         scaling_values = self.scaling_values
 
         if scaling_values is not None and np.any(scaling_values != 1):
-            logger.debug('Scaling {} points with values {}.'.format(len(points), scaling_values))
+            util.logging.debug('Scaling {} points with values {}.'.format(len(points), scaling_values))
             assert len(scaling_values) in (1, points.shape[1])
             points = points * scaling_values
         else:
-            logger.debug('Do not scaling {} points'.format(len(points)))
+            util.logging.debug('Do not scaling {} points'.format(len(points)))
 
         return points
 
@@ -338,12 +337,12 @@ class Interpolator_Base():
             interpolation_points = self._prepare_interpolation_points(interpolation_points)
 
             ## interpolate
-            logger.debug('Interpolating values with method {} at {} points from {} data points.'.format(self.method, interpolation_points_dim, len(self.data_values)))
+            util.logging.debug('Interpolating values with method {} at {} points from {} data points.'.format(self.method, interpolation_points_dim, len(self.data_values)))
 
             interpolated_values = self._calculate_interpolation(interpolation_points)
 
             number_of_interpolated_values = np.logical_not(np.isnan(interpolated_values)).sum()
-            logger.debug('Values interpolated for {} points.'.format(number_of_interpolated_values))
+            util.logging.debug('Values interpolated for {} points.'.format(number_of_interpolated_values))
         else:
             interpolated_values = np.array(())
 
@@ -357,12 +356,12 @@ class Interpolator_Base():
     
     def save(self, file):
         util.io.object.save(file, self)
-        logger.debug('Interpolator saved to {}.'.format(file))
+        util.logging.debug('Interpolator saved to {}.'.format(file))
 
     @staticmethod
     def load(file):
         interpolator = util.io.object.load(file)
-        logger.debug('Interpolator loaded from {}.'.format(file))
+        util.logging.debug('Interpolator loaded from {}.'.format(file))
         return interpolator
 
 
@@ -372,7 +371,7 @@ class Interpolator_Base():
 class Interpolator_Values_Changeable(Interpolator_Base):
 
     def __init__(self, data_points, data_values, method, scaling_values=None, copy_arrays=True):
-        logger.debug('Initiating values changable interpolator with {} data points, scaling values {} and method {}.'.format(len(data_points), scaling_values, method))
+        util.logging.debug('Initiating values changable interpolator with {} data points, scaling values {} and method {}.'.format(len(data_points), scaling_values, method))
 
         self._interpolator = None
         super().__init__(data_points, data_values, method, possible_methods=('nearest', 'linear'), scaling_values=scaling_values, copy_arrays=copy_arrays)
@@ -386,16 +385,16 @@ class Interpolator_Values_Changeable(Interpolator_Base):
                 self._interpolator.values = data_values
             else:
                 self._interpolator.values = data_values[:,None]
-            logger.debug('Data values in {} interpolator updated.'.format(self.method))
+            util.logging.debug('Data values in {} interpolator updated.'.format(self.method))
         else:
-            logger.debug('Data values in {} interpolator must not be updated, since interpolated is not constructed.'.format(self.method))
+            util.logging.debug('Data values in {} interpolator must not be updated, since interpolated is not constructed.'.format(self.method))
 
 
     def _get_interpolator(self):
         interpolator = self._interpolator
 
         if interpolator is None:
-            logger.debug('Constructing {} interpolator.'.format(self.method))
+            util.logging.debug('Constructing {} interpolator.'.format(self.method))
             if self.method == 'nearest':
                 tree_options = {'compact_nodes': False, 'balanced_tree': False}
                 interpolator = scipy.interpolate.ndgriddata.NearestNDInterpolator(self.data_points, self.data_values, tree_options=tree_options)
@@ -403,7 +402,7 @@ class Interpolator_Values_Changeable(Interpolator_Base):
                 interpolator = scipy.interpolate.interpnd.LinearNDInterpolator(self.data_points, self.data_values)
             self._interpolator = interpolator
         else:
-            logger.debug('Returning cached {} interpolator.'.format(self.method))
+            util.logging.debug('Returning cached {} interpolator.'.format(self.method))
 
         assert callable(interpolator)
 
@@ -422,7 +421,7 @@ class Interpolator_Values_Changeable(Interpolator_Base):
 class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
     def __init__(self, data_points, data_values, method='linear', number_of_interpolators=1, single_overlapping_amount=0.5, scaling_values=None, copy_arrays=True, parallel=False):
-        logger.debug('Initiating partitionable interpolator with {} data points, scaling values {} and {} interpolators with single_overlapping_amount of {}.'.format(len(data_points), scaling_values, number_of_interpolators, single_overlapping_amount))
+        util.logging.debug('Initiating partitionable interpolator with {} data points, scaling values {} and {} interpolators with single_overlapping_amount of {}.'.format(len(data_points), scaling_values, number_of_interpolators, single_overlapping_amount))
 
         self.parallel = parallel
 
@@ -472,7 +471,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         interpolation_bound_indices = get_last_index_of_same_value_vectorize(data_points_sorted[:,0], interpolation_bound_indices, step=-1)
         interpolation_bound_indices[-1] = data_points_sorted.shape[0] - 1
 
-        logger.debug('The interpolation bounds indices for the partitioned interpolator are {}.'.format(interpolation_bound_indices))
+        util.logging.debug('The interpolation bounds indices for the partitioned interpolator are {}.'.format(interpolation_bound_indices))
 
 
         interpolation_bound_values = data_points_sorted[:,0][interpolation_bound_indices]
@@ -482,7 +481,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
         self.interpolation_bound_values = interpolation_bound_values
 
-        logger.debug('The interpolation bounds for the partitioned interpolator are {}.'.format(interpolation_bound_values))
+        util.logging.debug('The interpolation bounds for the partitioned interpolator are {}.'.format(interpolation_bound_values))
 
 
         ## compute value range indices
@@ -505,7 +504,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         data_value_range_indices = get_interpolator_data_values_ranges(data_points_sorted[:,0], interpolation_bound_indices, single_overlapping_amount)
         self.data_value_range_indices = data_value_range_indices
 
-        logger.debug('The data value range indices for the partitioned interpolator are {}.'.format(data_value_range_indices))
+        util.logging.debug('The data value range indices for the partitioned interpolator are {}.'.format(data_value_range_indices))
 
 
     def _set_data_values(self, data_values):
@@ -516,9 +515,9 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
             if interpolator is not None:
                 (index_start, index_end) = self.data_value_range_indices[interpolator_index]
                 interpolator.data_values = self.data_values[index_start:index_end]
-                logger.debug('Data values in interpolator with index {} with data from index {} to {} updated.'.format(interpolator_index, index_start, index_end))
+                util.logging.debug('Data values in interpolator with index {} with data from index {} to {} updated.'.format(interpolator_index, index_start, index_end))
             else:
-                logger.debug('Data values in interpolator with index {} must not be updated, since interpolated is not constructed.'.format(interpolator_index))
+                util.logging.debug('Data values in interpolator with index {} must not be updated, since interpolated is not constructed.'.format(interpolator_index))
 
 
     @property
@@ -530,13 +529,13 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         interpolator = self._interpolators[interpolator_index]
 
         if interpolator is None:
-            logger.debug('Constructing interpolator with index {}.'.format(interpolator_index))
+            util.logging.debug('Constructing interpolator with index {}.'.format(interpolator_index))
 
             (index_start, index_end) = self.data_value_range_indices[interpolator_index]
             interpolator = Interpolator_Values_Changeable(self.data_points[index_start:index_end], self.data_values[index_start:index_end], method=self.method, copy_arrays=False)
             self._interpolators[interpolator_index] = interpolator
         else:
-            logger.debug('Returning cached interpolator with index {}.'.format(interpolator_index))
+            util.logging.debug('Returning cached interpolator with index {}.'.format(interpolator_index))
 
         return interpolator
 
@@ -566,17 +565,17 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
             end_indices.append(end_index)
             start_index = end_index
 
-        logger.debug('Interpolation points ranges {} assigned to interpolators {} with {} interpolator in use.'.format(end_indices, len(end_indices), number_of_interpolators))
+        util.logging.debug('Interpolation points ranges {} assigned to interpolators {} with {} interpolator in use.'.format(end_indices, len(end_indices), number_of_interpolators))
 
         ## interpolate
         interpolated_values_sorted = np.empty(interpolation_points_dim)
 
         if not self.parallel or number_of_interpolators <= 1:
-            logger.debug('Starting serial interpolation.')
+            util.logging.debug('Starting serial interpolation.')
             for interpolator_index in range(number_of_interpolators):
                 interpolated_values_sorted[end_indices[interpolator_index]:end_indices[interpolator_index+1]] = self._calculate_interpolation_for_index(interpolator_index, interpolation_points[end_indices[interpolator_index]:end_indices[interpolator_index+1]])
         else:
-            logger.debug('Starting interpolation with {} processes.'.format(number_of_interpolators))
+            util.logging.debug('Starting interpolation with {} processes.'.format(number_of_interpolators))
             result = util.parallel.with_multiprocessing.map_parallel(self._calculate_interpolation_for_index_zipped, [(interpolator_index, interpolation_points[end_indices[interpolator_index]:end_indices[interpolator_index+1]]) for interpolator_index in range(number_of_interpolators)], number_of_processes=number_of_interpolators, chunksize=1)
             for interpolator_index in range(number_of_interpolators):
                 interpolated_values_sorted[end_indices[interpolator_index]:end_indices[interpolator_index+1]] = result[interpolator_index]
@@ -624,7 +623,7 @@ class Interpolator(Interpolator_Base):
 
     def __init__(self, data_points, data_values, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
 
-        logger.debug('Initiating interpolator {} with {} data points, scaling values {}, number of linear interpolators {} and single overlapping amount of linear interpolators {}.'.format(method, len(data_points), scaling_values, number_of_linear_interpolators, single_overlapping_amount_linear_interpolators))
+        util.logging.debug('Initiating interpolator {} with {} data points, scaling values {}, number of linear interpolators {} and single overlapping amount of linear interpolators {}.'.format(method, len(data_points), scaling_values, number_of_linear_interpolators, single_overlapping_amount_linear_interpolators))
 
         self.interpolators = []
 
@@ -675,7 +674,7 @@ class Periodic_Interpolator(Interpolator):
 
     def __init__(self, data_points, data_values, point_range_size, wrap_around_amount=None, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
 
-        logger.debug('Initiating periodic interpolator with point_range_size {} and wrap around amount {}.'.format(point_range_size, wrap_around_amount))
+        util.logging.debug('Initiating periodic interpolator with point_range_size {} and wrap around amount {}.'.format(point_range_size, wrap_around_amount))
 
         point_range_size = np.asanyarray(point_range_size)
         wrap_around_amount = np.asanyarray(wrap_around_amount)
@@ -694,7 +693,7 @@ class Periodic_Interpolator(Interpolator):
 
 
     def _prepare_data_values(self, data_values):
-        logger.debug('Wrapping around data values.')
+        util.logging.debug('Wrapping around data values.')
 
         data_values = data_values[self._data_indices]
         data_values = super()._prepare_data_values(data_values)
@@ -706,7 +705,7 @@ class Periodic_Interpolator(Interpolator):
         for i in range(points.shape[1]):
             if self._wrap_around_amount is not None and self._wrap_around_amount[i] > 0:
                 ## modulo for periodicity
-                logger.debug('Calculate modulo {} of index {} of points.'.format(self._point_range_size[i], i))
+                util.logging.debug('Calculate modulo {} of index {} of points.'.format(self._point_range_size[i], i))
                 points[:, i] = points[:, i] % self._point_range_size[i]
 
                 ## if data points, wrap around

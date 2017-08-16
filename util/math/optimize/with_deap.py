@@ -7,7 +7,6 @@ import deap.tools
 import deap.algorithms
 
 import util.logging
-logger = util.logging.logger
 
 
 
@@ -23,7 +22,7 @@ def init_individual_uniformly(bounds):
 
 
 def minimize(f, bounds, number_of_initial_individuals=100, number_of_generations=50, probability_of_crossover=0.5, probability_of_mutating=0.2, probability_of_mutating_in_each_dimension=0.5, crowding_degree_of_crossover=0.1, crowding_degree_of_mutation=0.1, tournament_size=3):
-    logger.debug('Minimize function with {} initial individuals and {} generations.'.format(number_of_initial_individuals, number_of_generations))
+    util.logging.debug('Minimize function with {} initial individuals and {} generations.'.format(number_of_initial_individuals, number_of_generations))
 
     ## configure individual
     deap.creator.create("FitnessMin", deap.base.Fitness, weights=(-1.0,))

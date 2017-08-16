@@ -11,7 +11,6 @@ import util.io.fs
 import util.options
 
 import util.logging
-logger = util.logging.logger
 
 
 class NodeInfos():
@@ -63,7 +62,7 @@ class NodesState():
         try:
             nodes_state_values_for_kind = self.nodes_state[kind]
         except KeyError as e:
-            logger.warning('Node kind {} not found in nodes state {}.'.format(kind, self.nodes_state))
+            util.logging.warning('Node kind {} not found in nodes state {}.'.format(kind, self.nodes_state))
             nodes_state_values_for_kind = [np.array([]), np.array([])]
         return nodes_state_values_for_kind
 
@@ -151,13 +150,13 @@ class NodeSetup:
 
     def complete_configuration(self):
         if not self.configuration_is_complete():
-            logger.debug('Node setup incomplete. Try to complete it.')
+            util.logging.debug('Node setup incomplete. Try to complete it.')
             if self['memory'] is None:
                 raise ValueError('Memory has to be set.')
             try:
                 (node_kind, nodes, cpus) = self.batch_system.wait_for_needed_resources(self['memory'], node_kind=self['node_kind'], nodes=self['nodes'], cpus=self['cpus'], nodes_max=self['nodes_max'], nodes_leave_free=self['nodes_leave_free'], total_cpus_min=self['total_cpus_min'], total_cpus_max=self['total_cpus_max'])
             except NotImplementedError:
-                logger.error('Batch system does not support completion of node setup.')
+                util.logging.error('Batch system does not support completion of node setup.')
                 raise NodeSetupIncompleteError(self)
             self['node_kind'] = node_kind
             self['nodes'] = nodes
@@ -180,20 +179,20 @@ class NodeSetup:
         if check_for_better:
             self['check_for_better'] = False
             setup_triple = (self.node_kind, self.nodes, self.cpus)
-            logger.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
+            util.logging.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
             speed = self.batch_system.speed(*setup_triple)
             best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self.walltime)
             best_speed = self.batch_system.speed(*best_setup_triple)
             if best_speed > speed:
-                logger.debug('Using better node setup configuration {}.'.format(best_setup_triple))
+                util.logging.debug('Using better node setup configuration {}.'.format(best_setup_triple))
                 self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
             elif not self.batch_system.is_free(self.memory, self.node_kind, self.nodes, self.cpus):
-                logger.debug('Node setup configuration {} is not free.'.format(setup_triple))
+                util.logging.debug('Node setup configuration {} is not free.'.format(setup_triple))
                 if best_speed >= speed * not_free_speed_factor:
-                    logger.debug('Using node setup configuration {}.'.format(best_setup_triple))
+                    util.logging.debug('Using node setup configuration {}.'.format(best_setup_triple))
                     self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
                 else:
-                    logger.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
+                    util.logging.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
 
 
     @property
@@ -261,7 +260,7 @@ class NodeSetupIncompleteError(Exception):
 class BatchSystem():
 
     def __init__(self, commands, queues, pre_commands={}, max_walltime={}, node_infos={}):
-        logger.debug('{} initiating with commands {}, queues {}, pre_commands {} and max_walltime {}.'.format(self, commands, queues, pre_commands, max_walltime))
+        util.logging.debug('{} initiating with commands {}, queues {}, pre_commands {} and max_walltime {}.'.format(self, commands, queues, pre_commands, max_walltime))
         self.commands = commands
         self.pre_commands = pre_commands
         self.queues = queues
@@ -344,17 +343,17 @@ class BatchSystem():
     ## other methods
 
     def start_job(self, job_file):
-        logger.debug('Starting job with option file {}.'.format(job_file))
+        util.logging.debug('Starting job with option file {}.'.format(job_file))
 
         if not os.path.exists(job_file):
             raise FileNotFoundError(job_file)
 
         process_result = subprocess.run((self.submit_command, job_file), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        logger.debug('Job submit result is {}.'.format(process_result))
+        util.logging.debug('Job submit result is {}.'.format(process_result))
         submit_output = process_result.stdout.decode('utf-8').strip()
         job_id = self._get_job_id_from_submit_output(submit_output)
 
-        logger.debug('Started job has ID {}.'.format(job_id))
+        util.logging.debug('Started job has ID {}.'.format(job_id))
 
         return job_id
 
@@ -369,7 +368,7 @@ class BatchSystem():
         ## run status command
         process_args = (self.status_command,) + status_command_args + (job_id,)
         process_result = subprocess.run(process_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        logger.debug('Status command result: {}'.format(process_result))
+        util.logging.debug('Status command result: {}'.format(process_result))
 
         ## return output
         if return_output:
@@ -397,7 +396,7 @@ class BatchSystem():
 
     @staticmethod
     def _best_cpu_configurations_for_state(nodes_state, node_kind, memory_required, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
-        logger.debug('Getting best cpu configuration for node state {} with memory {}, nodes {}, cpus {}, nodes max {} and nodes left free {}.'.format(nodes_state, memory_required, nodes, cpus, nodes_max, nodes_leave_free))
+        util.logging.debug('Getting best cpu configuration for node state {} with memory {}, nodes {}, cpus {}, nodes max {} and nodes left free {}.'.format(nodes_state, memory_required, nodes, cpus, nodes_max, nodes_leave_free))
 
         ## check input
         if nodes_max <= 0:
@@ -458,7 +457,7 @@ class BatchSystem():
                     best_nodes = free_nodes
                     best_cpus = cpus_to_check_i
 
-        logger.debug('Best CPU configuration is for this kind: {}'.format((best_nodes, best_cpus)))
+        util.logging.debug('Best CPU configuration is for this kind: {}'.format((best_nodes, best_cpus)))
 
         assert best_nodes <= nodes_max
         assert best_nodes * best_cpus <= total_cpus_max
@@ -469,7 +468,7 @@ class BatchSystem():
 
     def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf'), walltime=None):
 
-        logger.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_max {} and walltime {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, walltime))
+        util.logging.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_max {} and walltime {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, walltime))
 
         ## chose node kinds if not passed
         if node_kind is None:
@@ -499,7 +498,7 @@ class BatchSystem():
 
             (best_nodes_i, best_cpus_i) = self._best_cpu_configurations_for_state(nodes_state, node_kind_i, memory_required, nodes=nodes, cpus=cpus, nodes_max=nodes_max_i, nodes_leave_free=nodes_leave_free_i, total_cpus_max=total_cpus_max)
 
-            logger.debug('Best CPU configurations for {}GB memory with node kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {} and total_cpus_max {} is {}.'.format(memory_required, node_kind_i, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, (best_nodes_i, best_cpus_i)))
+            util.logging.debug('Best CPU configurations for {}GB memory with node kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {} and total_cpus_max {} is {}.'.format(memory_required, node_kind_i, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, (best_nodes_i, best_cpus_i)))
 
             if nodes_cpu_power_i * best_cpus_i * best_nodes_i > best_cpu_power * best_cpus * best_nodes:
                 best_kind = node_kind_i
@@ -510,7 +509,7 @@ class BatchSystem():
         ## return
         best_configuration = (best_kind, best_nodes, best_cpus)
 
-        logger.debug('Best CPU configuration is: {}.'.format(best_configuration))
+        util.logging.debug('Best CPU configuration is: {}.'.format(best_configuration))
 
         assert best_kind in node_kind
         assert best_nodes <= nodes_max
@@ -519,7 +518,7 @@ class BatchSystem():
 
 
     def wait_for_needed_resources(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf')):
-        logger.debug('Waiting for at least {} CPUs with {}GB memory, with node_kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_min {} and total_cpus_max {}.'.format(total_cpus_min, memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_min, total_cpus_max))
+        util.logging.debug('Waiting for at least {} CPUs with {}GB memory, with node_kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_min {} and total_cpus_max {}.'.format(total_cpus_min, memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_min, total_cpus_max))
 
         ## check input
         if total_cpus_min > total_cpus_max:
@@ -534,7 +533,7 @@ class BatchSystem():
             cpus_avail = best_nodes * best_cpus
             resources_free = (cpus_avail >= total_cpus_min)
             if not resources_free:
-                logger.debug('No enough resources free. {} CPUs available, but {} CPUs needed. Waiting ...'.format(cpus_avail, total_cpus_min))
+                util.logging.debug('No enough resources free. {} CPUs available, but {} CPUs needed. Waiting ...'.format(cpus_avail, total_cpus_min))
                 time.sleep(60)
 
         return (best_cpu_kind, best_nodes, best_cpus)
@@ -578,7 +577,7 @@ class Job():
         ## load option file if existing or forced
         if force_load or os.path.exists(option_file_expanded):
             self.__options = util.options.OptionsFile(option_file_expanded, mode='r+', replace_environment_vars_at_get=True)
-            logger.debug('Job {} loaded.'.format(option_file_expanded))
+            util.logging.debug('Job {} loaded.'.format(option_file_expanded))
 
         ## make new job options file otherwise
         else:
@@ -592,7 +591,7 @@ class Job():
             self.options['/job/unfinished_file'] = os.path.join(output_dir, 'unfinished.txt')
             self.options['/job/finished_file'] = os.path.join(output_dir, 'finished.txt')
 
-            logger.debug('Job {} initialized.'.format(option_file_expanded))
+            util.logging.debug('Job {} initialized.'.format(option_file_expanded))
 
 
     def __del__(self):
@@ -831,10 +830,10 @@ class Job():
     def wait_until_finished(self, check_exit_code=True, pause_seconds=None, pause_seconds_min=5, pause_seconds_max=60, pause_seconds_increment_cycle=50):
         adaptive = pause_seconds is None
         if adaptive:
-            logger.debug('Waiting for job {} to finish with adaptive sleep period with min {} and max {} seconds and increment cycle {}.'.format(self.id, pause_seconds_min, pause_seconds_max, pause_seconds_increment_cycle))
+            util.logging.debug('Waiting for job {} to finish with adaptive sleep period with min {} and max {} seconds and increment cycle {}.'.format(self.id, pause_seconds_min, pause_seconds_max, pause_seconds_increment_cycle))
             pause_seconds = pause_seconds_min
         else:
-            logger.debug('Waiting for job {} to finish with {}s sleep period.'.format(self.id, pause_seconds))
+            util.logging.debug('Waiting for job {} to finish with {}s sleep period.'.format(self.id, pause_seconds))
 
         cycle = 0
         while not self.is_finished(check_exit_code=check_exit_code):
@@ -846,7 +845,7 @@ class Job():
                     pause_seconds += 1
                     cycle = 0
 
-        logger.debug('Job {} finished with exit code {}.'.format(self.id, self.exit_code))
+        util.logging.debug('Job {} finished with exit code {}.'.format(self.id, self.exit_code))
 
 
     def make_read_only_input(self, read_only=True):

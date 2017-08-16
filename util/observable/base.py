@@ -1,5 +1,4 @@
 import util.logging
-logger = util.logging.logger
 
 
 class Observable:
@@ -12,11 +11,11 @@ class Observable:
             self.add_observer(observer)
     
     def add_observer(self, observer):
-        logger.debug('{}: observer {} added.'.format(self.__class__.__name__, observer))
+        util.logging.debug('{}: observer {} added.'.format(self.__class__.__name__, observer))
         self.observers.append(observer)
     
     def remove_observer(self, observer):
-        logger.debug('{}: observer {} removed.'.format(self.__class__.__name__, observer))
+        util.logging.debug('{}: observer {} removed.'.format(self.__class__.__name__, observer))
         self.observers.remove(observer)
     
     
@@ -25,13 +24,13 @@ class Observable:
             notify_method(observer)
     
     def notify_changed(self, key, new_value, old_value):
-        logger.debug('{}: notify changed: key {}, value {}, old value {}.'.format(self.__class__.__name__, key, value, old_value))
+        util.logging.debug('{}: notify changed: key {}, value {}, old value {}.'.format(self.__class__.__name__, key, value, old_value))
         self._notify_observers(lambda observer: observer.notify_changed(key, new_value, old_value))
     
     def notify_added(self, key, new_value):
-        logger.debug('{}: notify add: key {}, value {}.'.format(self.__class__.__name__, key, value))
+        util.logging.debug('{}: notify add: key {}, value {}.'.format(self.__class__.__name__, key, value))
         self._notify_observers(lambda observer: observer.notify_added(key, new_value))
     
     def notify_removed(self, key, old_value):
-        logger.debug('{}: notify del: key {}, old value {}.'.format(self.__class__.__name__, key, old_value))
+        util.logging.debug('{}: notify del: key {}, old value {}.'.format(self.__class__.__name__, key, old_value))
         self._notify_observers(lambda observer: observer.notify_removed(key, old_value))

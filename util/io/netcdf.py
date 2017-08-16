@@ -1,7 +1,6 @@
 import numpy as np
 
 import util.logging
-logger = util.logging.logger
 
 
 ## netcdf
@@ -25,7 +24,7 @@ def load_with_scipy(file, data_name):
         The desired data from the netcdf file as ndarray with nan for missing values.
     """
 
-    logger.debug('Loading data {} of netcdf file {} with scipy.io.'.format(data_name, file))
+    util.logging.debug('Loading data {} of netcdf file {} with scipy.io.'.format(data_name, file))
 
     f = scipy.io.netcdf.netcdf_file(file, 'r')
     data_netcdf = f.variables[data_name]
@@ -39,7 +38,7 @@ def load_with_scipy(file, data_name):
 def load_with_netcdf4(file, data_name):
     import netCDF4
 
-    logger.debug('Loading data {} of netcdf file {} with netCDF4.'.format(data_name, file))
+    util.logging.debug('Loading data {} of netcdf file {} with netCDF4.'.format(data_name, file))
 
     nc_file = netCDF4.Dataset(file, 'r')
     data = nc_file.variables[data_name][:]

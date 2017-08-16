@@ -6,7 +6,6 @@ import stat
 import time
 
 import util.logging
-logger = util.logging.logger
 
 
 ## file extension
@@ -154,7 +153,7 @@ def remove_write_permission(file):
     for write_permission in (stat.S_IWUSR, stat.S_IWGRP, stat.S_IWOTH):
         permission_new = permission_new & ~ write_permission
     os.chmod(file, permission_new)
-    logger.debug('Removing write permission of file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:],oct( permission_new)[-3:]))
+    util.logging.debug('Removing write permission of file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:],oct( permission_new)[-3:]))
 
 
 def add_write_permission(file):
@@ -164,7 +163,7 @@ def add_write_permission(file):
         if permission_new & read_permission:
             permission_new = permission_new | write_permission
     os.chmod(file, permission_new)
-    logger.debug('Adding write permission to file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:], oct(permission_new)[-3:]))
+    util.logging.debug('Adding write permission to file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:], oct(permission_new)[-3:]))
 
 
 def add_group_permissions(file, read=True, write=True, execute=True):
@@ -177,7 +176,7 @@ def add_group_permissions(file, read=True, write=True, execute=True):
     if execute:
         permission_new = permission_new | stat.S_IXGRP
     os.chmod(file, permission_new)
-    logger.debug('Adding group permission (read={read}, write={write}, execute={execute}) to {file}. Mode changed from {permission_old} to {permission_new}.'.format(file=file, permission_old=oct(permission_old)[-3:], permission_new=oct(permission_new)[-3:], read=read, write=write, execute=execute))
+    util.logging.debug('Adding group permission (read={read}, write={write}, execute={execute}) to {file}. Mode changed from {permission_old} to {permission_new}.'.format(file=file, permission_old=oct(permission_old)[-3:], permission_new=oct(permission_new)[-3:], read=read, write=write, execute=execute))
 
 
 def make_read_only(*files, not_exist_ok=False):
@@ -186,7 +185,7 @@ def make_read_only(*files, not_exist_ok=False):
             try:
                 remove_write_permission(file)
             except FileNotFoundError:
-                logger.debug('File {} not existing, but this is okay.'.format(file))
+                util.logging.debug('File {} not existing, but this is okay.'.format(file))
                 pass
         else:
             remove_write_permission(file)
@@ -197,7 +196,7 @@ def make_writable(file, not_exist_ok=False):
         try:
             add_write_permission(file)
         except FileNotFoundError:
-            logger.debug('File {} does not exist, but this is okay.'.format(file))
+            util.logging.debug('File {} does not exist, but this is okay.'.format(file))
             pass
     else:
         add_write_permission(file)
@@ -254,7 +253,7 @@ def flush_and_close(file):
     os.fsync(file.fileno())
     file.close()
     while not os.path.exists(file.name):
-        logger.warning('File {} is not available after flush and fsync. Waiting.'.format(file.name))
+        util.logging.warning('File {} is not available after flush and fsync. Waiting.'.format(file.name))
         time.sleep(1)
 
 
@@ -266,13 +265,13 @@ def fd_is_file(fd, file, not_exist_okay=False):
         file_stat = os.stat(file)
     except FileNotFoundError as e:
         if not_exist_okay:
-            logger.debug('File {} does not exist, but this is okay.'.format(file))
+            util.logging.debug('File {} does not exist, but this is okay.'.format(file))
             return False
         else:
             raise
     except OSError as e:
         if e.errno == errno.ESTALE and not_exist_okay:
-            logger.debug('File {} does not exist, but this is okay.'.format(file))
+            util.logging.debug('File {} does not exist, but this is okay.'.format(file))
             return False
         else:
             raise
@@ -282,7 +281,7 @@ def fd_is_file(fd, file, not_exist_okay=False):
         fd_stat = os.fstat(fd)
     except OSError as e:
         if e.errno == errno.ESTALE and not_exist_okay:
-            logger.debug('File referenced by file desciptor {} was removed, but this is okay.'.format(fd))
+            util.logging.debug('File referenced by file desciptor {} was removed, but this is okay.'.format(fd))
             return False
         else:
             raise

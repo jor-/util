@@ -1,7 +1,6 @@
 import util.observable.base
 
 import util.logging
-logger = util.logging.logger
 
 
 
@@ -93,7 +92,7 @@ class DependencyObserver:
     
     def notify_dependency(self, key):
         if self.independent_key is None or key == self.independent_key:
-            logger.debug('{}: dependency activated: independent dict {}, independent key {}, dependent dict {}, dependent key {}.'.format(self.__class__.__name__, self.independent_observable_dict, self.independent_key, self.dependent_observable_dict, self.dependent_key))
+            util.logging.debug('{}: dependency activated: independent dict {}, independent key {}, dependent dict {}, dependent key {}.'.format(self.__class__.__name__, self.independent_observable_dict, self.independent_key, self.dependent_observable_dict, self.dependent_key))
             if dependent_key is not None:
                 del self.dependent_observable_dict[self.dependent_key]
             else:

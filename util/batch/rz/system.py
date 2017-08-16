@@ -7,7 +7,6 @@ import numpy as np
 import util.batch.general.system
 
 import util.logging
-logger = util.logging.logger
 
 from util.batch.general.system import *
 
@@ -65,7 +64,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     ## node setups
 
     def _nodes_state_one_kind(self, kind):
-        logger.debug('Getting nodes state for kind {}.'.format(kind))
+        util.logging.debug('Getting nodes state for kind {}.'.format(kind))
 
         ## grep free nodes
         def grep_qnodes(expression):
@@ -73,7 +72,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             try:
                 grep_result = subprocess.check_output(command, shell=True).decode("utf-8")
             except subprocess.CalledProcessError as e:
-                logger.warning('Command {} returns with exit code {} and output "{}"'.format(command, e.returncode, e.output.decode("utf-8")))
+                util.logging.warning('Command {} returns with exit code {} and output "{}"'.format(command, e.returncode, e.output.decode("utf-8")))
                 grep_result = 'offline'
 
             return grep_result
@@ -108,7 +107,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         else:
             raise ValueError('Unknown CPU kind: ' + kind)
 
-        logger.debug(grep_result)
+        util.logging.debug(grep_result)
 
         ## extract free cpus and memory from grep result
         grep_result_lines = grep_result.splitlines()
@@ -163,7 +162,7 @@ class Job(util.batch.general.system.Job):
 
         if cpu_kind in ('f_ocean', 'f_ocean2'):
             if queue is not None and queue != cpu_kind:
-                logger.warning('Queue {1} not supported for CPU kind {2}. CPU kind changed to {2}'.format(queue, cpu_kind))
+                util.logging.warning('Queue {1} not supported for CPU kind {2}. CPU kind changed to {2}'.format(queue, cpu_kind))
             queue = cpu_kind
         else:
             if queue is None:

@@ -4,7 +4,6 @@ import util.math.sort
 import util.io.object
 import util.logging
 
-logger = util.logging.logger
 
 
 def _isdict(d):
@@ -130,7 +129,7 @@ class MultiDict():
             raise ValueError('Len of keys {} and len of values {} have to be the same!'.format(len(keys), len(value_lists)))
 
         values_len = len(value_lists)
-        logger.debug('Adding {} values.'.format(values_len))
+        util.logging.debug('Adding {} values.'.format(values_len))
         for i in range(values_len):
             add_function(keys[i], value_lists[i])
 
@@ -149,7 +148,7 @@ class MultiDict():
         self._value_dict = type(self.value_dict)()
 
     def remove_value(self, key, value):
-        logger.debug('Removing value {} for key {}.'.format(value, key))
+        util.logging.debug('Removing value {} for key {}.'.format(value, key))
         value_list = self.get_value_list(key)
         n = len(value_list)
         value_list[:] = [v for v in value_list if not np.all(np.isclose(v, value))]
@@ -158,7 +157,7 @@ class MultiDict():
         #TODO remove dict entries if list is empty
 
     def remove_values(self, multi_dict):
-        logger.debug('Removing {} values.'.format(len(multi_dict)))
+        util.logging.debug('Removing {} values.'.format(len(multi_dict)))
         for key, value_list in multi_dict.iterator_keys_and_value_lists():
             for value in value_list:
                 self.remove_value(key, value)
@@ -200,7 +199,7 @@ class MultiDict():
 
     ## io
     def save(self, file, only_dict=True):
-        logger.debug('Saving {} to {}.'.format(self, file))
+        util.logging.debug('Saving {} to {}.'.format(self, file))
         if only_dict:
             util.io.object.save(file, self.value_dict)
         else:
@@ -208,13 +207,13 @@ class MultiDict():
 
 
     # def load(self, file):
-    #     logger.debug('Loading {} from {}.'.format(self, file))
+    #     util.logging.debug('Loading {} from {}.'.format(self, file))
     #     self._value_dict = util.io.io.load_object(file)
     #     return self
 
     @classmethod
     def load(cls, file):
-        logger.debug('Loading {} from {}.'.format(cls.__name__, file))
+        util.logging.debug('Loading {} from {}.'.format(cls.__name__, file))
 
         ## load object
         loaded_object = util.io.object.load(file)
@@ -262,7 +261,7 @@ class MultiDict():
 
 
     def _return_items_as_type(self, keys, value_lists, return_type=None):
-        logger.debug('Returning {} values as type {}.'.format(len(keys), return_type))
+        util.logging.debug('Returning {} values as type {}.'.format(len(keys), return_type))
 
         ## chose default
         if return_type is None:
@@ -395,7 +394,7 @@ class MultiDict():
     ## transform keys
 
     def transform_keys(self, transform_function):
-        logger.debug('Transforming keys of {}.'.format(self))
+        util.logging.debug('Transforming keys of {}.'.format(self))
         assert callable(transform_function)
 
         value_dict = self._value_dict
@@ -407,13 +406,13 @@ class MultiDict():
 
 
     def keys_to_int_keys(self, dtype=np.int):
-        logger.debug('Converting keys to type {}.'.format(dtype))
+        util.logging.debug('Converting keys to type {}.'.format(dtype))
         transform_function = lambda key: tuple(np.array(np.round(key), dtype=dtype))
         self.transform_keys(transform_function)
 
 
     def dicard_key_dim(self, key_dim):
-        logger.debug('Discarding key dim {}.'.format(key_dim))
+        util.logging.debug('Discarding key dim {}.'.format(key_dim))
 
         def transform_function(current_key):
             current_key = list(current_key)
@@ -433,7 +432,7 @@ class MultiDict():
     ## transform values
 
     def transform_value_lists(self, transform_function):
-        logger.debug('Transforming value lists of {}.'.format(self))
+        util.logging.debug('Transforming value lists of {}.'.format(self))
         assert callable(transform_function)
 
         for (key, value_list) in self.iterator_keys_and_value_lists():
@@ -441,7 +440,7 @@ class MultiDict():
             self.set_value_list(key, transformed_value_list)
 
     def transform_values(self, transform_function):
-        logger.debug('Transforming values of {}.'.format(self))
+        util.logging.debug('Transforming values of {}.'.format(self))
         assert callable(transform_function)
 
         def transform_function_wapper(key, value_list):
@@ -460,21 +459,21 @@ class MultiDict():
 
 
     def set_min_value(self, min_value):
-        logger.debug('Applying min value {} to values.'.format(min_value))
+        util.logging.debug('Applying min value {} to values.'.format(min_value))
 
         transform_function = lambda key, value: max([value, min_value])
         self.transform_value(transform_function)
 
 
 #     def is_at_least_value(self, value_threshold):
-#         logger.debug('Applying is at least value {} to values.'.format(value_threshold))
+#         util.logging.debug('Applying is at least value {} to values.'.format(value_threshold))
 #
 #         transform_function = lambda key, value: value >= value_threshold)
 #         self.transform_value(transform_function)
 
 
     def log_values(self):
-        logger.debug('Applying logarithm to values.')
+        util.logging.debug('Applying logarithm to values.')
 
         transform_function = lambda key, value: np.log(value)
         self.transform_value(transform_function)
@@ -494,7 +493,7 @@ class MultiDict():
                 filtered_keys.append(key)
                 filtered_value_lists.append(value_list)
 
-        logger.debug('Filtered {} value lists.'.format(len(filtered_value_lists)))
+        util.logging.debug('Filtered {} value lists.'.format(len(filtered_value_lists)))
         return self._return_items_as_type(filtered_keys, filtered_value_lists, return_type=return_type)
 
 
@@ -525,7 +524,7 @@ class MultiDict():
                 filtered_keys.append(key)
                 filtered_value_lists.append(filter_value_list)
 
-        logger.debug('Filtered {} value lists.'.format(len(filtered_value_lists)))
+        util.logging.debug('Filtered {} value lists.'.format(len(filtered_value_lists)))
         return self._return_items_as_type(filtered_keys, filtered_value_lists, return_type=return_type)
 
 
@@ -546,13 +545,13 @@ class MultiDict():
     ## compute values
 
     def numbers(self, min_number_of_values=1, return_type='array'):
-        logger.debug('Calculate numbers of values with at least {} values.'.format(min_number_of_values))
+        util.logging.debug('Calculate numbers of values with at least {} values.'.format(min_number_of_values))
 
         return self.iterate_values(len, min_number_of_values, return_type=return_type)
 
 
     def means(self, min_number_of_values=1, min_value=0, return_type='array'):
-        logger.debug('Calculate means of values with at least {} values with minimal mean {}.'.format(min_number_of_values, min_value))
+        util.logging.debug('Calculate means of values with at least {} values with minimal mean {}.'.format(min_number_of_values, min_value))
         if min_value is None:
             min_value = - np.inf
 
@@ -565,7 +564,7 @@ class MultiDict():
 
 
     def variances(self, min_number_of_values=3, min_value=0, return_type='array'):
-        logger.debug('Calculate variances of values with at least {} values with minimal variance {}.'.format(min_number_of_values, min_value))
+        util.logging.debug('Calculate variances of values with at least {} values with minimal variance {}.'.format(min_number_of_values, min_value))
         if min_value is None:
             min_value = 0
 
@@ -580,7 +579,7 @@ class MultiDict():
 
 
     def standard_deviations(self, min_number_of_values=3, min_value=0, return_type='array'):
-        logger.debug('Calculate standard deviations of values with at least {} values with minimal deviation {}.'.format(min_number_of_values, min_value))
+        util.logging.debug('Calculate standard deviations of values with at least {} values with minimal deviation {}.'.format(min_number_of_values, min_value))
         if min_value is None:
             min_value = 0
 
@@ -599,7 +598,7 @@ class MultiDict():
     ## tests for normality
 
     def dagostino_pearson_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
-        logger.debug('Calculate D´Agostino-Person-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
+        util.logging.debug('Calculate D´Agostino-Person-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
         import scipy.stats
 
         test_values = self.iterate_values(lambda x: scipy.stats.normaltest(x)[1], min_number_of_values, return_type=return_type)
@@ -615,7 +614,7 @@ class MultiDict():
 
 
     def shapiro_wilk_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
-        logger.debug('Calculate Shapiro-Wilk-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
+        util.logging.debug('Calculate Shapiro-Wilk-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
         import scipy.stats
 
         test_values = self.iterate_values(lambda x: scipy.stats.shapiro(x)[1], min_number_of_values, return_type=return_type)
@@ -631,7 +630,7 @@ class MultiDict():
 
 
     def anderson_darling_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
-        logger.debug('Calculate Anderson-Darling-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
+        util.logging.debug('Calculate Anderson-Darling-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
         import scipy.stats
 
         def test(x, alpha):

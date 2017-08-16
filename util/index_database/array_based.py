@@ -6,7 +6,6 @@ import util.index_database.general
 import util.io.filelock.np
 
 import util.logging
-logger = util.logging.logger
 
 
 
@@ -60,7 +59,7 @@ class Database(util.index_database.general.Database):
     
     
     def set_value(self, index, value, overwrite=False):
-        logger.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
+        util.logging.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
         value = np.asanyarray(value)
         
         with self.locked_file.lock_object(exclusive=True):
@@ -74,7 +73,7 @@ class Database(util.index_database.general.Database):
                     if overwrite or not has_value:
                         db[index] = value
                     else:
-                        logger.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
+                        util.logging.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
                         raise util.index_database.general.DatabaseOverwriteError(self, index)
                 else:
                     db_extension_len = index - len(db) + 1
@@ -99,7 +98,7 @@ class Database(util.index_database.general.Database):
             used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
             used_values = db[used_mask]
             
-            logger.debug('{}: Got {} used values.'.format(self, len(used_values)))
+            util.logging.debug('{}: Got {} used values.'.format(self, len(used_values)))
             return used_values
 
 
@@ -112,12 +111,12 @@ class Database(util.index_database.general.Database):
             used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
             used_indices = np.where(used_mask)[0]
             
-            logger.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
+            util.logging.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
             return used_indices.astype(np.int32)
     
     
     def remove_index(self, index):
-        logger.debug('{}: Removing index {}.'.format(self, index))
+        util.logging.debug('{}: Removing index {}.'.format(self, index))
         
         with self.locked_file.lock_object(exclusive=True):
             if not self.has_value(index):

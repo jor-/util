@@ -15,7 +15,6 @@ import mpl_toolkits.axes_grid1
 
 import util.io.fs
 import util.logging
-logger = util.logging.logger
 
 DEFAULT_FONT_SIZE = 20
 
@@ -45,7 +44,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         return (land_mask, no_data_mask)
 
 
-    logger.debug('Plotting data.')
+    util.logging.debug('Plotting data.')
 
     ## set font size
     set_global_font_size(tick_font_size)
@@ -72,7 +71,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         v_min = data_min
     if v_max is None:
         v_max = data_max
-    logger.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
+    util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
 
     ## remove negative values for log plot
@@ -205,14 +204,14 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
             ## save and close
             save_and_close_fig(fig, current_file, dpi=dpi)
 
-    logger.debug('Plot completed.')
+    util.logging.debug('Plot completed.')
 
 
 
 
 
 def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, spine_line_width=1, use_log_scale=False, transparent=True, tick_font_size=DEFAULT_FONT_SIZE, legend_font_size=DEFAULT_FONT_SIZE, x_label=None, y_label=None, axis_label_font_size=DEFAULT_FONT_SIZE, dpi=800):
-    logger.debug('Plotting line.')
+    util.logging.debug('Plotting line.')
     
     ## check if multi line
     try:
@@ -364,7 +363,7 @@ def scatter(x, y, file, point_size=20, dpi=800):
 
 
 def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, weights=None, use_log_scale=False, type='bar', tick_font_size=DEFAULT_FONT_SIZE, tick_power=None, dpi=800):
-    logger.debug('Plotting histogram.')
+    util.logging.debug('Plotting histogram.')
 
     ## make fig
     fig = plt.figure()
@@ -404,12 +403,12 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
     
     ## plot sparsity_pattern
     if scipy.sparse.issparse(A):
-        logger.debug('Plotting sparsity pattern for matrix {!r} with markersize {} and dpi {} to file {}.'.format(A, markersize, dpi, file))
+        util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} and dpi {} to file {}.'.format(A, markersize, dpi, file))
         plt.spy(A, markersize=markersize, marker=',', markeredgecolor='k', markerfacecolor='k')
     
     ## plot matrix values
     else:
-        logger.debug('Plotting values for matrix {!r} with dpi {} to file {}.'.format(A, dpi, file))
+        util.logging.debug('Plotting values for matrix {!r} with dpi {} to file {}.'.format(A, dpi, file))
         v_abs_max = np.abs(A).max()
         axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)   
         cb = fig.colorbar(axes_image)
@@ -480,7 +479,7 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
 ## auxiliary functions
 
 def trim(file):
-    logger.debug('Trimming plot %s.' % file)
+    util.logging.debug('Trimming plot %s.' % file)
     subprocess.check_output(('convert', '-trim', file, file))
 
 
@@ -491,7 +490,7 @@ def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True
     trim(file)
     if make_read_only:
         util.io.fs.make_read_only(file)
-    logger.debug('Plot saved to {}.'.format(file))
+    util.logging.debug('Plot saved to {}.'.format(file))
 
 
 
@@ -548,7 +547,7 @@ def set_legend_font(fig, family='sans-serif', weight='bold', size=12):
 
 
 def set_global_font_size(size=20):
-    logger.debug('Setting font size for plots to {}.'.format(size))
+    util.logging.debug('Setting font size for plots to {}.'.format(size))
 
     font = {'family' : 'sans-serif',
             'weight' : 'bold',

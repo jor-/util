@@ -6,7 +6,6 @@ import numpy as np
 import util.batch.general.system
 
 import util.logging
-logger = util.logging.logger
 
 from util.batch.general.system import *
 
@@ -53,10 +52,10 @@ class BatchSystem(util.batch.general.system.BatchSystem):
                     number_of_free_nodes = int(line_splitted[-1])
 
                     if number_of_free_nodes < 0:
-                        logger.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
+                        util.logging.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
                         number_of_free_nodes = 0
 
-                    logger.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
+                    util.logging.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
                     free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
                     free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
 
@@ -81,7 +80,7 @@ class Job(util.batch.general.system.Job):
     def set_job_options(self, job_name, nodes_setup, queue=None):
         ## set queue if missing
         if queue is not None and queue != nodes_setup.node_kind:
-            logger.warn('Queue {} and cpu kind {} have to be the same. Setting Queue to cpu kind.'.format(queue, nodes_setup.node_kind))
+            util.logging.warn('Queue {} and cpu kind {} have to be the same. Setting Queue to cpu kind.'.format(queue, nodes_setup.node_kind))
         queue = nodes_setup.node_kind
 
         ## super

@@ -3,7 +3,6 @@ import abc
 import numpy as np
 
 import util.logging
-logger = util.logging.logger
 
 
 
@@ -52,7 +51,7 @@ class Database:
             if np.any(absolute < 0):
                 raise ValueError('The absolute tolerance {} has to be positive.'.format(absolute))
             elif np.any(absolute < min_absolute_tolerance):
-                logger.warn('The absolute tolerance {} is not support. Using smallest supported absolute tolerance {}.'.format(absolute, min_absolute_tolerance))
+                util.logging.warn('The absolute tolerance {} is not support. Using smallest supported absolute tolerance {}.'.format(absolute, min_absolute_tolerance))
                 absolute = np.asanyarray(absolute, dtype=np.float64)
                 absolute[absolute < min_absolute_tolerance] = min_absolute_tolerance
         
@@ -62,7 +61,7 @@ class Database:
         if not (len(self._tolerance_options['absolute']) == 1 or len(self._tolerance_options['relative']) == 1 or len(self._tolerance_options['relative']) == len(self._tolerance_options['absolute'])):
             raise ValueError('The relative and absolute tolerances habe to be scalaras or arrays of equal length, but the relative tolerance is {} and the absolute is {}.'.format(self._tolerance_options['relative'], self._tolerance_options['absolute']))
         
-        logger.debug('Index database initiated with {} value format and tolerance options {}.'.format(self.value_fmt, self._tolerance_options))
+        util.logging.debug('Index database initiated with {} value format and tolerance options {}.'.format(self.value_fmt, self._tolerance_options))
         
     
     ## tolerances
@@ -121,7 +120,7 @@ class Database:
         else:
             has_value = True
 
-        logger.debug('{}: Has value at index {}: {}.'.format(self, index, has_value))
+        util.logging.debug('{}: Has value at index {}: {}.'.format(self, index, has_value))
         return has_value
 
     @abc.abstractmethod
@@ -129,7 +128,7 @@ class Database:
         raise NotImplementedError()
 
     def add_value(self, value):
-        logger.debug('{}: Adding value {}'.format(self, value))
+        util.logging.debug('{}: Adding value {}'.format(self, value))
         
         ## get used indices
         used_indices = self.used_indices()
@@ -149,7 +148,7 @@ class Database:
                 index += 1
         
         ## return index
-        logger.debug('{}: Value {} added with index {}.'.format(self, value, index))
+        util.logging.debug('{}: Value {} added with index {}.'.format(self, value, index))
         return index
 
     def all_values(self):
@@ -171,7 +170,7 @@ class Database:
 
 
     def closest_indices(self, value):
-        logger.debug('{}: Calculating closest indices for value {}.'.format(self, value))
+        util.logging.debug('{}: Calculating closest indices for value {}.'.format(self, value))
         value = np.asanyarray(value)
         
         ## get all used indices
@@ -188,7 +187,7 @@ class Database:
             try:
                 current_value = self.get_value(current_index)
             except DatabaseIndexError as e:
-                logger.warnig('{}: Could not read the value file for index {}: {}'.format(self, current_index, e.with_traceback(None)))
+                util.logging.warnig('{}: Could not read the value file for index {}: {}'.format(self, current_index, e.with_traceback(None)))
                 value_differences[i] = float('inf')
             else:
                 value_differences[i] = self.value_difference(value, current_value)
@@ -199,30 +198,30 @@ class Database:
 
 
     def closest_index(self, value):
-        logger.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
+        util.logging.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
         
         ## get closest indices
         closest_indices = self.closest_indices(value)
         
         ## return
         if len(closest_indices) > 0:
-            logger.debug('{}: Closest index is {}.'.format(self, closest_indices[0]))
+            util.logging.debug('{}: Closest index is {}.'.format(self, closest_indices[0]))
             return closest_indices[0]
         else:
-            logger.debug('{}: No closest index found.'.format(self))
+            util.logging.debug('{}: No closest index found.'.format(self))
             return None
 
 
     def index(self, value):
         ## search for directories with matching parameters
-        logger.debug('{}: Searching for index of value {}.'.format(self, value))
+        util.logging.debug('{}: Searching for index of value {}.'.format(self, value))
 
         closest_index = self.closest_index(value)
         if closest_index is not None and self.are_values_equal(value, self.get_value(closest_index)):
-            logger.debug('{}: Index for value {} is {}.'.format(self, value, closest_index))
+            util.logging.debug('{}: Index for value {} is {}.'.format(self, value, closest_index))
             return closest_index
         else:
-            logger.debug('{}: No index found for value {}.'.format(self, value))
+            util.logging.debug('{}: No index found for value {}.'.format(self, value))
             return None
 
 
