@@ -144,7 +144,7 @@ class MultiDict():
 
 
     ## remove
-    
+
     def clear(self):
         self._value_dict = type(self.value_dict)()
 
@@ -156,7 +156,7 @@ class MultiDict():
         if len(value_list) == n:
             raise KeyError('Value {} was not deposited for key {}.'.format(value, key))
         #TODO remove dict entries if list is empty
-    
+
     def remove_values(self, multi_dict):
         logger.debug('Removing {} values.'.format(len(multi_dict)))
         for key, value_list in multi_dict.iterator_keys_and_value_lists():
@@ -247,12 +247,6 @@ class MultiDict():
         return not isinstance(self.value_dict, dict)
 
 
-        obj = cls()
-        obj._value_dict = util.io.object.load(file)
-        return obj
-
-
-
     ## create
 
     def new_like(self, sorted=None):
@@ -260,8 +254,8 @@ class MultiDict():
             sorted = self.sorted
         new = type(self)(sorted=sorted)
         return new
-    
-    
+
+
     def copy(self):
         import copy
         return copy.deepcopy(self)
