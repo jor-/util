@@ -103,7 +103,7 @@ class FileLock:
         if not blocking:
             lock_flags = lock_flags | fcntl.LOCK_NB
         ## lock
-        fcntl.flock(self._fd, lock_flags)
+        fcntl.lockf(self._fd, lock_flags)
         self._exclusive = exclusive
         self._lock_count = 1
         util.logging.debug('{}: Lock file {} locked with exclusive={}.'.format(self, self.lockfile, exclusive))
