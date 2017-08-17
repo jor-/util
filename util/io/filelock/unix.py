@@ -64,7 +64,7 @@ class FileLock:
     def _open_lockfile(self):
         if self._fd is None:
             ## prepare flags and mode
-            open_flags = os.O_RDONLY | os.O_CREAT | os.O_CLOEXEC
+            open_flags = os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_SYNC
             open_mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH
             ## open
             try:
@@ -141,7 +141,7 @@ class FileLock:
                     self._lock_lockfile(exclusive=exclusive, blocking=timeout is None)
                 except BlockingIOError as e:
                     ## check if regular timeout
-                    if e.errno != errno.EAGAIN or timeout is None:
+                    if timeout is None and e.errno not in (errno.EAGAIN, errno.EACCES):
                         util.logging.warning('{}: Retrying to get lock because an BlockingIOError occured: {}'.format(self, e))
                 else:
                     ## if file was removed in between, open new file
@@ -157,7 +157,7 @@ class FileLock:
                 ## handle timout
                 if not has_lock:
                     ## if timeout reached, raise FileLockTimeoutError
-                    if timeout is not None and time.time() > (start_time + timeout):
+                    if timeout is not None and time.time() >= (start_time + timeout):
                         util.logging.debug('{}: Could not be acquired. Timeout {} reached.'.format(self, timeout))
                         raise util.io.filelock.general.FileLockTimeoutError(self.lockfile, timeout)
                     ## else wait
@@ -191,6 +191,9 @@ class FileLock:
                     self._acquire(exclusive=True, timeout=0)
                 except util.io.filelock.general.FileLockTimeoutError:
                     util.logging.debug('{}: Could not remove lock file {}. It is locked by another process.'.format(self, self.lockfile))
+                    assert not self.is_locked(exclusive_is_okay=True, shared_is_okay=False)
+                else:
+                    assert self.is_locked(exclusive_is_okay=True, shared_is_okay=False)
 
             ## if exclusive lock, remove lock file
             if self.is_locked(exclusive_is_okay=True, shared_is_okay=False):
