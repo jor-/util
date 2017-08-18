@@ -21,7 +21,8 @@ elif IS_NEC:
     util.logging.debug('Choosing batch system {}.'.format(BATCH_SYSTEM_STR))
     from util.batch.nec.system import *
 elif IS_NONE:
-    util.logging.warn('Environmental variable {} is not set. Chosing general batch system.'.format(BATCH_SYSTEM_ENV_NAME))
+    util.logging.warn('Environmental variable {} is not set. Choosing general batch system.'.format(BATCH_SYSTEM_ENV_NAME))
     from util.batch.general.system import *
 else:
-    raise ValueError('Batch system {} is unknown.'.format(BATCH_SYSTEM_STR))
+    util.logging.warn('Batch system {} is unknown. Choosing general batch system.'.format(BATCH_SYSTEM_STR))
+    from util.batch.general.system import *
