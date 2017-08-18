@@ -153,7 +153,7 @@ BATCH_SYSTEM = BatchSystem()
 class Job(util.batch.general.system.Job):
 
     def __init__(self, output_dir, force_load=False):
-        super().__init__(BATCH_SYSTEM, output_dir, force_load=force_load, max_job_name_len=15)
+        super().__init__(output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, max_job_name_len=15)
 
 
     def set_job_options(self, job_name, nodes_setup, queue=None):

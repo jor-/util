@@ -13,6 +13,8 @@ import util.options
 import util.logging
 
 
+# *** nodes *** #
+
 class NodeInfos():
 
     def __init__(self, node_infos):
@@ -255,7 +257,7 @@ class NodeSetupIncompleteError(Exception):
         super().__init__(error_message)
 
 
-
+# *** batch system *** #
 
 class BatchSystem():
 
@@ -554,11 +556,17 @@ class BatchSystem():
         raise NotImplementedError()
 
 
+BATCH_SYSTEM = BatchSystem({}, ())
+
+
+# *** job *** #
 
 class Job():
 
-    def __init__(self, batch_system, output_dir, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None):
+    def __init__(self, output_dir, batch_system=None, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None):
         ## batch system
+        if batch_system is None:
+            batch_system = BATCH_SYSTEM
         self.batch_system = batch_system
         self.max_job_name_len = max_job_name_len
         self.exceeded_walltime_error_message = exceeded_walltime_error_message
