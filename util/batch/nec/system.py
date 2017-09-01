@@ -49,7 +49,11 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             for node_kind in self.node_infos.kinds():
                 if line.startswith(node_kind):
                     line_splitted = line.split(' ')
-                    number_of_free_nodes = int(line_splitted[-1])
+                    line_splitted = [line_part for line_part in line_splitted if len(line_part) > 0]
+                    # line format: Batch class  Walltime [h]  Cores/node  RAM [gb]  Total [*]  Used [*]  Avail [*]  Run.jobs/user
+                    assert line_splitted[0] == node_kind
+                    assert len(line_splitted) == 8
+                    number_of_free_nodes = int(line_splitted[6])
 
                     if number_of_free_nodes < 0:
                         util.logging.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
