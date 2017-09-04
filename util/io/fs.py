@@ -246,17 +246,6 @@ def remove_recursively(directory, force=False, not_exist_okay=False, exclude_dir
             topdown=False)
 
 
-## utility functions
-
-def flush_and_close(file):
-    file.flush()
-    os.fsync(file.fileno())
-    file.close()
-    while not os.path.exists(file.name):
-        util.logging.warning('File {} is not available after flush and fsync. Waiting.'.format(file.name))
-        time.sleep(1)
-
-
 ## fd functions
 
 def fd_is_file(fd, file, not_exist_okay=False):
