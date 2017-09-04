@@ -55,7 +55,8 @@ class FileLock:
         return self._lock_count > 0 and ((self._exclusive and exclusive_is_okay) or (not self._exclusive and shared_is_okay))
 
     def lock_object(self, exclusive=True):
-        self.exclusive = exclusive
+        if not (not exclusive and self.exclusive and self.is_locked()):
+            self.exclusive = exclusive
         return self
 
 
