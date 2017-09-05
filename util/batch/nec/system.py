@@ -39,33 +39,36 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
 
     def _nodes_state(self):
-        output = subprocess.check_output(self.nodes_command).decode('utf8')
-        lines = output.splitlines()
+        nodes_command = self.nodes_command
+        try:
+            output = subprocess.check_output(nodes_command)
+        except (OSError, subprocess.CalledProcessError) as e:
+            raise util.batch.general.system.CommandError(nodes_command, cause=e) from e
+        else:
+            output = output.decode('utf8')
+            lines = output.splitlines()
+            state = {}
+            for line in lines:
+                line = line.strip()
+                for node_kind in self.node_infos.kinds():
+                    if line.startswith(node_kind):
+                        line_splitted = line.split(' ')
+                        line_splitted = [line_part for line_part in line_splitted if len(line_part) > 0]
+                        # line format: Batch class  Walltime [h]  Cores/node  RAM [gb]  Total [*]  Used [*]  Avail [*]  Run.jobs/user
+                        assert line_splitted[0] == node_kind
+                        assert len(line_splitted) == 8
+                        number_of_free_nodes = int(line_splitted[6])
 
-        state = {}
+                        if number_of_free_nodes < 0:
+                            util.logging.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
+                            number_of_free_nodes = 0
 
-        for line in lines:
-            line = line.strip()
-            for node_kind in self.node_infos.kinds():
-                if line.startswith(node_kind):
-                    line_splitted = line.split(' ')
-                    line_splitted = [line_part for line_part in line_splitted if len(line_part) > 0]
-                    # line format: Batch class  Walltime [h]  Cores/node  RAM [gb]  Total [*]  Used [*]  Avail [*]  Run.jobs/user
-                    assert line_splitted[0] == node_kind
-                    assert len(line_splitted) == 8
-                    number_of_free_nodes = int(line_splitted[6])
+                        util.logging.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
+                        free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
+                        free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
 
-                    if number_of_free_nodes < 0:
-                        util.logging.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
-                        number_of_free_nodes = 0
-
-                    util.logging.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
-                    free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
-                    free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
-
-                    state[node_kind] = (free_cpus, free_memory)
-
-        return util.batch.general.system.NodesState(state)
+                        state[node_kind] = (free_cpus, free_memory)
+            return util.batch.general.system.NodesState(state)
 
 
 

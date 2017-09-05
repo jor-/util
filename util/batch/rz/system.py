@@ -43,9 +43,11 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         try:
             self.job_state(job_id, return_output=False)
         except subprocess.CalledProcessError as e:
-            if e.returncode == 255:   # 255 => cannot connect to server
+            cause = e.cause
+            if cause is None or not isinstance(cause, subprocess.CalledProcessError) or cause.returncode == 255:   # 255 => cannot connect to server
                 raise
-            return False
+            else:
+                return False
         else:
             return True
 
@@ -53,7 +55,8 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         try:
             self.job_state(job_id, return_output=False)
         except subprocess.CalledProcessError as e:
-            if e.returncode == 255:   # 255 => cannot connect to server
+            cause = e.cause
+            if cause is None or not isinstance(cause, subprocess.CalledProcessError) or cause.returncode == 255:   # 255 => cannot connect to server
                 raise
             else:
                 return e.returncode == 35 or e.returncode == 153
@@ -71,11 +74,10 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             command = '{} | grep -E {}'.format(self.nodes_command, expression)
             try:
                 grep_result = subprocess.check_output(command, shell=True).decode("utf-8")
-            except subprocess.CalledProcessError as e:
-                util.logging.warning('Command {} returns with exit code {} and output "{}"'.format(command, e.returncode, e.output.decode("utf-8")))
-                grep_result = 'offline'
-
-            return grep_result
+            except (OSError, subprocess.CalledProcessError) as e:
+                raise util.batch.general.system.CommandError(command, cause=e) from e
+            else:
+                return grep_result
 
         # 24 f_ocean Barcelona nodes (8 CPUs per node, 2.1 GHz) (f_ocean queue)
         if kind == 'f_ocean' or  kind == 'barcelona':

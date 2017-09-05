@@ -180,21 +180,26 @@ class NodeSetup:
     def update_with_best_configuration(self, check_for_better=True, not_free_speed_factor=0.7):
         if check_for_better:
             self['check_for_better'] = False
-            setup_triple = (self.node_kind, self.nodes, self.cpus)
-            util.logging.debug('Try to find better node setup configuration than {}.'.format(setup_triple))
-            speed = self.batch_system.speed(*setup_triple)
-            best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self.walltime)
-            best_speed = self.batch_system.speed(*best_setup_triple)
-            if best_speed > speed:
-                util.logging.debug('Using better node setup configuration {}.'.format(best_setup_triple))
-                self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
-            elif not self.batch_system.is_free(self.memory, self.node_kind, self.nodes, self.cpus):
-                util.logging.debug('Node setup configuration {} is not free.'.format(setup_triple))
-                if best_speed >= speed * not_free_speed_factor:
-                    util.logging.debug('Using node setup configuration {}.'.format(best_setup_triple))
+            util.logging.debug('Try to find better node setup configuration.')
+            try:
+                best_setup_triple = self.batch_system.best_cpu_configurations(self.memory, nodes_max=self['nodes_max'], total_cpus_max=self['total_cpus_max'], walltime=self.walltime)
+            except CommandError as e:
+                util.logging.exception(e.message)
+                util.logging.warn('Could not update node setup with best configuration.')
+            else:
+                best_speed = self.batch_system.speed(*best_setup_triple)
+                setup_triple = (self.node_kind, self.nodes, self.cpus)
+                speed = self.batch_system.speed(*setup_triple)
+                if best_speed > speed:
+                    util.logging.debug('Using better node setup configuration {}.'.format(best_setup_triple))
                     self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
-                else:
-                    util.logging.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
+                elif not self.batch_system.is_free(self.memory, self.node_kind, self.nodes, self.cpus):
+                    util.logging.debug('Node setup configuration {} is not free.'.format(setup_triple))
+                    if best_speed >= speed * not_free_speed_factor:
+                        util.logging.debug('Using node setup configuration {}.'.format(best_setup_triple))
+                        self['node_kind'], self['nodes'], self['cpus'] = best_setup_triple
+                    else:
+                        util.logging.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
 
 
     @property
@@ -258,6 +263,16 @@ class NodeSetupIncompleteError(Exception):
 
 
 # *** batch system *** #
+
+class CommandError(Exception):
+
+    def __init__(self, command, cause=None):
+        message = 'Command {} could not be executed successfully.'.format(command)
+        self.message = message
+        self.cause = cause
+        super().__init__(message)
+
+
 
 class BatchSystem():
 
@@ -350,14 +365,17 @@ class BatchSystem():
         if not os.path.exists(job_file):
             raise FileNotFoundError(job_file)
 
-        process_result = subprocess.run((self.submit_command, job_file), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        util.logging.debug('Job submit result is {}.'.format(process_result))
-        submit_output = process_result.stdout.decode('utf-8').strip()
-        job_id = self._get_job_id_from_submit_output(submit_output)
-
-        util.logging.debug('Started job has ID {}.'.format(job_id))
-
-        return job_id
+        command = (self.submit_command, job_file)
+        try:
+            output = subprocess.check_output(command, stderr=subprocess.PIPE)
+        except (OSError, subprocess.CalledProcessError) as e:
+            raise util.batch.general.system.CommandError(command, cause=e) from e
+        else:
+            util.logging.debug('Job submit result is {}.'.format(output))
+            output = output.decode('utf-8').strip()
+            job_id = self._get_job_id_from_submit_output(output)
+            util.logging.debug('Started job has ID {}.'.format(job_id))
+            return job_id
 
 
     def job_state(self, job_id, return_output=True, status_command_args=None):
@@ -368,14 +386,16 @@ class BatchSystem():
             status_command_args = tuple(status_command_args)
 
         ## run status command
-        process_args = (self.status_command,) + status_command_args + (job_id,)
-        process_result = subprocess.run(process_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        util.logging.debug('Status command result: {}'.format(process_result))
-
-        ## return output
-        if return_output:
-            output = process_result.stdout.decode("utf-8")
-            return output
+        command = (self.status_command,) + status_command_args + (job_id,)
+        try:
+            output = subprocess.check_output(command, stderr=subprocess.PIPE)
+        except (OSError, subprocess.CalledProcessError) as e:
+            raise util.batch.general.system.CommandError(command, cause=e) from e
+        else:
+            util.logging.debug('Status command result: {}'.format(output))
+            if return_output:
+                output = output.decode("utf-8")
+                return output
 
 
     ## best node setups
@@ -816,21 +836,27 @@ class Job():
                     raise JobExitCodeError(self)
             return self.output_file is None or os.path.exists(self.output_file)
 
-        ## if finished file odes not exist, check if running
-        elif self.is_started() and not self.batch_system.is_job_running(self.id):
-            time.sleep(60)
-            if os.path.exists(self.finished_file):
-                return self.is_finished(check_exit_code=check_exit_code)
+        ## if finished file does not exist, check if running
+        elif self.is_started():
+            try:
+                running = self.batch_system.is_job_running(self.id)
+            except CommandError as e:
+                util.logging.exception(e.message)
+                util.logging.warn('Could determine whether job is running using batch system. Assuming job {} in {} is running.'.format(self.id, self.output_dir))
             else:
-                output = self.output
-                if self.exceeded_walltime_error_message is not None and self.exceeded_walltime_error_message in output:
-                    raise JobExceededWalltimeError(self)
-                else:
-                    raise JobError(self, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), output)
+                if not running:
+                    time.sleep(60)
+                    if os.path.exists(self.finished_file):
+                        return self.is_finished(check_exit_code=check_exit_code)
+                    else:
+                        output = self.output
+                        if self.exceeded_walltime_error_message is not None and self.exceeded_walltime_error_message in output:
+                            raise JobExceededWalltimeError(self)
+                        else:
+                            raise JobError(self, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), output)
 
         ## if not not started or running, return false
-        else:
-            return False
+        return False
 
 
     def is_running(self):
