@@ -44,25 +44,25 @@ class FileLock(object):
         See if the lock exists and is belongs to this process.
         """
 
-        ## get pid of lock
+        # get pid of lock
         lock_pid = self.lock_pid()
 
-        ## not locked
+        # not locked
         if lock_pid is None:
             util.logging.debug('Lock {} is not aquired.'.format(self.lock_filename))
             return False
 
-        ## locked by me
+        # locked by me
         if self.pid == lock_pid:
             util.logging.debug('Lock {} is aquired by me (pid: {}).'.format(self.lock_filename, self.pid))
             return True
 
-        ## locked by alive process
+        # locked by alive process
         try:
             os.kill(lock_pid, 0)
             util.logging.debug('Lock {} is aquired by another (alive) process (pid: {}).'.format(self.lock_filename, lock_pid))
 
-        ## locked by dead process
+        # locked by dead process
         except OSError:
             util.logging.debug('Lock {} is aquired by a dead process (pid: {}).'.format(self.lock_filename, lock_pid))
             try:

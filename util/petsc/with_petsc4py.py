@@ -4,7 +4,7 @@ from petsc4py import PETSc as petsc
 import util.logging
 
 
-## save petsc
+# save petsc
 
 def save_petsc(file, petsc_object):
     util.logging.debug('Saving petsc object to %s.', file)
@@ -15,7 +15,7 @@ def save_petsc(file, petsc_object):
 
 
 
-## load petsc
+# load petsc
 
 def load_petsc_vec(file):
     util.logging.debug('Loading petsc vector from %s.', file)
@@ -77,10 +77,10 @@ def load_petsc_mat_to_array(file, dtype=float):
 
 
 
-## create functions
+# create functions
 
 def create_petsc_vec_by_function(function, n, finish_assembly=True):
-    ## create vec
+    # create vec
     util.logging.debug('Creating petsc vec of length %d from function.', n)
 
     vec = petsc.Vec()
@@ -89,7 +89,7 @@ def create_petsc_vec_by_function(function, n, finish_assembly=True):
     for i in range(n):
         vec.setValue(i, function(i))
 
-    ## assembly
+    # assembly
     util.logging.debug('Beginning assembly.')
     vec.assemblyBegin()
 
@@ -101,7 +101,7 @@ def create_petsc_vec_by_function(function, n, finish_assembly=True):
 
 
 def create_petsc_mat_by_function(function, size, finish_assembly=True):
-    ## convert size
+    # convert size
     try:
         n = m = int(size)
     except TypeError:
@@ -113,7 +113,7 @@ def create_petsc_mat_by_function(function, size, finish_assembly=True):
         else:
             raise TypeError('Size has to be an int or a tuple of length one or two, but its zype is %s.' % type(size))
 
-    ## create mat
+    # create mat
     util.logging.debug('Converting array to petsc mat.')
 
     mat = petsc.Mat()
@@ -122,7 +122,7 @@ def create_petsc_mat_by_function(function, size, finish_assembly=True):
     for i, j in np.ndindex(n, m):
         mat.setValue(i, j, function(i,j))
 
-    ## assembly
+    # assembly
     util.logging.debug('Beginning assembly.')
     mat.assemblyBegin(petsc.Mat.AssemblyType.FINAL)
 
@@ -134,16 +134,16 @@ def create_petsc_mat_by_function(function, size, finish_assembly=True):
 
 
 
-## array to petsc
+# array to petsc
 
 def array_to_petsc_vec(array, finish_assembly=True):
-    ## check array
+    # check array
     if len(array.shape) == 1:
         n = array.shape[0]
     else:
         raise ValueError('array has to be a vector, but it´s shape is %s.' % array.shape)
 
-    ## create vec
+    # create vec
     util.logging.debug('Converting array to petsc vec.')
 
     function = lambda i: array[i]
@@ -153,13 +153,13 @@ def array_to_petsc_vec(array, finish_assembly=True):
 
 
 def array_to_petsc_mat(array, finish_assembly=True):
-    ## check array
+    # check array
     if len(array.shape) == 2:
         (n, m) = array.shape
     else:
         raise ValueError('array has to be a matrix, but it´s shape is %s.' % array.shape)
 
-    ## create mat
+    # create mat
     util.logging.debug('Converting array to petsc mat.')
 
     function = lambda i,j: array[i,j]
@@ -169,7 +169,7 @@ def array_to_petsc_mat(array, finish_assembly=True):
 
 
 
-## other
+# other
 
 def print_petsc(petsc_object):
     petsc_object.view(petsc.Viewer.STDOUT())
@@ -229,14 +229,14 @@ class Matrix_Shell_Petsc:
     def mult(self, context, x, y):
         util.logging.debug('Multiplying petsc matrix with vector without explicit matrix.')
 
-        ## copy x to local vec
+        # copy x to local vec
         scatter, x_local = petsc.Scatter.toAll(x)
         scatter.scatterBegin(x, x_local)
         scatter.scatterEnd(x, x_local)
         scatter.destroy()
 
 
-        ## set y values
+        # set y values
         y_ownership_range = y.getOwnershipRange()
         y_size_local = y_ownership_range[1] - y_ownership_range[0]
         y_size_global = y.getSize()
@@ -244,7 +244,7 @@ class Matrix_Shell_Petsc:
         for i_local in range(y_size_local):
             i_global = y_ownership_range[0] + i_local
 
-            ## compute value
+            # compute value
             value = 0
             for j_global in range(y_size_global):
                 value += self.entry_function(i_global, j_global) * x_local.getValue(j_global)
@@ -253,5 +253,5 @@ class Matrix_Shell_Petsc:
         y.assemblyBegin()
         y.assemblyEnd()
 
-        ## destroy local copy
+        # destroy local copy
         x_local.destroy()

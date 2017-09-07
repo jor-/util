@@ -24,30 +24,30 @@ def init_individual_uniformly(bounds):
 def minimize(f, bounds, number_of_initial_individuals=100, number_of_generations=50, probability_of_crossover=0.5, probability_of_mutating=0.2, probability_of_mutating_in_each_dimension=0.5, crowding_degree_of_crossover=0.1, crowding_degree_of_mutation=0.1, tournament_size=3):
     util.logging.debug('Minimize function with {} initial individuals and {} generations.'.format(number_of_initial_individuals, number_of_generations))
 
-    ## configure individual
+    # configure individual
     deap.creator.create("FitnessMin", deap.base.Fitness, weights=(-1.0,))
     deap.creator.create("Individual", np.ndarray, fitness=deap.creator.FitnessMin)
 
-    ## configure population
+    # configure population
     toolbox = deap.base.Toolbox()
     toolbox.register("init_individual_uniformly", init_individual_uniformly, bounds)
     toolbox.register("individual", deap.tools.initIterate, deap.creator.Individual, toolbox.init_individual_uniformly)
     toolbox.register("population", deap.tools.initRepeat, list, toolbox.individual)
 
-    ## configure ea methods
+    # configure ea methods
     toolbox.register("evaluate", lambda x: (f(x),))
     toolbox.register("mate", deap.tools.cxSimulatedBinaryBounded, eta=crowding_degree_of_crossover, low=bounds[:,0].tolist(), up=bounds[:,1].tolist())
     toolbox.register("mutate", deap.tools.mutPolynomialBounded, eta=crowding_degree_of_mutation, low=bounds[:,0].tolist(), up=bounds[:,1].tolist(), indpb=probability_of_mutating_in_each_dimension)
     toolbox.register("select", deap.tools.selTournament, tournsize=tournament_size)
 
-    ## configure stats
+    # configure stats
     stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.mean)
     stats.register("std", np.std)
     stats.register("min", np.min)
     stats.register("max", np.max)
 
-    ## run optimization
+    # run optimization
     pop = toolbox.population(n=number_of_initial_individuals)
     hof = deap.tools.HallOfFame(1, similar=np.array_equal)
     pop, log = deap.algorithms.eaSimple(pop, toolbox, cxpb=probability_of_crossover, mutpb=probability_of_mutating, ngen=number_of_generations, stats=stats, halloffame=hof, verbose=True)

@@ -8,7 +8,7 @@ import time
 import util.logging
 
 
-## file extension
+# file extension
 
 def has_file_ext(file, ext):
     if not ext.startswith('.'):
@@ -25,7 +25,7 @@ def add_file_ext_if_needed(file, ext):
         return file + ext
 
 
-## walk
+# walk
 
 def walk_all_in_dir(directory, file_function=None, dir_function=None, topdown=True, exclude_dir=True):
     for (dirpath, dirnames, filenames) in os.walk(directory, topdown=topdown):
@@ -56,13 +56,13 @@ def apply_recursively(directory, function, topdown=True):
         walk_all_in_dir(directory, file_function=function, dir_function=function, topdown=topdown, exclude_dir=False)
 
 
-## get files
+# get files
 
 def find_with_condition_function(path, condition_function, exclude_files=False, exclude_dirs=False, use_absolute_filenames=False, recursive=False):
-    ## use absolute path
+    # use absolute path
     path = os.path.abspath(path)
 
-    ## definde append filtered result function
+    # definde append filtered result function
     filtered_results = []
 
     def append_filtered(filename):
@@ -71,7 +71,7 @@ def find_with_condition_function(path, condition_function, exclude_files=False, 
         if condition_function(filename):
             filtered_results.append(filename)
 
-    ## filter recursive
+    # filter recursive
     if os.path.exists(path):
         if recursive:
             if not exclude_files:
@@ -85,7 +85,7 @@ def find_with_condition_function(path, condition_function, exclude_files=False, 
 
             walk_all_in_dir(path, file_function=file_filter_function, dir_function=dir_filter_function, topdown=True, exclude_dir=True)
 
-    ## filter not recursive
+    # filter not recursive
         else:
             for filename in os.listdir(path):
                 append_filtered(filename)
@@ -101,11 +101,11 @@ def find_with_condition_function(path, condition_function, exclude_files=False, 
                 else:
                     filtered_results = [file for file in filtered_results if not os.path.isdir(os.path.join(path, file))]
 
-    ## path is not existing
+    # path is not existing
     else:
         filtered_results = []
 
-    ## return
+    # return
     return filtered_results
 
 
@@ -135,7 +135,7 @@ def get_files(path=os.getcwd(), filename_pattern=None, use_absolute_filenames=Fa
     return files
 
 
-## permissions
+# permissions
 
 def file_mode(file):
     return os.stat(file)[stat.ST_MODE]
@@ -202,7 +202,7 @@ def make_writable(file, not_exist_ok=False):
         add_write_permission(file)
 
 
-## remove
+# remove
 
 def _remove_general(remove_function, file, force=False, not_exist_okay=False):
     try:
@@ -246,10 +246,10 @@ def remove_recursively(directory, force=False, not_exist_okay=False, exclude_dir
             topdown=False)
 
 
-## fd functions
+# fd functions
 
 def fd_is_file(fd, file, not_exist_okay=False):
-    ## get file stats
+    # get file stats
     try:
         file_stat = os.stat(file)
     except FileNotFoundError as e:
@@ -265,7 +265,7 @@ def fd_is_file(fd, file, not_exist_okay=False):
         else:
             raise
 
-    ## get fd stats
+    # get fd stats
     try:
         fd_stat = os.fstat(fd)
     except OSError as e:
@@ -275,6 +275,6 @@ def fd_is_file(fd, file, not_exist_okay=False):
         else:
             raise
 
-    ## check if same device and inode
+    # check if same device and inode
     return fd_stat.st_dev == file_stat.st_dev and fd_stat.st_ino == file_stat.st_ino
 

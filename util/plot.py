@@ -19,7 +19,7 @@ import util.logging
 DEFAULT_FONT_SIZE = 20
 
 
-## plot types
+# plot types
 
 def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0, use_log_scale=False, v_min=None, v_max=None, caption=None, tick_font_size=DEFAULT_FONT_SIZE, power_limit=3, dpi=100, contours=False, contours_text_brightness=0.5, colorbar=True):
     
@@ -46,11 +46,11 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
     util.logging.debug('Plotting data.')
 
-    ## set font size
+    # set font size
     set_global_font_size(tick_font_size)
 
 
-    ## reshape data
+    # reshape data
     original_shape = data.shape
     original_dim = len(original_shape)
     if original_dim == 2:
@@ -59,14 +59,14 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         data = data.reshape((1,) + original_shape)
 
 
-    ## get masks and v_min and v_max
+    # get masks and v_min and v_max
     (land_mask, no_data_mask) = get_masks(data, land_value=land_value, no_data_value=no_data_value)
     if v_min is None or v_max is None or contours:
         data_mask = np.logical_not(np.logical_or(no_data_mask, land_mask))
         data_min = np.min(data[data_mask])
         data_max = np.max(data[data_mask])
 
-    ## v_min and v_max
+    # v_min and v_max
     if v_min is None:
         v_min = data_min
     if v_max is None:
@@ -74,7 +74,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
 
-    ## remove negative values for log plot
+    # remove negative values for log plot
     if use_log_scale:
         data = np.array(data, copy=True)
         data[land_mask] = np.nan
@@ -85,11 +85,11 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
             v_min = 1
 
 
-    ## splite filename
+    # splite filename
     file_root, file_extension = os.path.splitext(file)
 
 
-    ## prepare no_data_array
+    # prepare no_data_array
     no_data_array = np.empty_like(data[0,:,:,0])
 
     t_len = data.shape[0]
@@ -100,34 +100,34 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     for z in range(z_len):
         current_file_with_z = file_root
 
-        ## append depth to filename
+        # append depth to filename
         if z_len > 1:
             current_file_with_z += '_layer_' + z_len_str + '_' + str(z+1).zfill(len(z_len_str))
 
         for t in range(t_len):
             current_file = current_file_with_z
 
-            ## append time to filename
+            # append time to filename
             if t_len > 1:
                 current_file += '_time_' + t_len_str + '_' + str(t+1).zfill(len(t_len_str))
 
             current_file += file_extension
 
-            ## make no_data with 1 where no data, 0.5 where water at surface, 0 where land and nan where data (1 is white, 0 is black)
+            # make no_data with 1 where no data, 0.5 where water at surface, 0 where land and nan where data (1 is white, 0 is black)
             no_data_array = no_data_array * np.nan
             no_data_array[no_data_mask[t,:,:,z]] = 1
             no_data_array[land_mask[t,:,:,z]] = (1 + 9 * land_brightness) / 10
             no_data_array[land_mask[t,:,:,0]] = land_brightness
             
 
-            ## make figure
+            # make figure
             fig = plt.figure()
 
-            ## chose colormap
+            # chose colormap
             colormap = plt.cm.jet
             colormap.set_bad(color='w', alpha=0.0)
 
-            ## chose norm
+            # chose norm
             if use_log_scale:
                 norm = matplotlib.colors.LogNorm(vmin=v_min, vmax=v_max)
             else:
@@ -137,21 +137,21 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     norm = None
                 
 
-            ## plot no data mask
+            # plot no data mask
             colormap_no_data = plt.cm.gray
             colormap_no_data.set_bad(color='w', alpha=0.0)
             axes_image = plt.imshow(no_data_array.transpose(), origin='lower', aspect='equal', cmap=colormap_no_data, vmin=0, vmax=1)
 
-            ## plot data
+            # plot data
             current_data = data[t,:,:,z].transpose()
             axes_image = plt.imshow(current_data, origin='lower', aspect='equal', cmap=colormap, vmin=v_min, vmax=v_max, norm=norm)
 
-            ## disable axis labels
+            # disable axis labels
             plt.axis('off')
             
-            ## chose tick locator
+            # chose tick locator
             if colorbar or contours:
-                ## chose tick base
+                # chose tick base
                 if colorbar:
                     v_max_tick = v_max
                 else:
@@ -166,13 +166,13 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 if (current_data > tick_base).sum() < (~np.isnan(current_data)).sum() / 100:    # decrease tick if too few data above tick
                     tick_base = tick_base / 10
                 
-                ## chose locator
+                # chose locator
                 if use_log_scale:
                     tick_locator = plt.LogLocator(base=tick_base, subs=tick_base/10)
                 else:
                     tick_locator = plt.MultipleLocator(base=tick_base)
 
-            ## plot colorbar
+            # plot colorbar
             if colorbar:
                 divider = mpl_toolkits.axes_grid1.make_axes_locatable(plt.gca())
                 cax = divider.append_axes("right", size="3%", pad=0.1) 
@@ -185,7 +185,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     cb.formatter.set_powerlimits((-power_limit, power_limit))
                     cb.update_ticks()
             
-            ## plot contours
+            # plot contours
             if contours:
                 contour_plot = plt.contour(current_data, locator=tick_locator, colors='k', linestyles=['dashed', 'solid'], linewidths=0.5, norm=norm)
                 if np.abs(tick_base_exp) >= power_limit:
@@ -197,11 +197,11 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 plt.clabel(contour_plot, contour_plot.levels[1::2], fontsize=8, fmt=label_fmt, colors=str(contours_text_brightness))
             
     
-            ## set caption
+            # set caption
             if caption is not None:
                 plt.xlabel(caption, fontsize=font_size, fontweight='bold')
 
-            ## save and close
+            # save and close
             save_and_close_fig(fig, current_file, dpi=dpi)
 
     util.logging.debug('Plot completed.')
@@ -213,7 +213,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, spine_line_width=1, use_log_scale=False, transparent=True, tick_font_size=DEFAULT_FONT_SIZE, legend_font_size=DEFAULT_FONT_SIZE, x_label=None, y_label=None, axis_label_font_size=DEFAULT_FONT_SIZE, dpi=800):
     util.logging.debug('Plotting line.')
     
-    ## check if multi line
+    # check if multi line
     try:
         y[0][0]
     except LookupError:
@@ -221,7 +221,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
     else:
         is_multi_line = True
     
-    ## check input and prepare
+    # check input and prepare
     if len(x) != len(y):
         if not is_multi_line:
                 ValueError('For single line plot, x and y must have same length but length x is {} and length y is {}.'.format(len(x), len(y)))
@@ -238,14 +238,14 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
                     x = np.tile(x, y.shape[1]).reshape(y.shape[1], -1)
         
 
-    ## prepare line(s)
+    # prepare line(s)
     if len(y) > 0:
-        ## multiple lines
+        # multiple lines
         if is_multi_line:
             xs = x
             ys = y
     
-            ## copy line setups for each line if only one line setup passed
+            # copy line setups for each line if only one line setup passed
             number_of_lines = len(ys)
             line_setups = []
             for line_setup in (line_label, line_width, line_style, line_color):
@@ -257,7 +257,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
             line_widths = line_setups[1]
             line_styles = line_setups[2]
             line_colors = line_setups[3]
-        ## one line
+        # one line
         else:
             number_of_lines = 1
             xs = x.reshape((1,) + x.shape)
@@ -269,14 +269,14 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
     else:
         number_of_lines = 0
 
-    ## make figure
+    # make figure
     fig = plt.figure()
     x_min = np.inf
     x_max = -np.inf
 
-    ## plot each line
+    # plot each line
     for i in range(number_of_lines):
-        ## get line and setup
+        # get line and setup
         x = np.asanyarray(xs[i])
         y = np.asanyarray(ys[i])
         line_label = line_labels[i]
@@ -288,7 +288,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
             line_style = line_styles[i]
             line_color = line_colors[i]
 
-            ## sort values
+            # sort values
             if x_order != 0:
                 sorted_indices = np.argsort(x)
                 if x_order < 0:
@@ -296,68 +296,68 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
                 x = x[sorted_indices]
                 y = y[sorted_indices]
 
-            ## update x_min x_max
+            # update x_min x_max
             x_min = min([x_min, x[0]])
             x_max = max([x_max, x[-1]])
 
-            ## plot line
+            # plot line
             plt.plot(x, y, line_style, color=line_color, linewidth=line_width, markersize=line_width*3, label=line_label)
 
 
-    ## set axis labels
+    # set axis labels
     if x_label is not None:
         plt.xlabel(x_label, fontsize=axis_label_font_size, fontweight='bold')
     if y_label is not None:
         plt.ylabel(y_label, fontsize=axis_label_font_size, fontweight='bold')
 
-    ## set tickts
+    # set tickts
     if xticks is not None:
         plt.xticks(xticks)
     set_tick_font(fig.gca(), size=tick_font_size)
 
-    ## set spine line_width
+    # set spine line_width
     set_spine_line_size(fig, spine_line_width)
 
-    ## log scale
+    # log scale
     if use_log_scale:
         plt.yscale('log')
 
-    ## set axis limits
+    # set axis limits
     if y_min is not None:
         plt.ylim(ymin=y_min)
     if y_max is not None:
         plt.ylim(ymax=y_max)
     plt.xlim(x_min, x_max)
 
-    ## legend
+    # legend
     legend = plt.legend(loc=0)
     if legend is not None:
         legend.get_frame().set_alpha(float(not transparent))
         set_legend_font(fig, size=legend_font_size)
 
-    ## save and close
+    # save and close
     save_and_close_fig(fig, file, dpi=dpi)
 
 
 
 def scatter(x, y, file, point_size=20, dpi=800):
-    ## check and prepare input
+    # check and prepare input
     if x.ndim == 2 and x.shape[1] > 2:
         raise ValueError('Scatter plots for x dim {} is not supported.'.format(x.shape[1]))
     if x.ndim == 2 and x.shape[1] == 1:
         x = x[:,0]
 
-    ## make figure
+    # make figure
     fig = plt.figure()
 
-    ## plot
+    # plot
     if x.ndim == 1:
         plt.scatter(x, y, s=point_size)
     if x.ndim == 2:
         ax = fig.add_subplot(111, projection='3d')
         ax.scatter(x[:,0], x[:,1], y, s=point_size)
 
-    ## save and close
+    # save and close
     save_and_close_fig(fig, file, dpi=dpi)
 
 
@@ -365,10 +365,10 @@ def scatter(x, y, file, point_size=20, dpi=800):
 def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, weights=None, use_log_scale=False, type='bar', tick_font_size=DEFAULT_FONT_SIZE, tick_power=None, dpi=800):
     util.logging.debug('Plotting histogram.')
 
-    ## make fig
+    # make fig
     fig = plt.figure()
 
-    ##
+    #
     if bins is None:
         if step_size is None:
             raise ValueError('Either "bins" or "step_size" has to be defined.')
@@ -378,16 +378,16 @@ def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, wei
             x_max = np.ceil(np.max(data) / step_size) * step_size
         bins = np.arange(x_min, x_max+step_size, step_size)
 
-    ## plot
+    # plot
     (n, bins, patches) = plt.hist(data, bins=bins, weights=weights, log=use_log_scale, histtype=type)
     plt.xlim(bins[0], bins[-1])
 
-    ## set axis label size
+    # set axis label size
     if tick_power is not None:
         set_tick_power_fix(fig.gca(), axis='y', power=tick_power)
     set_tick_font(fig.gca(), size=tick_font_size)
 
-    ## save and close
+    # save and close
     save_and_close_fig(fig, file, dpi=dpi)
 
 
@@ -395,18 +395,18 @@ def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, wei
 def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT_FONT_SIZE, dpi=800):
     import scipy.sparse
 
-    ## set font size
+    # set font size
     set_global_font_size(font_size)
 
-    ## make figure
+    # make figure
     fig = plt.figure()
     
-    ## plot sparsity_pattern
+    # plot sparsity_pattern
     if scipy.sparse.issparse(A):
         util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} and dpi {} to file {}.'.format(A, markersize, dpi, file))
         plt.spy(A, markersize=markersize, marker=',', markeredgecolor='k', markerfacecolor='k')
     
-    ## plot matrix values
+    # plot matrix values
     else:
         util.logging.debug('Plotting values for matrix {!r} with dpi {} to file {}.'.format(A, dpi, file))
         v_abs_max = np.abs(A).max()
@@ -416,22 +416,22 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
         fig.gca().set_xticks([]) 
         fig.gca().set_yticks([]) 
 
-    ## set power limits
+    # set power limits
     if axis_labels:
         formatter = plt.ScalarFormatter()
         formatter.set_powerlimits((-3,3))
         fig.gca().xaxis.set_major_formatter(formatter)
         fig.gca().yaxis.set_major_formatter(formatter)
     
-    ## disable axis labels
+    # disable axis labels
     else:
         plt.axis('off')
     
-    ## set caption
+    # set caption
     if caption is not None:
         plt.xlabel(caption, fontsize=font_size, fontweight='bold')
     
-    ## save and close
+    # save and close
     save_and_close_fig(fig, file, dpi=dpi)
 
 
@@ -442,41 +442,41 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
     assert intervals.ndim == 2
     assert len(intervals) == 2
     
-    ## calculate data
+    # calculate data
     intervals_half_sizes = (intervals[1] - intervals[0]) / 2
     means = intervals_half_sizes + intervals[0]
     n = len(intervals_half_sizes)
 
-    ## set font size
+    # set font size
     set_global_font_size(font_size)
 
-    ## make figure
+    # make figure
     fig = plt.figure()
     
-    ## plot
+    # plot
     linewidth = 3
     plt.errorbar(np.arange(1, n+1), means, xerr=0, yerr=intervals_half_sizes, linestyle='', linewidth=linewidth, elinewidth=linewidth, capsize=linewidth*3, capthick=linewidth, marker='.', markersize=linewidth*5)
     
-    ## set y limits
+    # set y limits
     plt.xlim(0.5, n + 0.5)
     
-    ## y tick formatter
+    # y tick formatter
     if use_percent_ticks:
         fmt = '%.0f%%'
         yticks = matplotlib.ticker.FormatStrFormatter(fmt)
         fig.gca().yaxis.set_major_formatter(yticks)
 
-    ## set caption
+    # set caption
     if caption is not None:
         plt.xlabel(caption, fontsize=font_size, fontweight='bold')
     
-    ## save and close
+    # save and close
     save_and_close_fig(fig, file, dpi=dpi)
 
 
 
 
-## auxiliary functions
+# auxiliary functions
 
 def trim(file):
     util.logging.debug('Trimming plot %s.' % file)

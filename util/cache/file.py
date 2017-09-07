@@ -6,7 +6,7 @@ import util.logging
 
 
 
-## file cache
+# file cache
 
 def decorator(cache_file_function=None, load_function=None, save_function=None):
     if load_function is None:
@@ -15,19 +15,19 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
         save_function = util.io.universal.save
 
     def decorate(function, cache_file_function=None, load_function=None, save_function=None):
-        ## if no cache file function is passed used passed cache file function name or default cache file function name
+        # if no cache file function is passed used passed cache file function name or default cache file function name
         cache_file_function_defined = not (cache_file_function is None or isinstance(cache_file_function, str))
         if not cache_file_function_defined:
-            ## passed cache file function name
+            # passed cache file function name
             if isinstance(cache_file_function, str):
                 cache_file_function_name = cache_file_function
-            ## default cache file function name
+            # default cache file function name
             else:
                 function_name = function.__name__
                 cache_file_function_name = '{function_name}_cache_file'.format(function_name=function_name)
 
         def wrapper(*args, **kargs):
-            ## calculate cache file
+            # calculate cache file
             if cache_file_function_defined:
                 cache_file = cache_file_function(*args, **kargs)
             else:
@@ -44,13 +44,13 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
                     else:
                         cache_file = cache_file_function_by_name(*args[1:], **kargs)
 
-            ## if cache file is defined, use cache
+            # if cache file is defined, use cache
             if cache_file is not None and load_function is not None:
-                ## if cache file is available, load cached value
+                # if cache file is available, load cached value
                 try:
                     value = load_function(cache_file)
                     util.logging.debug('Calculated value loaded from cache file {}.'.format(cache_file))
-                ## if cache file is not available, calculate value and save as cached value
+                # if cache file is not available, calculate value and save as cached value
                 except OSError:
                     util.logging.debug('No cached value found for {}.'.format(cache_file))
                     value = function(*args, **kargs)
@@ -61,7 +61,7 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
                     else:
                         util.logging.debug('Not saving calculated value to cache file {} because no save function is provided.'.format(cache_file))
 
-            ## if cache file not defined, calculate value without cache
+            # if cache file not defined, calculate value without cache
             else:
                 value = function(*args, **kargs)
 

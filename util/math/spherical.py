@@ -7,7 +7,7 @@ def to_cartesian(points, measure='degree', surface_radius=None):
 
     util.logging.debug('Converting {} coordinates to cartesian coordinates with surface radius {}.'.format(measure, surface_radius))
 
-    ## check input
+    # check input
     if measure not in ('degree', 'radian'):
         raise ValueError('Measure has to be "degree" or "radian" but it is {}.'.format(measure))
     if len(points.shape) != 2:
@@ -16,13 +16,13 @@ def to_cartesian(points, measure='degree', surface_radius=None):
         raise ValueError('Points second dimensions must be at least 3 but it is {}.'.format(points.shape[1]))
 
 
-    ## unpack points
+    # unpack points
     (n, m) = points.shape
     longitude = points[:, -3]
     latitude = points[:, -2]
     r = points[:, -1]
 
-    ## check input
+    # check input
     assert np.all(r >= 0)
     if measure == 'degree':
         assert (np.all(longitude >= -180) and np.all(longitude <= 180)) or (np.all(longitude >= 0) and np.all(longitude <= 360))
@@ -32,18 +32,18 @@ def to_cartesian(points, measure='degree', surface_radius=None):
         assert (np.all(latitude >= -np.pi/2) and np.all(latitude <= np.pi/2))
 
 
-    ## convert degree to radian
+    # convert degree to radian
     if measure == 'degree':
         util.logging.debug('Converting degree to radian.')
         longitude = np.pi * longitude / 180
         latitude = np.pi * latitude / 180
 
-    ## convert radius
+    # convert radius
     if surface_radius is not None:
         util.logging.debug('Setting radius to surface radius {} minus radius.'.format(surface_radius))
         r = surface_radius - r
 
-    ## calculate cartesian
+    # calculate cartesian
     util.logging.debug('Calulating cartesian coordinates.')
 
     long_sin = np.sin(longitude)
@@ -55,7 +55,7 @@ def to_cartesian(points, measure='degree', surface_radius=None):
     y = r * lati_cos * long_sin
     z = r * lati_sin
 
-    ## pack data
+    # pack data
     x = x.reshape([n, 1])
     y = y.reshape([n, 1])
     z = z.reshape([n, 1])

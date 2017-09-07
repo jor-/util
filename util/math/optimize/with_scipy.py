@@ -10,7 +10,7 @@ import util.logging
 
 
 def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constraints_jac=None, global_method='random_start', global_iterations=1, global_stepsize=0.5, global_stepsize_update_interval=10, local_max_iterations=10**6, local_max_fun_evals=10**6):
-    ## prepare input
+    # prepare input
     if jac is None:
         jac = lambda x: util.math.finite_differences.calculate(f, x, bounds=bounds, accuracy_order=2)[0]
 
@@ -29,7 +29,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
     if not global_method in ['random_start', 'basin_hopping']:
         raise ValueError('global_method {} has to be in {}'.format(global_method, 'random_start', 'basin_hopping'))
 
-    ## chose local methods
+    # chose local methods
     if ineq_constraints is not None:
         local_methods = ('SLSQP',)
     elif bounds is not None:
@@ -42,7 +42,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
     if bounds is not None:
         util.logging.debug('Using bounds {} for the optimization.'.format(bounds))
 
-    ## prepare local options
+    # prepare local options
     if ineq_constraints is None:
         constraints = ()
     else:
@@ -85,14 +85,14 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
 #     local_minimizer_options = {'method':'', 'jac':jac, 'constraints':constraints, 'options':{'maxiter': local_max_iterations, 'maxfun': local_max_fun_evals, 'disp':disp}}
 #     local_minimizer_options = {'method':'', 'jac':jac, 'bounds':bounds, 'options':{'maxiter': local_max_iterations, 'maxfun': local_max_fun_evals, 'disp':disp}}
 
-    ## run optimization
+    # run optimization
     x_min = None
     f_min = np.inf
 
-    ## random start point method
+    # random start point method
     if global_method == 'random_start':
 
-        ## prepare start points
+        # prepare start points
         if m < global_iterations and (bounds is None or not np.all(np.isfinite(bounds))):
             raise ValueError('Bounds must be finite if random start point method is chosen and the global iterations is greater then the number of starting points, but they are {}.'.format(bounds))
 
@@ -107,7 +107,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
                         x0s[i, j] = np.random.uniform(low=bounds[j][0], high=bounds[j][1], size=1)
                     accept_x0 = ineq_constraints(x0s[i]) >= 0
 
-        ## run all local methods and from all start points
+        # run all local methods and from all start points
         for local_method in local_methods:
             local_minimizer_options['method'] = local_method
             for x0 in x0s:
@@ -118,11 +118,11 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
                     x_min = result.x
                     f_min = result.fun
 
-    ## basin hopping method
+    # basin hopping method
     elif global_method == 'basin_hopping':
         x0 = x0[0]
 
-        ## incorporate bounds and constarints
+        # incorporate bounds and constarints
         if bounds is not None:
             global_bounds = np.empty([2, n])
             for i in range(n):
@@ -151,7 +151,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
         else:
             constraints_test = bounds_test
 
-        ## run all local methods
+        # run all local methods
         for local_method in local_methods:
             local_minimizer_options['method'] = local_method
             result = scipy.optimize.basinhopping(f, x0, minimizer_kwargs=local_minimizer_options, niter=global_iterations, disp=disp, accept_test=constraints_test, stepsize=global_stepsize, interval=global_stepsize_update_interval)
@@ -161,7 +161,7 @@ def minimize(f, x0, jac=None, bounds=None, ineq_constraints=None, ineq_constrain
                 f_min = result.fun
 
 
-    ## return result
+    # return result
     if x_min is not None:
         return (x_min, f_min)
     else:

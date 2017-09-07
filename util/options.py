@@ -11,21 +11,21 @@ import util.io.universal
 import util.logging
 
 
-## Options File
+# Options File
 
 class OptionsFile():
 
     def __init__(self, file, mode='a', replace_environment_vars_at_set=False, replace_environment_vars_at_get=False):
-        ## prepare file name
+        # prepare file name
         if os.path.isdir(file):
             file = os.path.join(file, 'options.hdf5')
         else:
             (root, ext) = os.path.splitext(file)
             if ext == '':
                 file += '.hdf5'
-        ## open
+        # open
         self.open(file, mode)
-        ## save replace variable
+        # save replace variable
         self.replace_environment_vars_at_set = replace_environment_vars_at_set
         self.replace_environment_vars_at_get = replace_environment_vars_at_get
 
@@ -41,39 +41,39 @@ class OptionsFile():
 
 
     def __setitem__(self, key, value):
-        ## check value
+        # check value
         if value is None:
             raise ValueError('Value None is not allowed (for key {}).'.format(key))
         
-        ## replace env
+        # replace env
         if self.replace_environment_vars_at_set:
             value = self._replace_environment_vars(value)
 
-        ## check if writable
+        # check if writable
         if not self.is_writable():
             raise OSError('Option file {} is not writable.'.format(self.filename))
         
-        ## insert supported types
+        # insert supported types
         try:
             f = self.__hdf5_file
-            ## set if key exists
+            # set if key exists
             try:
                 f[key][()] = value
-            ## set if key not exists
+            # set if key not exists
             except KeyError:
                 f[key] = value
         
-        ## try to insert unsupported types
+        # try to insert unsupported types
         except TypeError as e:
             successfully_inserted = False
             
-            ## if dict, insert each item since dict is not supported in HDF5
+            # if dict, insert each item since dict is not supported in HDF5
             if isinstance(value, dict):
                 for (key_i, value_i) in value.items():
                     self['{}/{}'.format(key, key_i)] = value_i
                 successfully_inserted = True
             
-            ## if iterable of unicode strings
+            # if iterable of unicode strings
             if not successfully_inserted:
                 value_array = np.asanyarray(value)
                 if value_array.dtype.kind == 'U':                
@@ -82,28 +82,28 @@ class OptionsFile():
                     dataset[:] = value_array
                     successfully_inserted = True
                     
-            ## if tuple or list with different types, insert each item since generic object arrays are not supported in HDF5
+            # if tuple or list with different types, insert each item since generic object arrays are not supported in HDF5
             if not successfully_inserted and (isinstance(value, tuple) or isinstance(value, list)):
                 for i in range(len(value)):
                     self['{}/{}'.format(key, i)] = value[i]
                 successfully_inserted = True
             
-            ## if not insertable, raise error
+            # if not insertable, raise error
             if not successfully_inserted:
                 raise TypeError('The value {} for key {} could not be stored, because this type of value is not supported in hdf5.'.format(value, key)) from e
     
 
     def __getitem__(self, name):
-        ## get value
+        # get value
         try:
             item = self.__hdf5_file[name]
         except KeyError as e:
             raise KeyError('The key {} is not in the option file {}.'.format(name, self.filename)) from e
         value = item.value
-        ## replace env
+        # replace env
         if self.replace_environment_vars_at_get:
             value = self._replace_environment_vars(value)
-        ## return
+        # return
         return value
 
 
@@ -181,7 +181,7 @@ class OptionsFile():
         return value
 
 
-    ## permissions
+    # permissions
 
     def is_writable(self):
         f = self.__hdf5_file
@@ -214,37 +214,37 @@ class OptionsFile():
         assert self.is_read_only
 
 
-    ## print
+    # print
 
     def print_all_options(self):
         f = self.__hdf5_file
 
         def print_option(name, object):
-            ## check if dataset
+            # check if dataset
             try:
                 value = object.value
             except AttributeError:
                 value = None
 
-            ## check type
+            # check type
             if value is not None:
                 print('{}: {}'.format(name, value))
 
         f.visititems(print_option)
 
 
-    ## replace str
+    # replace str
 
     def get_all_str_options(self):
         string_object_list = []
 
         def append_if_string_option(name, object):
-            ## check if dataset
+            # check if dataset
             try:
                 value = object.value
             except AttributeError:
                 pass
-            ## check type
+            # check type
             else:
                 if isinstance(value, str) or (isinstance(value, np.ndarray) and any(tuple(map(lambda v: isinstance(v[np.newaxis][0], str), np.nditer(value, flags=['refs_ok']))))):
                     string_object_list.append(name)
@@ -257,26 +257,26 @@ class OptionsFile():
 
     def replace_all_str_options(self, old_str, new_str):
         def replace_string_in_option(option, object):
-            ## check if dataset
+            # check if dataset
             try:
                 value = object.value
             except AttributeError:
                 pass
-            ## check type
+            # check type
             else:
-                ## replace in (scalar) string
+                # replace in (scalar) string
                 if isinstance(value, str):
                     new_value = value.replace(old_str, new_str)
-                ## replace in string array
+                # replace in string array
                 elif isinstance(value, np.ndarray) and all(map(lambda v: isinstance(v[np.newaxis][0], str), np.nditer(value, flags=['refs_ok']))):
                     new_value = value.copy()
                     for v in np.nditer(new_value, flags=['refs_ok'], op_flags=['readwrite']):
                         v[...] = v[np.newaxis][0].replace(old_str, new_str)
                     new_value = new_value.astype('U')
-                ## otherwise skip
+                # otherwise skip
                 else:
                     new_value = None
-                ## set replaced option value
+                # set replaced option value
                 if new_value is not None and np.any(value != new_value):
                     self[option] = new_value
                     util.logging.info('Option {} updated from {} to {}.'.format(option, value, new_value))
@@ -289,7 +289,7 @@ class OptionsFile():
 
 
 
-## Options Dict
+# Options Dict
 
 class OptionError(KeyError):
     
@@ -345,19 +345,19 @@ class OptionsBase():
         self._option_names = option_names
         self._options = {}
 
-        ## set passed and default options
+        # set passed and default options
         if default_options is not None:
             for option in default_options:
                 if options is None or option not in options:
                     self[option] = default_options[option]
 
-        ## set options
+        # set options
         if options is not None:
             for option in options:
                 self[option] = options[option]
     
     
-    ## dict methods
+    # dict methods
     
     def __getattr__(self, option):
         if self._has_option(option):
@@ -412,7 +412,7 @@ class OptionsBase():
         return '{module_name}.{class_name}({options!r})'.format(module_name=self.__module__, class_name=self.__class__.__name__,  options=self._options)
     
     
-    ## get and set options method
+    # get and set options method
     
     def _get_option(self, option):
         util.logging.debug('Getting option {}.'.format(option))
@@ -450,7 +450,7 @@ class OptionsBase():
     def _has_value(self, option):
         return option in self._options
     
-    ## copy
+    # copy
     def copy(self):
         return copy.deepcopy(self)
 
@@ -486,18 +486,18 @@ class OptionsWithListeners(OptionsBase):
         super().__init__(**kargs)
     
     
-    ## get and set options method
+    # get and set options method
     
     def _set_option(self, option, new_value):
         
-        ## check old value
+        # check old value
         if self._has_value(option):
             old_value = self._get_option(option)
             must_set = np.any(new_value != old_value)
         else:
             must_set = True
             
-        ## set new option value and call listener
+        # set new option value and call listener
         if must_set:
             super()._set_option(option, new_value)
             self._call_listeners(option)
@@ -508,16 +508,16 @@ class OptionsWithListeners(OptionsBase):
         self._call_listeners(option)
     
     
-    ## listener methods
+    # listener methods
     
     def add_listener(self, option, listener):
-        ## check input
+        # check input
         if not self._has_option(option):
             raise UnknownOptionError(option, self)
         if not callable(listener):
             raise ValueError('The listener must be callable, but it is {}.'.format(listener))
         
-        ## add listener
+        # add listener
         try:
             listener_list = self._listeners[option]
         except KeyError:

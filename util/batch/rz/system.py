@@ -12,7 +12,7 @@ from util.batch.general.system import *
 
 
 
-## batch setup
+# batch setup
 
 class BatchSystem(util.batch.general.system.BatchSystem):
 
@@ -30,12 +30,12 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
 
     def job_state(self, job_id, return_output=True):
-        ## remove suffix from job id
+        # remove suffix from job id
         SUFFIX = '.rz.uni-kiel.de'
         if job_id.endswith(SUFFIX):
             job_id = job_id[:-len(SUFFIX)]
 
-        ## call super
+        # call super
         return super().job_state(job_id, return_output=return_output, status_command_args=('-a',))
 
 
@@ -64,12 +64,12 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             return False
 
 
-    ## node setups
+    # node setups
 
     def _nodes_state_one_kind(self, kind):
         util.logging.debug('Getting nodes state for kind {}.'.format(kind))
 
-        ## grep free nodes
+        # grep free nodes
         def grep_qnodes(expression):
             command = '{} | grep -E {}'.format(self.nodes_command, expression)
             try:
@@ -111,7 +111,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
         util.logging.debug(grep_result)
 
-        ## extract free cpus and memory from grep result
+        # extract free cpus and memory from grep result
         grep_result_lines = grep_result.splitlines()
 
         number_of_nodes = len(grep_result_lines)
@@ -150,7 +150,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 BATCH_SYSTEM = BatchSystem()
 
 
-## job
+# job
 
 class Job(util.batch.general.system.Job):
 
@@ -159,7 +159,7 @@ class Job(util.batch.general.system.Job):
 
 
     def set_job_options(self, job_name, nodes_setup, queue=None):
-        ## set queue if missing
+        # set queue if missing
         cpu_kind = nodes_setup.node_kind
 
         if cpu_kind in ('f_ocean', 'f_ocean2'):
@@ -184,39 +184,39 @@ class Job(util.batch.general.system.Job):
                 else:
                     raise ValueError('Walltime hours > {} are not supported.'.format(self.batch_system.max_walltime['para_low']))
 
-        ## set cpu kind
+        # set cpu kind
         if cpu_kind == 'f_ocean2':
             cpu_kind = None
         if cpu_kind == 'shanghai':
             cpu_kind = 'all'
 
-        ## super
+        # super
         super().set_job_options(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind)
 
 
     def _job_file_header(self, use_mpi=True):
         content = []
-        ## shell
+        # shell
         content.append('#!/bin/bash')
         content.append('')
-        ## name
+        # name
         content.append('#PBS -N {}'.format(self.options['/job/name']))
-        ## output file
+        # output file
         if self.output_file is not None:
             content.append('#PBS -j oe')
             content.append('#PBS -o {}'.format(self.output_file))
-        ## queue
+        # queue
         content.append('#PBS -q {}'.format(self.options['/job/queue']))
-        ## walltime
+        # walltime
         if self.walltime_hours is not None:
             content.append('#PBS -l walltime={:02d}:00:00'.format(self.walltime_hours))
-        ## select
+        # select
         if self.cpu_kind is not None:
             cpu_kind_select = '{}=true:'.format(self.cpu_kind)
         else:
             cpu_kind_select = ''
         content.append('#PBS -l select={:d}:{}ncpus={:d}:mem={:d}gb'.format(self.options['/job/nodes'], cpu_kind_select, self.options['/job/cpus'], self.options['/job/memory_gb']))
-        ## return
+        # return
         content.append('')
         content.append('')
         return os.linesep.join(content)

@@ -12,10 +12,10 @@ import util.logging
 class Database(util.index_database.general.Database):
     
     def __init__(self, array_file, value_reliable_decimal_places=15, tolerance_options=None):
-        ## call super constructor
+        # call super constructor
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
         
-        ## set array file
+        # set array file
         self.array_file = array_file
     
     
@@ -23,7 +23,7 @@ class Database(util.index_database.general.Database):
         return 'Index array database {}'.format(self.locked_file.file)
     
     
-    ## setter and getter for file
+    # setter and getter for file
     
     @property
     def array_file(self):
@@ -31,27 +31,27 @@ class Database(util.index_database.general.Database):
     
     @array_file.setter
     def array_file(self, array_file): 
-        ## create dir if not existing
+        # create dir if not existing
         os.makedirs(os.path.dirname(array_file), exist_ok=True)
 
-        ## set array file
+        # set array file
         self.locked_file = util.io.filelock.np.LockedFile(array_file)
     
     
-    ## access
+    # access
     
     def get_value(self, index):
-        ## load database array
+        # load database array
         try:
             db = self.locked_file.load()
         except FileNotFoundError:
             raise util.index_database.general.DatabaseIndexError(self, index)
-        ## get value at index
+        # get value at index
         try:
             value = db[index]
         except IndexError:
             raise util.index_database.general.DatabaseIndexError(self, index)
-        ## check if valid value is at index 
+        # check if valid value is at index 
         if np.all(np.isnan(value)):
             raise util.index_database.general.DatabaseIndexError(self, index)
         else:

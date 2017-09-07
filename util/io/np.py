@@ -30,7 +30,7 @@ def add_file_ext(file, compressed=False):
 
 
 def save(file, values, compressed=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
-    ## check input values
+    # check input values
     is_values_dict = isinstance(values, dict)
     is_values_tuple = (isinstance(values, tuple) or isinstance(values, list)) and all(map(lambda a: isinstance(a, np.ndarray), values))
     
@@ -43,24 +43,24 @@ def save(file, values, compressed=None, make_read_only=False, overwrite=False, c
         if is_values_dict or is_values_tuple:
             raise ValueError('Multiple values {} can only be stored in "npz" file format, but the file {} has ending "npy".'.format(file))
     
-    ## set file ext
+    # set file ext
     use_npz = is_values_dict or is_values_tuple or (compressed is not None and compressed) or is_file(file, compressed=True)    
     file = add_file_ext(file, compressed=use_npz)
     
-    ## set compressed if not passed
+    # set compressed if not passed
     if compressed is None:
         compressed = use_npz
     
-    ## create dir
+    # create dir
     if create_path_if_not_exists:
         (dir, filename) = os.path.split(file)
         os.makedirs(dir, exist_ok=True)
     
-    ## remove if overwrite
+    # remove if overwrite
     if overwrite:
         util.io.fs.remove_file(file, force=True, not_exist_okay=True)
     
-    ## save
+    # save
     if use_npz:
         if compressed:
             np.savez_compressed(file, values)
@@ -69,15 +69,15 @@ def save(file, values, compressed=None, make_read_only=False, overwrite=False, c
     else:
         np.save(file, values)
     
-    ## make read only
+    # make read only
     if make_read_only:
         util.io.fs.make_read_only(file)
     
 
 def load(file, mmap_mode=None):
-    ## load value
+    # load value
     value = np.load(file,mmap_mode=mmap_mode)
-    ## unpack value if npz file with one variable
+    # unpack value if npz file with one variable
     try:
         value.keys
     except AttributeError:
@@ -86,7 +86,7 @@ def load(file, mmap_mode=None):
         keys = value.keys()
         if len(keys) == 1:
             value = value[keys[0]]
-    ## return
+    # return
     return value
 
 
@@ -96,7 +96,7 @@ def save_txt(file, values, format_string=None, make_read_only=False, overwrite=F
     if len(values.shape) == 0:
         values = values.reshape(1)
 
-    ## chose format string if not passed
+    # chose format string if not passed
     if format_string is None:
         if values.dtype == np.int:
             format_string = '%d'
@@ -114,15 +114,15 @@ def save_txt(file, values, format_string=None, make_read_only=False, overwrite=F
 
 
 def load_txt(file):
-    ## load values from file
+    # load values from file
     values = np.loadtxt(file)
 
-    ## cast to int if possible
+    # cast to int if possible
     values_int = values.astype(np.int)
     if (values_int == values).all():
         values = values_int
 
-    ## if only one value return pure value
+    # if only one value return pure value
     if values.size == 1:
         values = values[0]
 

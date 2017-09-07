@@ -12,23 +12,23 @@ def csr_matrix(value_function, shape, value_range, dtype=None, number_of_process
 
     assert callable(value_function)
 
-    ## prepare values for pool
+    # prepare values for pool
     if number_of_processes is None:
         number_of_processes = multiprocessing.cpu_count()
     if chunksize is None:
         chunksize = max([int(len(value_range) / (number_of_processes*10**3)), 1])
 
-    ## get data
+    # get data
     util.logging.debug('Creating crs matrix of shape {} and type {} with {} processes and chunksize {}.'.format(shape, dtype, number_of_processes, chunksize))
 
-    ## add values to matrix
+    # add values to matrix
     def sum_values_to_csr_matrix(results):
         i = 0
 
-        ## init matrix
+        # init matrix
         m = scipy.sparse.csr_matrix(shape, dtype=dtype)
 
-        ## add results
+        # add results
         for m_i in results:
             util.logging.debug('Adding values for index {} to total matrix.'.format(i))
             m = m + m_i
@@ -36,12 +36,12 @@ def csr_matrix(value_function, shape, value_range, dtype=None, number_of_process
 
         return m
 
-    ## parallel
+    # parallel
     if number_of_processes > 1:
         with multiprocessing.pool.Pool(processes=number_of_processes) as pool:
             results = pool.imap(value_function, value_range, chunksize=chunksize)
             m = sum_values_to_csr_matrix(results)
-    ## serial
+    # serial
     else:
         results = map(value_function, value_range)
         m = sum_values_to_csr_matrix(results)

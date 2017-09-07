@@ -76,10 +76,10 @@ def map_parallel_with_args(function, values, *args):
 #             yield tuple(list_function_args)
 #
 #
-#     ## execute in parallel
+#     # execute in parallel
 #     results = map_parallel(function, function_arg_generator(shape, function_args, index_position))
 #
-#     ## create array
+#     # create array
 #     array = np.array(list(results))
 #     util.logging.debug('Got {} results in parallel.'.format(len(array)))
 #     array = array.reshape(shape)
@@ -89,7 +89,7 @@ def map_parallel_with_args(function, values, *args):
 # # def create_array(shape, function, function_args=None, function_args_first=True):
 # #     util.logging.debug('Creating array with shape {} in parallel with scoop.'.format(shape))
 # #
-# #     ## create indices
+# #     # create indices
 # #     indices = np.ndindex(*shape)
 # #     if function_args is None:
 # #         function_args = ()
@@ -98,10 +98,10 @@ def map_parallel_with_args(function, values, *args):
 # #     else:
 # #         indices = [(i, function_args) for i in indices]
 # #
-# #     ## execute in parallel
+# #     # execute in parallel
 # #     results = map(function, indices)
 # #
-# #     ## create array
+# #     # create array
 # #     array = np.array(list(results))
 # #     util.logging.debug('Got {} results in parallel.'.format(len(array)))
 # #     array = array.reshape(shape)
@@ -110,10 +110,10 @@ def map_parallel_with_args(function, values, *args):
 
 
 # def is_scoop_loaded():
-#     ## check if root process is running with scoop
+#     # check if root process is running with scoop
 #     try:
 #         globals()['scoop']
 #         return True
-#     ## check if worker process
+#     # check if worker process
 #     except KeyError:
 #         return globals()['__name__']=='SCOOP_WORKER'

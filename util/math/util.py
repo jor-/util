@@ -30,13 +30,13 @@ def max_dtype(a, b):
 
 
 def min_int_dtype(*values, unsigned=False):    
-    ## get max value
+    # get max value
     if len(values) > 0:
         max_value = max(values)
     else:
         max_value = 0
 
-    ## get dtype
+    # get dtype
     if unsigned:
         int_dtypes = (np.uint8, np.uint16, np.uint32, np.uint64)
     else:
@@ -46,7 +46,7 @@ def min_int_dtype(*values, unsigned=False):
         i = i+1
     dtype = int_dtypes[i]
     
-    ## return 
+    # return 
     util.logging.debug('Minimal int dtype (unsigned={}) for values {} is {}.'.format(unsigned, values, dtype))
     return dtype
 

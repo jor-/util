@@ -5,7 +5,7 @@ import numpy as np
 def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps=None, use_always_typical_x=True):
     x = np.asanyarray(x)
     
-    ## init unpassed values
+    # init unpassed values
     if typical_x is None:
         typical_x = np.ones_like(x)
     elif not len(x) == len(typical_x):
@@ -15,7 +15,7 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
     else:
         bounds = np.asanyarray(bounds)
 
-    ## set h factors according to accuracy
+    # set h factors according to accuracy
     if accuracy_order == 1:
         h_factors = (1,)
         if eps is None:
@@ -27,22 +27,22 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
     else:
         raise ValueError('Accuracy order {} not supported.'.format(accuracy_order))
     
-    ## calculate f(x) if needed
+    # calculate f(x) if needed
     if f_x is None and accuracy_order == 1:
         f_x =  f(x)
 
-    ## init values
+    # init values
     n = len(x)
     m = len(h_factors)
     df = None
 
-    ## for each x dim
+    # for each x dim
     for i in range(n):
         h = np.empty(m, dtype=np.float64)
         
-        ## for each h factor
+        # for each h factor
         for j in range(m):
-            ## calculate h
+            # calculate h
             if use_always_typical_x:
                 typical_x_i = np.abs(typical_x[i])
             else:
@@ -53,7 +53,7 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
             x_h = np.array(x, dtype=np.float64, copy=True)
             x_h[i] += h[j]
 
-            ## consider bounds
+            # consider bounds
             lower_bound = bounds[i][0]
             upper_bound = bounds[i][1]
             violates_lower_bound = x_h[i] < lower_bound
@@ -70,10 +70,10 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
                     else:
                         x_h[i] = upper_bound
             
-            ## recalculate h   (improvement of accuracy of h)
+            # recalculate h   (improvement of accuracy of h)
             h[j] = x_h[i] - x[i]
 
-            ## eval f and add to df
+            # eval f and add to df
             f_x_h = f(x_h)
             f_x_h = np.asanyarray(f_x_h)
 
@@ -83,7 +83,7 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
             
             df[i] += (-1)**j * f_x_h
 
-        ## calculate df_i
+        # calculate df_i
         if accuracy_order == 1:
             df[i] -= f_x
             df[i] /= h

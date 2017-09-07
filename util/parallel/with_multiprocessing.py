@@ -10,12 +10,12 @@ import util.logging
 
 
 
-## sharred array
+# sharred array
 
 def shared_array_generic(size_or_initializer, shape, dtype=np.float64):
     util.logging.debug('Creating shared array with shape {} and dtype {}.'.format(shape, dtype))
 
-    ## convert numpy type to C type
+    # convert numpy type to C type
     if dtype.type is np.int64:
         ctype = ctypes.c_int64
     elif dtype.type is np.int32:
@@ -34,12 +34,12 @@ def shared_array_generic(size_or_initializer, shape, dtype=np.float64):
         raise ValueError('Data type {} of array is not supported.'.format(dtype.type))
     util.logging.debug('Using ctype {}'.format(ctype))
 
-    ## make shared array
+    # make shared array
     shared_array_base = multiprocessing.Array(ctype, size_or_initializer, lock=False)
     shared_array = np.frombuffer(shared_array_base, dtype)
     shared_array.shape = shape   # prevent copy
 
-    ## return
+    # return
     util.logging.debug('Shared array created.')
     return shared_array
 
@@ -48,7 +48,7 @@ def shared_array(array):
     if array is not None:
         util.logging.debug('Creating shared array from array.')
     #     shared_array = shared_array_generic(array.flat, array.shape, array.dtype, lock=lock)
-        shared_array = shared_array_generic(array.size, array.shape, array.dtype) ## do not use initializer ->  it needs additional memory
+        shared_array = shared_array_generic(array.size, array.shape, array.dtype) # do not use initializer ->  it needs additional memory
         shared_array[:] = array[:]
     #     np.testing.assert_array_equal(shared_array, array)
         return shared_array
@@ -62,13 +62,13 @@ def shared_zeros(shape, dtype=np.float64):
 
 
 def share_all_arrays(args):
-    ## make list
+    # make list
     if args is not None:
         args_list = list(args)
     else:
         args_list = []
 
-    ## share arrays
+    # share arrays
     for i in range(len(args_list)):
         arg = args_list[i]
 
@@ -76,13 +76,13 @@ def share_all_arrays(args):
             util.logging.debug('Sharing array at index {}.'.format(i))
             args_list[i] = shared_array(arg)
 
-    ## return args
+    # return args
     args = type(args)(args_list)
     return args
 
 
 
-## map functions
+# map functions
 
 def map_parallel(function, values, number_of_processes=None, chunksize=1):
     assert callable(function)
@@ -113,20 +113,20 @@ def starmap_parallel(function, values, number_of_processes=None, chunksize=1):
 
 
 
-## shared arguments
+# shared arguments
 
 def create_array_with_shared_kargs(shape, function, **kargs):
     util.logging.debug('Creating array with shape {} with multiprocessing and {} shared kargs.'.format(shape, len(kargs)))
 
-    ## prepare indices
+    # prepare indices
     indices = np.ndindex(*shape)
 
-    ## execute in parallel
+    # execute in parallel
     with GlobalKargs(**kargs):
         results = map_parallel(eval_with_global_kargs, indices)
         array = np.array(tuple(results))
 
-    ## create array
+    # create array
     util.logging.debug('Calculation completed. Got {} results.'.format(len(array)))
     array = array.reshape(shape)
     return array
@@ -136,7 +136,7 @@ def create_array_with_shared_kargs(shape, function, **kargs):
 def map_parallel_with_args(function, indices, *args, number_of_processes=None, chunksize=1, share_args=True):
     util.logging.debug('Mapping function with {} args of types {} and share {} to values with multiprocessing.'.format(len(args), tuple(map(type, args)), share_args))
 
-    ## execute in parallel
+    # execute in parallel
     if share_args:
 #         args = share_all_arrays(args, lock=False)
 #         values = util.parallel.universal.args_generator_with_indices(indices, (function,))
@@ -153,7 +153,7 @@ def map_parallel_with_args(function, indices, *args, number_of_processes=None, c
 
 
 
-## global args
+# global args
 
 class MultipleUseError(Exception):
 
@@ -166,11 +166,11 @@ class MultipleUseError(Exception):
 
 class GlobalKargs:
     def __init__(self, f, **kargs):
-        ## store kargs
+        # store kargs
         self.f = f
         self.kargs = kargs
 
-        ## init global variable
+        # init global variable
         global _global_kargs
         try:
             _global_kargs
@@ -180,7 +180,7 @@ class GlobalKargs:
     def __enter__(self):
         util.logging.debug('Storing {} global kargs of types {}.'.format(len(self.kargs), tuple(map(type, self.kargs))))
 
-        ## store global variable
+        # store global variable
         global _global_kargs
         global _global_kargs_f
         if _global_kargs is None:
@@ -192,7 +192,7 @@ class GlobalKargs:
     def __exit__(self, exc_type, exc_value, traceback):
         util.logging.debug('Deleting global kargs.')
 
-        ## del global variable
+        # del global variable
         if exc_type is not MultipleUseError:
             global _global_kargs
             global _global_kargs_f
@@ -202,11 +202,11 @@ class GlobalKargs:
 
 class GlobalArgs:
     def __init__(self, f, *args):
-        ## store args
+        # store args
         self.f = f
         self.args = args
 
-        ## init global variable
+        # init global variable
         global _global_args
         try:
             _global_args
@@ -216,7 +216,7 @@ class GlobalArgs:
     def __enter__(self):
         util.logging.debug('Storing {} global args of types {}.'.format(len(self.args), tuple(map(type, self.args))))
 
-        ## store global vari_global_args_fable
+        # store global vari_global_args_fable
         global _global_args
         global _global_args_f
         if _global_args is None:
@@ -228,7 +228,7 @@ class GlobalArgs:
     def __exit__(self, exc_type, exc_value, traceback):
         util.logging.debug('Deleting global args.')
 
-        ## del global variable
+        # del global variable
         if exc_type is not MultipleUseError:
             global _global_args
             global _global_args_f
@@ -257,7 +257,7 @@ def eval_with_global_args(i):
 
 
 
-##############################
+########
 # import numpy as np
 # import ctypes
 #
@@ -270,12 +270,12 @@ def eval_with_global_args(i):
 #
 #
 #
-# ## sharred array
+# # sharred array
 #
 # def shared_array_generic(size_or_initializer, shape, dtype=np.float64, lock=True):
 #     util.logging.debug('Creating shared array with shape {}, dtype {} and lock {}.'.format(shape, dtype, lock))
 #
-#     ## convert numpy type to C type
+#     # convert numpy type to C type
 #     if dtype.type is np.int64:
 #         ctype = ctypes.c_int64
 #     elif dtype.type is np.int32:
@@ -294,12 +294,12 @@ def eval_with_global_args(i):
 #         raise ValueError('Data type {} of array is not supported.'.format(dtype.type))
 #     util.logging.debug('Using ctype {}'.format(ctype))
 #
-#     ## make shared array
+#     # make shared array
 #     shared_array_base = multiprocessing.Array(ctype, size_or_initializer, lock=lock)
 #     shared_array = np.frombuffer(shared_array_base, dtype)
 #     shared_array.shape = shape   # prevent copy
 #
-#     ## return
+#     # return
 #     util.logging.debug('Shared array created.')
 #     return shared_array
 #
@@ -308,7 +308,7 @@ def eval_with_global_args(i):
 #     if array is not None:
 #         util.logging.debug('Creating shared array from array.')
 #     #     shared_array = shared_array_generic(array.flat, array.shape, array.dtype, lock=lock)
-#         shared_array = shared_array_generic(array.size, array.shape, array.dtype, lock=lock) ## do not use initializer ->  it needs additional memory
+#         shared_array = shared_array_generic(array.size, array.shape, array.dtype, lock=lock) # do not use initializer ->  it needs additional memory
 #         shared_array[:] = array[:]
 #     #     np.testing.assert_array_equal(shared_array, array)
 #         return shared_array
@@ -322,13 +322,13 @@ def eval_with_global_args(i):
 #
 #
 # def share_all_arrays(args, lock=True):
-#     ## make list
+#     # make list
 #     if args is not None:
 #         args_list = list(args)
 #     else:
 #         args_list = []
 #
-#     ## share arrays
+#     # share arrays
 #     for i in range(len(args_list)):
 #         arg = args_list[i]
 #
@@ -336,13 +336,13 @@ def eval_with_global_args(i):
 #             util.logging.debug('Sharing array at index {}.'.format(i))
 #             args_list[i] = shared_array(arg, lock=lock)
 #
-#     ## return args
+#     # return args
 #     args = type(args)(args_list)
 #     return args
 #
 #
 #
-# ## map functions
+# # map functions
 #
 # def map_parallel(function, values, number_of_processes=None, chunksize=1):
 #     assert callable(function)
@@ -372,7 +372,7 @@ def eval_with_global_args(i):
 #     return results
 #
 #
-# ## shared arguments
+# # shared arguments
 #
 # class MultipleUseError(Exception):
 #
@@ -385,10 +385,10 @@ def eval_with_global_args(i):
 #
 # class GlobalKargs:
 #     def __init__(self, **kargs):
-#         ## store kargs
+#         # store kargs
 #         self.kargs = kargs
 #
-#         ## init global variable
+#         # init global variable
 #         global _global_kargs
 #         try:
 #             _global_kargs
@@ -398,7 +398,7 @@ def eval_with_global_args(i):
 #     def __enter__(self):
 #         util.logging.debug('Storing {} global kargs of types {}.'.format(len(self.kargs), tuple(map(type, self.kargs))))
 #
-#         ## store global variable
+#         # store global variable
 #         global _global_kargs
 #         if _global_kargs is None:
 #             _global_kargs = self.kargs
@@ -408,7 +408,7 @@ def eval_with_global_args(i):
 #     def __exit__(self, exc_type, exc_value, traceback):
 #         util.logging.debug('Deleting global kargs.')
 #
-#         ## del global variable
+#         # del global variable
 #         if exc_type is not MultipleUseError:
 #             global _global_kargs
 #             _global_kargs = None
@@ -416,10 +416,10 @@ def eval_with_global_args(i):
 #
 # class GlobalArgs:
 #     def __init__(self, *args):
-#         ## store args
+#         # store args
 #         self.args = args
 #
-#         ## init global variable
+#         # init global variable
 #         global _global_args
 #         try:
 #             _global_args
@@ -429,7 +429,7 @@ def eval_with_global_args(i):
 #     def __enter__(self):
 #         util.logging.debug('Storing {} global args of types {}.'.format(len(self.args), tuple(map(type, self.args))))
 #
-#         ## store global variable
+#         # store global variable
 #         global _global_args
 #         if _global_args is None:
 #             _global_args = self.args
@@ -439,7 +439,7 @@ def eval_with_global_args(i):
 #     def __exit__(self, exc_type, exc_value, traceback):
 #         util.logging.debug('Deleting global args.')
 #
-#         ## del global variable
+#         # del global variable
 #         if exc_type is not MultipleUseError:
 #             global _global_args
 #             _global_args = None
@@ -466,21 +466,21 @@ def eval_with_global_args(i):
 # def create_array_with_shared_kargs(shape, function, **kargs):
 #     util.logging.debug('Creating array with shape {} with multiprocessing and {} shared kargs.'.format(shape, len(kargs)))
 #
-# #     ## prepare input args
+# #     # prepare input args
 # #     values = util.parallel.universal.args_generator_with_shape(shape, (eval_with_global_kargs, function))
 # #
-# #     ## execute in parallel
+# #     # execute in parallel
 # #     with GlobalKargs(**kargs):
 # #         results = map_parallel(util.parallel.universal.eval_function_with_index_and_args, values)
 #
-#     ## prepare input args
+#     # prepare input args
 #     values = util.parallel.universal.args_generator_with_shape(shape, (function,))
 #
-#     ## execute in parallel
+#     # execute in parallel
 #     with GlobalKargs(**kargs):
 #         results = starmap_parallel(eval_with_global_args, values)
 #
-#     ## create array
+#     # create array
 #     array = np.array(list(results))
 #     util.logging.debug('Calculation completed. Got {} results.'.format(len(array)))
 #     array = array.reshape(shape)
@@ -490,14 +490,14 @@ def eval_with_global_args(i):
 # # def create_array_with_shared_args(shape, function, *args):
 # #     util.logging.debug('Creating array with shape {} with multiprocessing and shared args.'.format(shape))
 # #
-# #     ## prepare input args
+# #     # prepare input args
 # #     values = args_generator(shape, (function,))
 # #
-# #     ## execute in parallel
+# #     # execute in parallel
 # #     with GlobalArgs(*args):
 # #         results = map_parallel(eval_with_global_args_zipped, values)
 # #
-# #     ## create array
+# #     # create array
 # #     array = np.array(list(results))
 # #     util.logging.debug('Calculation completed. Got {} results.'.format(len(array)))
 # #     array = array.reshape(shape)
@@ -508,7 +508,7 @@ def eval_with_global_args(i):
 # # def map_parallel_with_args(function, values, *args, number_of_processes=None, chunksize=1, share_args=True):
 # #     util.logging.debug('Mapping function with {} args and share {} to values.'.format(len(args), share_args))
 # #
-# #     ## execute in parallel
+# #     # execute in parallel
 # #     if share_args:
 # #         values = util.parallel.universal.args_generator_with_indices(values, (function))
 # #         with GlobalArgs(*args):
@@ -522,7 +522,7 @@ def eval_with_global_args(i):
 # # def map_parallel_with_args(function, values, *args, number_of_processes=None, chunksize=1, share_args=True):
 # #     util.logging.debug('Mapping function with {} args of types {} and share {} to values.'.format(len(args), map(type, args), share_args))
 # #
-# #     ## execute in parallel
+# #     # execute in parallel
 # #     if share_args:
 # #         values = util.parallel.universal.args_generator_with_indices(values, (eval_with_global_args, function))
 # #         with GlobalArgs(*args):
@@ -536,7 +536,7 @@ def eval_with_global_args(i):
 # def map_parallel_with_args(function, indices, *args, number_of_processes=None, chunksize=1, share_args=True):
 #     util.logging.debug('Mapping function with {} args of types {} and share {} to values with multiprocessing.'.format(len(args), tuple(map(type, args)), share_args))
 #
-#     ## execute in parallel
+#     # execute in parallel
 #     if share_args:
 # #         args = share_all_arrays(args, lock=False)
 #         values = util.parallel.universal.args_generator_with_indices(indices, (function,))
@@ -554,7 +554,7 @@ def eval_with_global_args(i):
 # #     util.logging.debug('Creating array with shape {} with multiprocessing, {} args and share {}.'.format(shape, len(args), share_args))
 # #
 # #
-# #     ## create array
+# #     # create array
 # #     array = np.array(list(results))
 # #     util.logging.debug('Calculation completed. Got {} results.'.format(len(array)))
 # #     array = array.reshape(shape)
@@ -570,7 +570,7 @@ def eval_with_global_args(i):
 # # def create_array(shape, function, function_args=None, function_args_first=True, number_of_processes=None, chunksize=1):
 # #     util.logging.debug('Creating array with shape {} in parallel with multiprocessing.'.format(shape))
 # #
-# #     ## create indices
+# #     # create indices
 # #     indices = np.ndindex(*shape)
 # #     if function_args is None:
 # #         function_args = ()
@@ -579,10 +579,10 @@ def eval_with_global_args(i):
 # #     else:
 # #         indices = [(i,) + function_args for i in indices]
 # #
-# #     ## execute in parallel
+# #     # execute in parallel
 # #     results = starmap(function, indices, number_of_processes=number_of_processes, chunksize=chunksize)
 # #
-# #     ## create array
+# #     # create array
 # #     array = np.array(results).reshape(shape)
 # #     return array
 #
@@ -617,7 +617,7 @@ def eval_with_global_args(i):
 # # util.logging.= multiprocessing.get_util.logging.)
 # #
 # # def shared_zeros(shape, lock=True):
-# #     ## create a shared numpy array
+# #     # create a shared numpy array
 # #     shape = np.asarray(shape)
 # #     size = int(shape.prod())
 # #

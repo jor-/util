@@ -6,7 +6,7 @@ import cachetools.keys
 import util.cache.auxiliary
 
 
-## hash
+# hash
 
 _kwargs_mark = (object(),)
 
@@ -28,7 +28,7 @@ def typed_hash_key(*args, **kwargs):
     return key
 
 
-## dependency
+# dependency
 
 _dependency_mark = (object(),)
 
@@ -67,7 +67,7 @@ def add_dependency_to_key(key=hash_key, dependency=None):
     return key
     
 
-## decorator
+# decorator
 
 def decorator(maxsize=1, key=hash_key, lock=None, dependency=None):
     key = add_dependency_to_key(key, dependency=dependency)
@@ -85,19 +85,19 @@ def method_decorator(maxsize=1, key=hash_key, lock=None, dependency=None, shared
             method_name = method.__name__
         
             def get_cache(self):
-                ## cache dict
+                # cache dict
                 try:
                     cache_dict = self.__cache_dict__
                 except AttributeError:
                     cache_dict = {}
                     self.__cache_dict__ = cache_dict
-                ## cache for method
+                # cache for method
                 try:
                     cache = cache_dict[method_name]
                 except KeyError:
                     cache = cachetools.LRUCache(maxsize=maxsize)
                     cache_dict[method_name] = cache
-                ## return cache
+                # return cache
                 return cache
             
             wrapper = cachetools.cachedmethod(get_cache, key=key, lock=lock)(method)

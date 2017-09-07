@@ -10,17 +10,17 @@ class Database:
     
     def __init__(self, value_reliable_decimal_places=18, tolerance_options=None):
         
-        ## set value format
+        # set value format
         value_reliable_decimal_places = int(value_reliable_decimal_places)
         assert value_reliable_decimal_places >= 0
         self.value_fmt = '%.{}f'.format(value_reliable_decimal_places)
 
-        ## set tolerance options
+        # set tolerance options
         if tolerance_options is None:
             tolerance_options = {}
         self._tolerance_options = {}
         
-        ## set relative option
+        # set relative option
         try:
             relative = tolerance_options['relative']
         except KeyError:
@@ -35,10 +35,10 @@ class Database:
         
         self._tolerance_options['relative'] = relative
 
-        ## min absolute tolerance
+        # min absolute tolerance
         min_absolute_tolerance = 10**(-value_reliable_decimal_places)
 
-        ## set absolute option
+        # set absolute option
         try:
             absolute = tolerance_options['absolute']
         except KeyError:
@@ -57,14 +57,14 @@ class Database:
         
         self._tolerance_options['absolute'] = absolute
         
-        ## check both options
+        # check both options
         if not (len(self._tolerance_options['absolute']) == 1 or len(self._tolerance_options['relative']) == 1 or len(self._tolerance_options['relative']) == len(self._tolerance_options['absolute'])):
             raise ValueError('The relative and absolute tolerances habe to be scalaras or arrays of equal length, but the relative tolerance is {} and the absolute is {}.'.format(self._tolerance_options['relative'], self._tolerance_options['absolute']))
         
         util.logging.debug('Index database initiated with {} value format and tolerance options {}.'.format(self.value_fmt, self._tolerance_options))
         
     
-    ## tolerances
+    # tolerances
     
     @property
     def relative_tolerance(self):
@@ -75,10 +75,10 @@ class Database:
         return self._tolerance_options['absolute']
     
 
-    ## value comparison
+    # value comparison
     
     def value_difference(self, v1, v2):
-        ## check input
+        # check input
         if len(v1) != len(v2):
             raise ValueError('Both values must have equal lengths, but length of {} is {} and length of {} is {}.'.format(v1, len(v1), v2, len(v2)))
         if not len(self.relative_tolerance) in (1, len(v1)):
@@ -87,7 +87,7 @@ class Database:
             raise ValueError('The absolute tolerances must be a scalar or of equal length as the values, but the absolute tolerance is {} with length {} and the values have length {}.'.format(self.absolute_tolerance, len(self.absolute_tolerance), len(v1)))
             
         
-        ## calculate value weights
+        # calculate value weights
         relative_weights = np.minimum(np.abs(v1), np.abs(v2))
 
         assert len(self.relative_tolerance) in (1, len(v1))
@@ -95,7 +95,7 @@ class Database:
         total_weights = np.maximum(relative_weights * self.relative_tolerance, self.absolute_tolerance)
         assert np.all(total_weights > 0)
         
-        ## calculate max difference
+        # calculate max difference
         value_differences = np.abs(v1 - v2) / total_weights
         value_difference = value_differences.max()
 
@@ -106,7 +106,7 @@ class Database:
         return self.value_difference(v1, v2) <= 1
     
     
-    ## access to values
+    # access to values
 
     @abc.abstractmethod
     def get_value(self, index):
@@ -130,10 +130,10 @@ class Database:
     def add_value(self, value):
         util.logging.debug('{}: Adding value {}'.format(self, value))
         
-        ## get used indices
+        # get used indices
         used_indices = self.used_indices()
         
-        ## create value
+        # create value
         index = 0
         created = False
         while not created:
@@ -147,7 +147,7 @@ class Database:
             else:
                 index += 1
         
-        ## return index
+        # return index
         util.logging.debug('{}: Value {} added with index {}.'.format(self, value, index))
         return index
 
@@ -155,7 +155,7 @@ class Database:
         np.vstack(map(self.get_value, self.used_indices))
 
     
-    ## access to indices
+    # access to indices
     
     @abc.abstractmethod
     def used_indices(self):
@@ -173,15 +173,15 @@ class Database:
         util.logging.debug('{}: Calculating closest indices for value {}.'.format(self, value))
         value = np.asanyarray(value)
         
-        ## get all used indices
+        # get all used indices
         used_indices = self.used_indices()
         used_indices = np.asarray(used_indices)
         
-        ## init value differences
+        # init value differences
         n = len(used_indices)
         value_differences = np.empty(n)
 
-        ## calculate value differences
+        # calculate value differences
         for i in range(n):
             current_index = used_indices[i]
             try:
@@ -192,7 +192,7 @@ class Database:
             else:
                 value_differences[i] = self.value_difference(value, current_value)
         
-        ## return sorted indices
+        # return sorted indices
         sort = np.argsort(value_differences)
         return used_indices[sort]
 
@@ -200,10 +200,10 @@ class Database:
     def closest_index(self, value):
         util.logging.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
         
-        ## get closest indices
+        # get closest indices
         closest_indices = self.closest_indices(value)
         
-        ## return
+        # return
         if len(closest_indices) > 0:
             util.logging.debug('{}: Closest index is {}.'.format(self, closest_indices[0]))
             return closest_indices[0]
@@ -213,7 +213,7 @@ class Database:
 
 
     def index(self, value):
-        ## search for directories with matching parameters
+        # search for directories with matching parameters
         util.logging.debug('{}: Searching for index of value {}.'.format(self, value))
 
         closest_index = self.closest_index(value)

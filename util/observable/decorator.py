@@ -23,14 +23,14 @@ class Observable:
         self._everything_observers = []
         
     
-    ## observer methods
+    # observer methods
     
     def add_observer(self, observer, observable_name=None):
-        ## get everything observer list if no observable name is specified
+        # get everything observer list if no observable name is specified
         if observable_name is None:
             observer_list = self._everything_observers
         
-        ## get specific observer list if observable name is specified
+        # get specific observer list if observable name is specified
         else:
             try:
                 observer_list = self._observers[observable_name]
@@ -38,42 +38,42 @@ class Observable:
                 observer_list = []
                 self._observers[observable_name] = observer_list
         
-        ## add observer
+        # add observer
         observer_list.append(observer)
         
     
     def remove_observer(self, observer, observable_name=None):
-        ## get everything observer list if no observable name is specified
+        # get everything observer list if no observable name is specified
         if observable_name is None:
             observer_list = self._everything_observers
         
-        ## get specific observer list if observable name is specified
+        # get specific observer list if observable name is specified
         else:
             try:
                 observer_list = self._observers[observable_name]
             except KeyError:
                 raise UnknownObserverError(observer, observable_name=observable_name)
         
-        ## remove observer
+        # remove observer
         try:
             observer_list.remove(observer)
         except ValueError:
             raise UnknownObserverError(observer, observable_name=observable_name)
         
-        ## remove also list if empty
+        # remove also list if empty
         if observable_name is not None and len(observer_listobserver_list) == 0:
             del self._observers[observable_name]
 
     
     def get_observers(self, observable_name=None, include_everything_observers=True):
-        ## get specifiy observer
+        # get specifiy observer
         if observable_name is not None:
             try:
                 specific_observer = self._observers[observable_name]
             except KeyError:
                 specific_observer = []
         
-        ## get all observer
+        # get all observer
         if include_everything_observers:
             all_observer = self._everything_observers.copy()
         else:
@@ -95,7 +95,7 @@ class Observable:
             observable.add_observer(observer, observable_name=observable_name)
     
     
-    ## get and set observable_names method
+    # get and set observable_names method
     
     def _set_value(self, observable_name, new_value):
         raise NotImplementedError()
@@ -113,20 +113,20 @@ class Observable:
     
     def _set_observable(self, observable_name, new_value):
         
-        ## check old value
+        # check old value
         if self._has_value(observable_name):
             old_value = self.new_value(observable_name)
             
-            ## set only if different value
+            # set only if different value
             must_set = np.any(new_value != old_value)
             if must_set:
                 
-                ## if values are observable_names with observers call associated observers of sub observable_names
+                # if values are observable_names with observers call associated observers of sub observable_names
                 if isinstance(old_value, Observable) and isinstance(new_value, Observable):
-                    ## copy observer
+                    # copy observer
                     old_value.copy_observers_to(new_value)
                     
-                    ## notify old observer
+                    # notify old observer
                     old_value._notify_observers(observable_name=None, include_everything_observers=True)
                     for observable_name in old_value._observers.keys():
                         old_has_value = old_value._has_value(observable_name)
@@ -137,7 +137,7 @@ class Observable:
             must_set = True
         
             
-        ## set new observable_name value and call observer
+        # set new observable_name value and call observer
         if must_set:
             self._set_value(observable_name, new_value)
             self._notify_observers(observable_name)

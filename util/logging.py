@@ -60,12 +60,12 @@ class Logger():
             self.log_file = log_file
             self.handlers = []
 
-            ## set logger
+            # set logger
             level = level.upper()
             logger.setLevel(level)
             self.logger = logger
 
-            ## create formatter
+            # create formatter
             formatter_normal = logging.Formatter(
                 "%(levelname)-8s %(module)s:%(lineno)d -> %(message)s",
                 datefmt=None,
@@ -90,14 +90,14 @@ class Logger():
             else:
                 formatter_stdout = formatter_normal
 
-            ## add stdout and stderr handler
+            # add stdout and stderr handler
             if disp_stdout:
                 if not self.has_stream_handler(sys.stdout) and not self.has_stream_handler(sys.stderr):
                     handler = logging.StreamHandler(sys.stdout)
                     handler.setFormatter(formatter_stdout)
                     self.add_handler(handler)
 
-            ## add log file handler
+            # add log file handler
             if log_file is not None and log_file != '':
                 try:
                     os.remove(log_file)
@@ -107,11 +107,11 @@ class Logger():
                 handler.setFormatter(formatter_normal)
                 self.add_handler(handler)
 
-            ## add null handler if no other handler
+            # add null handler if no other handler
             if not logger.hasHandlers():
                 self.add_handler(logging.NullHandler())
 
-            ## debug infos
+            # debug infos
             if disp_stdout:
                 logger.debug('Logger {} configured with output to stdout.'.format(logger.name))
             if log_file is not None:
@@ -138,7 +138,7 @@ class Logger():
         if self.enabled:
             self.remove_all_handler()
 
-    ## handler
+    # handler
 
     def add_handler(self, handler):
         self.handlers.append(handler)

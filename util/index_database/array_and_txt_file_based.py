@@ -11,9 +11,9 @@ import util.logging
 class Database(util.index_database.general.Database):
     
     def __init__(self, array_file, value_file, value_reliable_decimal_places=18, tolerance_options=None):
-        ## call super constructor
+        # call super constructor
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
-        ## create array and file db
+        # create array and file db
         self.array_db = util.index_database.array_based.Database(array_file, value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
         value_dir, value_filename = os.path.split(value_file)
         self.txt_file_db = util.index_database.txt_file_based.Database(value_dir, value_filename, value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
@@ -23,7 +23,7 @@ class Database(util.index_database.general.Database):
         return '{} and {}'.format(self.array_db, self.txt_file_db)
     
     
-    ## setter and getter for files
+    # setter and getter for files
     
     @property
     def array_file(self):
@@ -47,7 +47,7 @@ class Database(util.index_database.general.Database):
             self.txt_file_db.value_filenames[0] = value_filename
 
     
-    ## access
+    # access
     
     def get_value(self, index):
         return self.array_db.get_value(index)
@@ -93,7 +93,7 @@ class Database(util.index_database.general.Database):
         return self.array_db.index(value)
 
 
-    ## merge
+    # merge
     
     def merge_txt_file_db_to_array_db(self):
         util.logging.debug('{}: Merging file db to array db.'.format(self))
@@ -103,10 +103,10 @@ class Database(util.index_database.general.Database):
                 self.array_db.set_value(index, txt_file_db_value, overwrite=False)
     
     
-    ## check integrity
+    # check integrity
     
     def check_integrity(self):
-        ## check if differenet indices
+        # check if differenet indices
         array_db = self.array_db
         file_db = self.txt_file_db
 
@@ -122,7 +122,7 @@ class Database(util.index_database.general.Database):
         if len(diff) > 0:
             raise util.index_database.general.DatabaseError(self, 'File db has values at indices {} and array db has no values their!'.format(diff))
 
-        ## check if differenet values
+        # check if differenet values
         for index in array_used_indices:
             v_a = array_db.get_value(index)
             v_f = file_db.get_value(index)

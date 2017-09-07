@@ -10,11 +10,11 @@ import util.logging
 
 
 def get_float_index_for_equidistant_values(value, value_range, dim):
-    ## check input
+    # check input
     if value < value_range[0] or value > value_range[1]:
         raise ValueError('Value {} has to be in range {}.'.format(value, value_range))
 
-    ## compute index
+    # compute index
     index = (value - value_range[0]) / (value_range[1] - value_range[0]) * (dim)
     if index == dim:
         index = index - 1
@@ -34,10 +34,10 @@ def get_nearest_value_in_array(array, value):
     return nearest_value
 
 
-## interpolation
+# interpolation
 
 def data_with_float_index(data, index):
-    ## get data at float index (linear) interpolated
+    # get data at float index (linear) interpolated
     if len(index) == 0:
         return data
     else:
@@ -49,24 +49,24 @@ def data_with_float_index(data, index):
 
 
 def data_with_regular_grid(data, points, point_ranges):
-    ## make arrays
+    # make arrays
     data = np.asanyarray(data)
     points = np.asanyarray(points)
 
-    ## check input
+    # check input
     assert data.ndim >= points.shape[1]
 
-    ## make result array
+    # make result array
     result_shape = (points.shape[0],) + data.shape[points.shape[1]:]
     results = np.empty(result_shape, dtype=data.dtype)
 
-    ## convert points to indices
+    # convert points to indices
     point_ranges = np.asanyarray(point_ranges)
     normalized_points = (points - point_ranges[:,0]) / (point_ranges[:,1] - point_ranges[:,0])
     indice_shape = np.array(data.shape[:points.shape[1]])
     indices = normalized_points * (indice_shape - 1)
 
-    ## interpolate
+    # interpolate
     for i in range(len(indices)):
         results[i] = data_with_float_index(data, indices[i])
 
@@ -80,7 +80,7 @@ def wrap_around(values, index, value_range_len, amount=1, return_also_indices=Fa
     if amount < 0 or amount > 1:
         raise ValueError('Amount has to be between 0 and 1, but its {}.'.format(amount))
 
-    ## prepare values
+    # prepare values
     values_len = len(values)
     values_len_amount = int(np.round(values_len * amount))
 
@@ -91,7 +91,7 @@ def wrap_around(values, index, value_range_len, amount=1, return_also_indices=Fa
     else:
         value_indices = np.arange(values_len)
 
-    ## concatenate
+    # concatenate
     if amount != 0:
         value_indices = np.concatenate((value_indices[- values_len_amount:], value_indices, value_indices[:values_len_amount]), axis=0)
 
@@ -99,7 +99,7 @@ def wrap_around(values, index, value_range_len, amount=1, return_also_indices=Fa
         values[:values_len_amount, index] -= value_range_len
         values[- values_len_amount:, index] += value_range_len
 
-    ## return
+    # return
     assert values.ndim >= 1
     assert values.shape[0] == values_len + 2 * values_len_amount
     assert value_indices.ndim == 1
@@ -111,7 +111,7 @@ def wrap_around(values, index, value_range_len, amount=1, return_also_indices=Fa
         return values
 
 
-##
+#
 
 def change_dim(data, dim_index, new_dim):
     old_dim = data.shape[dim_index]
@@ -162,7 +162,7 @@ def change_dim(data, dim_index, new_dim):
 
 
 
-## Base Interpolator
+# Base Interpolator
 
 class Interpolator_Base():
 
@@ -231,7 +231,7 @@ class Interpolator_Base():
             return copy_arrays[index]
 
 
-    ## prepare values
+    # prepare values
 
     def _prepare_data_values(self, data_values):
         util.logging.debug('Preparing data values.')
@@ -308,7 +308,7 @@ class Interpolator_Base():
         return interpolation_points
 
 
-    ## scale points
+    # scale points
     
     def _scale(self, points):
         scaling_values = self.scaling_values
@@ -323,7 +323,7 @@ class Interpolator_Base():
         return points
 
 
-    ## interpolate
+    # interpolate
     
     def _calculate_interpolation(self, interpolation_points):
         raise NotImplementedError("Please implement this method.")
@@ -333,10 +333,10 @@ class Interpolator_Base():
         interpolation_points_dim = len(interpolation_points)
 
         if interpolation_points_dim > 0:
-            ## check input
+            # check input
             interpolation_points = self._prepare_interpolation_points(interpolation_points)
 
-            ## interpolate
+            # interpolate
             util.logging.debug('Interpolating values with method {} at {} points from {} data points.'.format(self.method, interpolation_points_dim, len(self.data_values)))
 
             interpolated_values = self._calculate_interpolation(interpolation_points)
@@ -352,7 +352,7 @@ class Interpolator_Base():
         return interpolated_values
 
 
-    ## save and load
+    # save and load
     
     def save(self, file):
         util.io.object.save(file, self)
@@ -366,7 +366,7 @@ class Interpolator_Base():
 
 
 
-## Changeable interpolator
+# Changeable interpolator
 
 class Interpolator_Values_Changeable(Interpolator_Base):
 
@@ -416,7 +416,7 @@ class Interpolator_Values_Changeable(Interpolator_Base):
 
 
 
-## Changable and partitionable interpolator
+# Changable and partitionable interpolator
 
 class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
@@ -425,7 +425,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
         self.parallel = parallel
 
-        ## sort data by first index
+        # sort data by first index
         indices_sorted_by_first_dim = np.argsort(data_points[:,0])
         self._indices_sorted_by_first_dim = indices_sorted_by_first_dim
         data_points_sorted = data_points[indices_sorted_by_first_dim]
@@ -442,7 +442,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         super().__init__(data_points_sorted, data_values, method, possible_methods=('nearest', 'linear'), scaling_values=scaling_values, copy_arrays=(False, copy_interpolation_points))
 
 
-        ## compute interpolation bound values
+        # compute interpolation bound values
 
         def get_last_index_of_same_value(values, index, step=1):
             value_len= len(values)
@@ -484,7 +484,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         util.logging.debug('The interpolation bounds for the partitioned interpolator are {}.'.format(interpolation_bound_values))
 
 
-        ## compute value range indices
+        # compute value range indices
         def get_interpolator_data_values_ranges(data_values_sorted_first_dim, interpolation_bound_indices, single_overlapping_amount):
 
             overlapping_len = len(data_values_sorted_first_dim) * single_overlapping_amount
@@ -541,11 +541,11 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
 
     def _calculate_interpolation(self, interpolation_points):
-        ## sort points by first dim
+        # sort points by first dim
         indices_sorted_by_first_dim = np.argsort(interpolation_points[:,0])
         interpolation_points = interpolation_points[np.argsort(interpolation_points[:,0])]
 
-        ## assign interpolation points to interpolators
+        # assign interpolation points to interpolators
         interpolation_points_dim = len(interpolation_points)
         interpolation_bound_values = self.interpolation_bound_values
 
@@ -567,7 +567,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
         util.logging.debug('Interpolation points ranges {} assigned to interpolators {} with {} interpolator in use.'.format(end_indices, len(end_indices), number_of_interpolators))
 
-        ## interpolate
+        # interpolate
         interpolated_values_sorted = np.empty(interpolation_points_dim)
 
         if not self.parallel or number_of_interpolators <= 1:
@@ -580,7 +580,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
             for interpolator_index in range(number_of_interpolators):
                 interpolated_values_sorted[end_indices[interpolator_index]:end_indices[interpolator_index+1]] = result[interpolator_index]
 
-        ## revert sort
+        # revert sort
         indices_sorted_by_first_dim_rev = np.empty(interpolation_points_dim, dtype=int)
         indices_sorted_by_first_dim_rev[indices_sorted_by_first_dim] = np.arange(interpolation_points_dim)
 
@@ -600,7 +600,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
 
 
-## Nearest and linear Interpolator
+# Nearest and linear Interpolator
 
 
 class Interpolator_Nearest(Interpolator_Values_Changeable):
@@ -617,7 +617,7 @@ class Interpolator_Linear_Partitionable(Interpolator_Values_Changeable_Partition
 
 
 
-## Universal interpolator
+# Universal interpolator
 
 class Interpolator(Interpolator_Base):
 
@@ -704,11 +704,11 @@ class Periodic_Interpolator(Interpolator):
     def _modify_points(self, points, is_data_points):
         for i in range(points.shape[1]):
             if self._wrap_around_amount is not None and self._wrap_around_amount[i] > 0:
-                ## modulo for periodicity
+                # modulo for periodicity
                 util.logging.debug('Calculate modulo {} of index {} of points.'.format(self._point_range_size[i], i))
                 points[:, i] = points[:, i] % self._point_range_size[i]
 
-                ## if data points, wrap around
+                # if data points, wrap around
                 if is_data_points:
                     points, indices = util.math.interpolate.wrap_around(points, i, self._point_range_size[i], amount=self._wrap_around_amount[i], return_also_indices=True)
                     self._data_indices = self._data_indices[indices]
@@ -729,7 +729,7 @@ class Periodic_Interpolator(Interpolator):
 
 
 
-## universial interpolation method
+# universial interpolation method
 
 def interpolate(data_points, data_values, interpolation_points, number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None):
     interpolator = Interpolator(data_points, data_values, number_of_linear_interpolators=number_of_linear_interpolators, single_overlapping_amount_linear_interpolators=single_overlapping_amount_linear_interpolators, scaling_values=scaling_values)

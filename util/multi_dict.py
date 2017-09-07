@@ -23,7 +23,7 @@ class MultiDict():
         else:
             self._value_dict = dict()
 
-    ## properties
+    # properties
 
     @property
     def value_dict(self):
@@ -38,13 +38,13 @@ class MultiDict():
         return ('array', 'self', 'self_type', 'self_type_unsorted', 'self_type_sorted', 'multi_dict_unsorted', 'multi_dict_sorted')
 
 
-    ## str
+    # str
 
     def __str__(self):
         return str(self.value_dict)
 
 
-    ## mapping methods
+    # mapping methods
 
     def get_value_list(self, key):
         value = self.value_dict
@@ -104,7 +104,7 @@ class MultiDict():
 
 
 
-    ## add
+    # add
 
     def _get_or_init_value_list(self, key):
         last_dict = self._get_last_dict(key)
@@ -142,7 +142,7 @@ class MultiDict():
         self._add_value_lists(keys, values, add_function)
 
 
-    ## remove
+    # remove
 
     def clear(self):
         self._value_dict = type(self.value_dict)()
@@ -163,7 +163,7 @@ class MultiDict():
                 self.remove_value(key, value)
 
 
-    ## access
+    # access
 
     def keys(self):
         all_keys = []
@@ -197,7 +197,7 @@ class MultiDict():
         return self.items()
 
 
-    ## io
+    # io
     def save(self, file, only_dict=True):
         util.logging.debug('Saving {} to {}.'.format(self, file))
         if only_dict:
@@ -215,27 +215,27 @@ class MultiDict():
     def load(cls, file):
         util.logging.debug('Loading {} from {}.'.format(cls.__name__, file))
 
-        ## load object
+        # load object
         loaded_object = util.io.object.load(file)
 
-        ## check if dict
+        # check if dict
         is_dict = isinstance(loaded_object, dict)
         if not is_dict:
             from blist import sorteddict
             is_dict = isinstance(loaded_object, sorteddict)
 
-        ## if dict make new object with dict
+        # if dict make new object with dict
         if is_dict:
             obj = cls()
             obj._value_dict = loaded_object
-        ## otherwise return loaded object
+        # otherwise return loaded object
         else:
             obj = loaded_object
 
         return obj
 
 
-    ## properties
+    # properties
 
     @property
     def value_dict(self):
@@ -246,7 +246,7 @@ class MultiDict():
         return not isinstance(self.value_dict, dict)
 
 
-    ## create
+    # create
 
     def new_like(self, sorted=None):
         if sorted is None:
@@ -263,14 +263,14 @@ class MultiDict():
     def _return_items_as_type(self, keys, value_lists, return_type=None):
         util.logging.debug('Returning {} values as type {}.'.format(len(keys), return_type))
 
-        ## chose default
+        # chose default
         if return_type is None:
             return_type = 'array'
         if return_type == 'multi_dict':
             return_type = 'multi_dict_unsorted'
 
 
-        ## check input
+        # check input
         if return_type not in self.SUPPORTED_RETURN_TYPES:
             raise ValueError('Unknown return_type "{}". Only {} are supported.'.format(return_type, self.SUPPORTED_RETURN_TYPES))
 
@@ -279,7 +279,7 @@ class MultiDict():
             raise ValueError('Len of keys {} and len of value lists {} have to be the same!'.format(len(keys), len(value_lists)))
 
 
-        ## make list of value lists
+        # make list of value lists
         value_lists = list(value_lists)
         for i in range(n):
             try:
@@ -288,7 +288,7 @@ class MultiDict():
                 value_lists[i] = [value_lists[i]]
 
 
-        ## return multi_dict type
+        # return multi_dict type
         if return_type in ('self', 'self_type', 'self_type_unsorted', 'self_type_sorted', 'multi_dict_unsorted', 'multi_dict_sorted'):
             if return_type == 'self':
                 m = self
@@ -315,7 +315,7 @@ class MultiDict():
 
             obj = m
 
-        ## return array
+        # return array
         if return_type == 'array':
             if len(value_lists) > 0:
                 def get_value_len(value):
@@ -345,7 +345,7 @@ class MultiDict():
         return obj
 
 
-    ## iterate
+    # iterate
 
     def _iterate_generator_value_dict(self, value_dict, value_dict_type=None, key_prefix=()):
         if value_dict_type is None:
@@ -366,22 +366,22 @@ class MultiDict():
     def iterate_items(self, fun, min_number_of_values=1, return_type='array'):
         assert callable(fun)
 
-        ## init
+        # init
         new_keys = []
         new_values = []
 
-        ## iterate
+        # iterate
         for (key, values) in self.iterator_keys_and_value_lists():
             if len(values) >= min_number_of_values:
                 key = np.asarray(key)
                 values = np.asarray(values)
                 new_value = fun(key, values)
 
-                ## insert
+                # insert
                 new_keys.append(key)
                 new_values.append(new_value)
 
-        ## finishing
+        # finishing
         return self._return_items_as_type(new_keys, new_values, return_type=return_type)
 
 
@@ -391,7 +391,7 @@ class MultiDict():
 
 
 
-    ## transform keys
+    # transform keys
 
     def transform_keys(self, transform_function):
         util.logging.debug('Transforming keys of {}.'.format(self))
@@ -429,7 +429,7 @@ class MultiDict():
 
 
 
-    ## transform values
+    # transform values
 
     def transform_value_lists(self, transform_function):
         util.logging.debug('Transforming value lists of {}.'.format(self))
@@ -480,7 +480,7 @@ class MultiDict():
 
 
 
-    ## filter
+    # filter
 
     def filter_with_boolean_function(self, boolean_filter_function, return_type='self'):
         assert callable(boolean_filter_function)
@@ -542,7 +542,7 @@ class MultiDict():
 
 
 
-    ## compute values
+    # compute values
 
     def numbers(self, min_number_of_values=1, return_type='array'):
         util.logging.debug('Calculate numbers of values with at least {} values.'.format(min_number_of_values))
@@ -595,7 +595,7 @@ class MultiDict():
 
 
 
-    ## tests for normality
+    # tests for normality
 
     def dagostino_pearson_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
         util.logging.debug('Calculate D´Agostino-Person-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
@@ -634,20 +634,20 @@ class MultiDict():
         import scipy.stats
 
         def test(x, alpha):
-            ## get test values
+            # get test values
             t = scipy.stats.anderson(x)
             test_value = t[0]
             test_bounds = t[1]
             test_alphas = t[2] / 100
 
-            ## get bound for alpha
+            # get bound for alpha
             index = np.where(test_alphas == alpha)[0]
             if len(index) == 0:
                 raise ValueError('The alpha value {} is not supported for this test. Only to values {} are supported.'.format(alpha, test_alphas))
             index = index[0]
             bound = test_bounds[index]
 
-            ## check if test passed
+            # check if test passed
             return test_value <= bound
 
         test_values = self.iterate_values(lambda x:test(x, alpha), min_number_of_values, return_type=return_type)
@@ -670,7 +670,7 @@ class MultiDictPreprocessKey(MultiDict):
         raise NotImplementedError("Please implement this method.")
 
 
-    ## override for key pairs
+    # override for key pairs
 
     def get_value_list(self, key):
         self._check_keys(key)
@@ -763,7 +763,7 @@ class MultiDictPermutablePointPairs(MultiDictPointPairs):
 
     @staticmethod
     def _preprocess_keys(keys):
-        ## if two keys, make them to one sorted key
+        # if two keys, make them to one sorted key
         key_array = np.array(keys)
         sorted_indices = util.math.sort.lex_sorted_indices(key_array, order=1)
         key_array = key_array[sorted_indices]
@@ -805,7 +805,7 @@ class MultiDictDiffPointPairs(MultiDictPreprocessKey):
 
     @staticmethod
     def _preprocess_keys(keys):
-        ## if two keys, use diff as key
+        # if two keys, use diff as key
         key_array = np.array(keys)
         if key_array.ndim > 1:
             key = tuple(np.abs(key_array[1] - key_array[0]))

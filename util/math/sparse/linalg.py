@@ -19,11 +19,11 @@ class CGMethodError(Exception):
 def cg(A, b, x0=None, tol=10**-5, maxiter=None):
     util.logging.debug('CG method starting with tolerance {} and max iterations {}.'.format(tol, maxiter))
 
-    ## chose x0
+    # chose x0
     if x0 is None:
         x0 = b
 
-    ## callback -> output
+    # callback -> output
     k = 1
     A_b = A * b
     # xk_prev = np.copy(x0)
@@ -42,10 +42,10 @@ def cg(A, b, x0=None, tol=10**-5, maxiter=None):
         util.logging.debug('Iteration {}: f = {:e}, avg residuum = {:e}, max residuum = {:e}, 2-norm residuum = {:e}'.format(k, f, residuum.mean(), residuum.max(), np.linalg.norm(residuum, ord=2)))
         k += 1
 
-    ## run
+    # run
     (x, exit_code) = scipy.sparse.linalg.cg(A, b, x0=x0, tol=tol, maxiter=maxiter, callback=callback)
 
-    ## check exit code
+    # check exit code
     if exit_code == 0:
         util.logging.debug('CG method converged after {} iterations.'.format(k))
         return x
