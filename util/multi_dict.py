@@ -187,11 +187,15 @@ class MultiDict():
 
     def items(self):
         all_keys = self.keys()
-        all_keys = all_keys.reshape((all_keys.shape[0], -1))
         all_values = self.values()
-        if all_values.ndim == 1:
-            all_values = all_values[:, np.newaxis]
-        return np.concatenate([all_keys, all_values], axis=1)
+        assert len(all_keys) == len(all_values)
+        if len(all_keys) > 0:
+            all_keys = all_keys.reshape((all_keys.shape[0], -1))
+            if all_values.ndim == 1:
+                all_values = all_values[:, np.newaxis]
+            return np.concatenate([all_keys, all_values], axis=1)
+        else:
+            return np.array([]).reshape(0, 0)
 
     def toarray(self):
         return self.items()
