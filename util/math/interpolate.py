@@ -402,7 +402,7 @@ class Interpolator_Values_Changeable(Interpolator_Base):
 
 class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
-    def __init__(self, data_points, data_values, method='linear', number_of_interpolators=1, single_overlapping_amount=0.5, scaling_values=None, copy_arrays=True, parallel=False):
+    def __init__(self, data_points, data_values, method='linear', scaling_values=None, copy_arrays=True, number_of_interpolators=1, single_overlapping_amount=0.5, parallel=False):
         util.logging.debug('Initiating partitionable interpolator with {} data points, scaling values {} and {} interpolators with single_overlapping_amount of {}.'.format(len(data_points), scaling_values, number_of_interpolators, single_overlapping_amount))
 
         self.parallel = parallel
@@ -589,7 +589,7 @@ class Interpolator_Linear_Partitionable(Interpolator_Values_Changeable_Partition
 
 class Interpolator(Interpolator_Base):
 
-    def __init__(self, data_points, data_values, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
+    def __init__(self, data_points, data_values, method='linear_then_nearest_new_data', scaling_values=None, copy_arrays=True, number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, parallel=False):
 
         util.logging.debug('Initiating interpolator {} with {} data points, scaling values {}, number of linear interpolators {} and single overlapping amount of linear interpolators {}.'.format(method, len(data_points), scaling_values, number_of_linear_interpolators, single_overlapping_amount_linear_interpolators))
 
@@ -624,7 +624,7 @@ class Interpolator(Interpolator_Base):
             if self.method == 'linear_then_nearest_new_data':
                 new_data_points = np.concatenate([self.data_points, interpolation_points[~ no_value_mask]])
                 new_data_values = np.concatenate([self.data_values, interpolation_values[~ no_value_mask]])
-                interpolator_nearest = Interpolator_Values_Changeable(self.data_points, self.data_values, method='nearest', copy_arrays=False)
+                interpolator_nearest = Interpolator_Values_Changeable(new_data_points, new_data_values, method='nearest', copy_arrays=False)
             elif self.method == 'linear_then_nearest_same_data':
                 interpolator_nearest = self.interpolators[1]
 
@@ -637,7 +637,7 @@ class Interpolator(Interpolator_Base):
 
 class Periodic_Interpolator(Interpolator):
 
-    def __init__(self, data_points, data_values, point_range_size, wrap_around_amount=None, method='linear_then_nearest_new_data', number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, scaling_values=None, copy_arrays=True, parallel=False):
+    def __init__(self, data_points, data_values, point_range_size, wrap_around_amount=None, method='linear_then_nearest_new_data', scaling_values=None, copy_arrays=True, number_of_linear_interpolators=1, single_overlapping_amount_linear_interpolators=0, parallel=False):
 
         util.logging.debug('Initiating periodic interpolator with point_range_size {} and wrap around amount {}.'.format(point_range_size, wrap_around_amount))
 
