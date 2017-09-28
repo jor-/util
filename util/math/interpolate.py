@@ -410,8 +410,8 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
         # sort data by first index
         indices_sorted_by_first_dim = np.argsort(data_points[:, 0])
         self._indices_sorted_by_first_dim = indices_sorted_by_first_dim
-        data_points_sorted = data_points[indices_sorted_by_first_dim]
-        data_values_sorted = data_values[indices_sorted_by_first_dim]
+        data_points = data_points[indices_sorted_by_first_dim]
+        data_values = data_values[indices_sorted_by_first_dim]
 
         self._interpolators = [None, ] * number_of_interpolators
         copy_arrays = np.asanyarray(copy_arrays)
@@ -421,7 +421,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
             copy_interpolation_points = copy_arrays[0]
         else:
             copy_interpolation_points = copy_arrays[1]
-        super().__init__(data_points_sorted, data_values, method, possible_methods=('nearest', 'linear'), scaling_values=scaling_values, copy_arrays=(False, copy_interpolation_points))
+        super().__init__(data_points, data_values, method, possible_methods=('nearest', 'linear'), scaling_values=scaling_values, copy_arrays=(False, copy_interpolation_points))
 
         # compute interpolation bound values
 
@@ -446,14 +446,14 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
                 last_indices[i] = get_last_index_of_same_value(values, indices[i], step=step)
             return last_indices
 
-        interpolation_bound_indices = np.floor(np.arange(0, number_of_interpolators + 1) * data_points_sorted.shape[0] / (number_of_interpolators))
+        interpolation_bound_indices = np.floor(np.arange(0, number_of_interpolators + 1) * data_points.shape[0] / (number_of_interpolators))
         interpolation_bound_indices = interpolation_bound_indices.astype(np.int)
-        interpolation_bound_indices = get_last_index_of_same_value_vectorize(data_points_sorted[:, 0], interpolation_bound_indices, step=-1)
-        interpolation_bound_indices[-1] = data_points_sorted.shape[0] - 1
+        interpolation_bound_indices = get_last_index_of_same_value_vectorize(data_points[:, 0], interpolation_bound_indices, step=-1)
+        interpolation_bound_indices[-1] = data_points.shape[0] - 1
 
         util.logging.debug('The interpolation bounds indices for the partitioned interpolator are {}.'.format(interpolation_bound_indices))
 
-        interpolation_bound_values = data_points_sorted[:, 0][interpolation_bound_indices]
+        interpolation_bound_values = data_points[:, 0][interpolation_bound_indices]
         interpolation_bound_values = np.asarray(interpolation_bound_values, dtype=np.float)
         interpolation_bound_values[0] = -np.inf
         interpolation_bound_values[-1] = np.inf
@@ -479,7 +479,7 @@ class Interpolator_Values_Changeable_Partitionable(Interpolator_Base):
 
             return interpolator_data_value_ranges
 
-        data_value_range_indices = get_interpolator_data_values_ranges(data_points_sorted[:, 0], interpolation_bound_indices, single_overlapping_amount)
+        data_value_range_indices = get_interpolator_data_values_ranges(data_points[:, 0], interpolation_bound_indices, single_overlapping_amount)
         self.data_value_range_indices = data_value_range_indices
 
         util.logging.debug('The data value range indices for the partitioned interpolator are {}.'.format(data_value_range_indices))
