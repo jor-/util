@@ -115,10 +115,9 @@ class OptionsFile():
 
     @property
     def __hdf5_file(self):
-        hdf5_file_object = self.__hdf5_file_object
-        if hdf5_file_object is not None:
-            return hdf5_file_object
-        else:
+        try:
+            return self.__hdf5_file_object
+        except AttributeError:
             raise ValueError('File is closed.')
 
     def __str__(self):
@@ -150,12 +149,20 @@ class OptionsFile():
         try:
             file = self.__hdf5_file_object
         except AttributeError:
-            file = None
-
-        if file is not None:
+            pass
+        else:
             util.logging.debug('Closing option file {}.'.format(file.filename))
             file.close()
-            self.__hdf5_file_object = None
+            del self.__hdf5_file_object
+
+    @property
+    def is_closed(self):
+        try:
+            self.__hdf5_file_object
+        except AttributeError:
+            return True
+        else:
+            return False
 
     @staticmethod
     def _replace_environment_vars(value):
