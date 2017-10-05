@@ -947,12 +947,20 @@ class Job():
 
     def close(self):
         try:
-            options = self.__options
+            options = self.options
         except AttributeError:
-            options = None
-
-        if options is not None:
+            pass
+        else:
             options.close()
+
+    @property
+    def is_closed(self):
+        try:
+            options = self.options
+        except AttributeError:
+            return True
+        else:
+            return options.is_closed
 
 
     # check integrity
