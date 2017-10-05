@@ -50,7 +50,6 @@ class NodeInfos():
             return float('inf')
 
 
-
 class NodesState():
 
     def __init__(self, nodes_state):
@@ -79,7 +78,6 @@ class NodesState():
 
     def free_memory(self, kind):
         return self.nodes_state_values_for_kind(kind)[1]
-
 
 
 class NodeSetup:
@@ -119,9 +117,18 @@ class NodeSetup:
             cpus = 1
 
         # save setup
-        setup = {'memory': memory, 'node_kind': node_kind, 'nodes': nodes, 'cpus': cpus, 'nodes_max': nodes_max, 'nodes_leave_free': nodes_leave_free, 'total_cpus_min': total_cpus_min, 'total_cpus_max': total_cpus_max, 'check_for_better': check_for_better, 'walltime': walltime}
+        setup = {
+            'memory': memory,
+            'node_kind': node_kind,
+            'nodes': nodes,
+            'cpus': cpus,
+            'nodes_max': nodes_max,
+            'nodes_leave_free': nodes_leave_free,
+            'total_cpus_min': total_cpus_min,
+            'total_cpus_max': total_cpus_max,
+            'check_for_better': check_for_better,
+            'walltime': walltime}
         self.setup = setup
-
 
     def __getitem__(self, key):
         return self.setup[key]
@@ -137,7 +144,6 @@ class NodeSetup:
         dict_str = str(self.setup).replace(': inf', ': float("inf")')
         return '{}.{}(**{})'.format(self.__class__.__module__, self.__class__.__name__, dict_str)
 
-
     def __copy__(self):
         copy = type(self)(**self.setup)
         return copy
@@ -145,10 +151,8 @@ class NodeSetup:
     def copy(self):
         return self.__copy__()
 
-
     def configuration_is_complete(self):
         return self['memory'] is not None and self['node_kind'] is not None and isinstance(self['node_kind'], str) and self['nodes'] is not None and self['cpus'] is not None
-
 
     def complete_configuration(self):
         if not self.configuration_is_complete():
@@ -164,7 +168,6 @@ class NodeSetup:
             self['nodes'] = nodes
             self['cpus'] = cpus
 
-
     def configuration_value(self, key, test=None):
         assert test is None or callable(test)
 
@@ -175,7 +178,6 @@ class NodeSetup:
 
         assert value is not None
         return value
-
 
     def update_with_best_configuration(self, check_for_better=True, not_free_speed_factor=0.7):
         if check_for_better:
@@ -201,58 +203,100 @@ class NodeSetup:
                     else:
                         util.logging.debug('Not using best node setup configuration {} since it is to slow.'.format(best_setup_triple))
 
+    # *** properties *** #
 
     @property
     def memory(self):
         return self.setup['memory']
 
     @memory.setter
-    def memory(self, memory):
-        self.setup['memory'] = memory
-
+    def memory(self, value):
+        value = int(value)
+        self.setup['memory'] = value
 
     @property
     def node_kind(self):
         self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('node_kind', test=lambda v: isinstance(v, str))
 
+    @node_kind.setter
+    def node_kind(self, value):
+        value = str(value)
+        self.setup['node_kind'] = value
+
     @property
     def nodes(self):
         self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('nodes')
+
+    @nodes.setter
+    def nodes(self, value):
+        value = int(value)
+        self.setup['nodes'] = value
 
     @property
     def cpus(self):
         self.update_with_best_configuration(self['check_for_better'])
         return self.configuration_value('cpus')
 
+    @cpus.setter
+    def cpus(self, value):
+        value = int(value)
+        self.setup['cpus'] = value
 
     @property
     def walltime(self):
         return self.setup['walltime']
 
     @walltime.setter
-    def walltime(self, walltime):
-        self.setup['walltime'] = walltime
-
+    def walltime(self, value):
+        value = int(value)
+        self.setup['walltime'] = value
 
     @property
     def total_cpus_min(self):
         return self.setup['total_cpus_min']
 
     @total_cpus_min.setter
-    def total_cpus_min(self, total_cpus_min):
-        self.setup['total_cpus_min'] = total_cpus_min
+    def total_cpus_min(self, value):
+        value = int(value)
+        self.setup['total_cpus_min'] = value
 
+    @property
+    def total_cpus_max(self):
+        return self.setup['total_cpus_max']
+
+    @total_cpus_max.setter
+    def total_cpus_max(self, value):
+        value = int(value)
+        self.setup['total_cpus_max'] = value
 
     @property
     def nodes_max(self):
         return self.setup['nodes_max']
 
     @nodes_max.setter
-    def nodes_max(self, nodes_max):
-        self.setup['nodes_max'] = nodes_max
+    def nodes_max(self, value):
+        value = int(value)
+        self.setup['nodes_max'] = value
 
+    @property
+    def nodes_leave_free(self):
+        return self.setup['nodes_leave_free']
+
+    @nodes_leave_free.setter
+    def nodes_leave_free(self, value):
+        value = int(value)
+        self.setup['nodes_leave_free'] = value
+
+    @property
+    def check_for_better(self):
+        return self.setup['check_for_better']
+
+    @check_for_better.setter
+    def check_for_better(self, value):
+        value = bool(value)
+        self.setup['check_for_better'] = value
 
 
 class NodeSetupIncompleteError(Exception):
