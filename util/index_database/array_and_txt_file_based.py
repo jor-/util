@@ -1,54 +1,51 @@
 import os.path
 
+import numpy as np
+
 import util.index_database.general
 import util.index_database.array_based
 import util.index_database.txt_file_based
-
 import util.logging
 
 
-
 class Database(util.index_database.general.Database):
-    
+
     def __init__(self, array_file, value_file, value_reliable_decimal_places=18, tolerance_options=None):
+        self._min_absolute_tolerance = 10**(-value_reliable_decimal_places)
         # call super constructor
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
         # create array and file db
         self.array_db = util.index_database.array_based.Database(array_file, value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
         value_dir, value_filename = os.path.split(value_file)
         self.txt_file_db = util.index_database.txt_file_based.Database(value_dir, value_filename, value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
-    
-    
+
     def __str__(self):
         return '{} and {}'.format(self.array_db, self.txt_file_db)
-    
-    
-    # setter and getter for files
-    
+
+    # *** setter and getter for files *** #
+
     @property
     def array_file(self):
         return self.array_db.array_file
-    
+
     @array_file.setter
-    def array_file(self, array_file): 
+    def array_file(self, array_file):
         self.array_db.array_file = array_file
-    
-    
+
     @property
     def value_file(self):
         return os.path.join(self.txt_file_db.value_dir, self.txt_file_db.value_filenames[0])
-    
+
     @value_file.setter
-    def value_file(self, value_file): 
+    def value_file(self, value_file):
         value_dir, value_filename = os.path.split(value_file)
         if value_dir != self.txt_file_db.value_dir:
             self.txt_file_db.value_dir = value_dir
         if value_filename != self.txt_file_db.value_filenames[0]:
             self.txt_file_db.value_filenames[0] = value_filename
 
-    
-    # access
-    
+    # *** access *** #
+
     def get_value(self, index):
         return self.array_db.get_value(index)
 
@@ -73,16 +70,15 @@ class Database(util.index_database.general.Database):
 
     def all_values(self):
         return self.array_db.all_values()
-        
-    
+
     def used_indices(self):
         return self.array_db.used_indices()
-    
+
     def remove_index(self, index, force=False):
         util.logging.debug('{}: Removing index {}.'.format(self, index))
         self.txt_file_db.remove_index(index, force=force)
         self.array_db.remove_index(index)
-    
+
     def closest_indices(self, value):
         return self.array_db.closest_indices(value)
 
@@ -92,21 +88,21 @@ class Database(util.index_database.general.Database):
     def index(self, value):
         return self.array_db.index(value)
 
+    # *** merge *** #
 
-    # merge
-    
     def merge_txt_file_db_to_array_db(self):
         util.logging.debug('{}: Merging file db to array db.'.format(self))
         for index in self.txt_file_db.used_indices():
             txt_file_db_value = self.txt_file_db.get_value(index)
             if not self.array_db.has_value(index) or not self.are_values_equal(self.array_db.get_value(index), txt_file_db_value):
                 self.array_db.set_value(index, txt_file_db_value, overwrite=False)
-    
-    
-    # check integrity
-    
+
+    # *** check integrity *** #
+
     def check_integrity(self):
         # check if differenet indices
+        util.logging.debug('{}: Checking for missing values in array and file database.'.format(self))
+
         array_db = self.array_db
         file_db = self.txt_file_db
 
@@ -122,10 +118,15 @@ class Database(util.index_database.general.Database):
         if len(diff) > 0:
             raise util.index_database.general.DatabaseError(self, 'File db has values at indices {} and array db has no values their!'.format(diff))
 
-        # check if differenet values
+        # check if different values in array and text database
+        util.logging.debug('{}: Checking for different values in array and file database.'.format(self))
+
         for index in array_used_indices:
             v_a = array_db.get_value(index)
             v_f = file_db.get_value(index)
-            if not array_db.are_values_equal(v_a, v_f):
+            diff = np.max(np.abs(v_a - v_f))
+            if diff > self._min_absolute_tolerance:
                 raise util.index_database.general.DatabaseError(self, 'Array db and file db value at index {} are not equal: {} != {}!'.format(index, v_a, v_f))
-    
+
+        # check if same values multiple times in (array) database
+        array_db.check_integrity()

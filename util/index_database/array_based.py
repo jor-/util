@@ -8,38 +8,34 @@ import util.io.filelock.np
 import util.logging
 
 
-
 class Database(util.index_database.general.Database):
-    
+
     def __init__(self, array_file, value_reliable_decimal_places=15, tolerance_options=None):
         # call super constructor
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
-        
+
         # set array file
         self.array_file = array_file
-    
-    
+
     def __str__(self):
         return 'Index array database {}'.format(self.locked_file.file)
-    
-    
-    # setter and getter for file
-    
+
+    # *** setter and getter for file *** #
+
     @property
     def array_file(self):
         return self.locked_file.file
-    
+
     @array_file.setter
-    def array_file(self, array_file): 
+    def array_file(self, array_file):
         # create dir if not existing
         os.makedirs(os.path.dirname(array_file), exist_ok=True)
 
         # set array file
         self.locked_file = util.io.filelock.np.LockedFile(array_file)
-    
-    
-    # access
-    
+
+    # *** access *** #
+
     def get_value(self, index):
         # load database array
         try:
@@ -51,17 +47,16 @@ class Database(util.index_database.general.Database):
             value = db[index]
         except IndexError:
             raise util.index_database.general.DatabaseIndexError(self, index)
-        # check if valid value is at index 
+        # check if valid value is at index
         if np.all(np.isnan(value)):
             raise util.index_database.general.DatabaseIndexError(self, index)
         else:
             return value
-    
-    
+
     def set_value(self, index, value, overwrite=False):
         util.logging.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
         value = np.asanyarray(value)
-        
+
         with self.locked_file.lock_object(exclusive=True):
             try:
                 db = self.locked_file.load()
@@ -80,14 +75,12 @@ class Database(util.index_database.general.Database):
                     db_extension = np.empty([db_extension_len, db.shape[1]]) * np.nan
                     db = np.concatenate([db, db_extension])
                     db[index] = value
-            
-            self.locked_file.save(db)
 
+            self.locked_file.save(db)
 
     def add_value(self, value):
         with self.locked_file.lock_object(exclusive=True):
             return super().add_value(value)
-
 
     def all_values(self):
         try:
@@ -97,10 +90,9 @@ class Database(util.index_database.general.Database):
         else:
             used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
             used_values = db[used_mask]
-            
+
             util.logging.debug('{}: Got {} used values.'.format(self, len(used_values)))
             return used_values
-
 
     def used_indices(self):
         try:
@@ -110,34 +102,40 @@ class Database(util.index_database.general.Database):
         else:
             used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
             used_indices = np.where(used_mask)[0]
-            
+
             util.logging.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
             return used_indices.astype(np.int32)
-    
-    
+
     def remove_index(self, index):
         util.logging.debug('{}: Removing index {}.'.format(self, index))
-        
+
         with self.locked_file.lock_object(exclusive=True):
             if not self.has_value(index):
                 raise util.index_database.general.DatabaseIndexError(self, index)
-            
+
             db = self.locked_file.load()
             db[index] = db[index] * np.nan
-            
+
             while len(db) > 0 and np.all(np.isnan(db[-1])):
                 db = db[:-1]
 
             self.locked_file.save(db)
-    
 
     def closest_indices(self, value):
         with self.locked_file.lock_object(exclusive=False):
             return super().closest_indices(value)
 
-
     def index(self, value):
         with self.locked_file.lock_object(exclusive=False):
             return super().index(value)
 
+    # *** check integrity *** #
 
+    def check_integrity(self):
+        util.logging.debug('{}: Checking for same values mutiple times in database.'.format(self))
+        values = self.all_values()
+        unique_values, inverse_indices, counts = np.unique(values, axis=0, return_inverse=True, return_counts=True)
+        for bad_unique_index in np.where(counts > 1)[0]:
+            bad_indices = np.where(inverse_indices == bad_unique_index)[0]
+            assert len(bad_indices) > 1
+            util.logging.error('{}: Indices {} have same value {}.'.format(self, bad_indices, values[bad_indices[0]]))
