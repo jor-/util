@@ -10,7 +10,6 @@ import util.logging
 from util.batch.general.system import *
 
 
-
 # batch setup
 
 class BatchSystem(util.batch.general.system.BatchSystem):
@@ -19,10 +18,8 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         from util.batch.nec.constants import COMMANDS, QUEUES, PRE_COMMANDS, MAX_WALLTIME, NODE_INFOS
         super().__init__(COMMANDS, QUEUES, pre_commands=PRE_COMMANDS, max_walltime=MAX_WALLTIME, node_infos=NODE_INFOS)
 
-
     def __str__(self):
         return 'NEC batch system'
-
 
     def _get_job_id_from_submit_output(self, submit_output):
         # Output form: "Request 130530.ace-ssiox submitted to queue: clmedium."
@@ -32,11 +29,9 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         job_id = submit_output_splitted[1]
         return job_id
 
-
     def is_job_running(self, job_id):
         output = self.job_state(job_id, return_output=True)
         return 'RequestID' in output
-
 
     def _nodes_state(self):
         nodes_command = self.nodes_command
@@ -71,7 +66,6 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             return util.batch.general.system.NodesState(state)
 
 
-
 BATCH_SYSTEM = BatchSystem()
 
 
@@ -79,10 +73,9 @@ BATCH_SYSTEM = BatchSystem()
 
 class Job(util.batch.general.system.Job):
 
-    def __init__(self, output_dir, force_load=False):
+    def __init__(self, output_dir, force_load=False, remove_output_dir_on_close=False):
         from util.batch.nec.constants import EXCEEDED_WALLTIME_ERROR_MESSAGE
-        super().__init__(output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, exceeded_walltime_error_message=EXCEEDED_WALLTIME_ERROR_MESSAGE)
-
+        super().__init__(output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, exceeded_walltime_error_message=EXCEEDED_WALLTIME_ERROR_MESSAGE, remove_output_dir_on_close=remove_output_dir_on_close)
 
     def set_job_options(self, job_name, nodes_setup, queue=None):
         # set queue if missing
@@ -92,7 +85,6 @@ class Job(util.batch.general.system.Job):
 
         # super
         super().set_job_options(job_name, nodes_setup, queue=queue, cpu_kind=None)
-
 
     def _job_file_header(self, use_mpi=True):
         content = []
@@ -121,4 +113,3 @@ class Job(util.batch.general.system.Job):
         content.append('')
         content.append('')
         return os.linesep.join(content)
-

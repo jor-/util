@@ -11,7 +11,6 @@ import util.logging
 from util.batch.general.system import *
 
 
-
 # batch setup
 
 class BatchSystem(util.batch.general.system.BatchSystem):
@@ -20,14 +19,11 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         from util.batch.rz.constants import COMMANDS, QUEUES, PRE_COMMANDS, MAX_WALLTIME, NODE_INFOS
         super().__init__(COMMANDS, QUEUES, pre_commands=PRE_COMMANDS, max_walltime=MAX_WALLTIME, node_infos=NODE_INFOS)
 
-
     def __str__(self):
         return 'RZ batch system'
 
-
     def _get_job_id_from_submit_output(self, submit_output):
         return submit_output
-
 
     def job_state(self, job_id, return_output=True):
         # remove suffix from job id
@@ -37,7 +33,6 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
         # call super
         return super().job_state(job_id, return_output=return_output, status_command_args=('-a',))
-
 
     def is_job_running(self, job_id):
         try:
@@ -63,7 +58,6 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         else:
             return False
 
-
     # node setups
 
     def _nodes_state_one_kind(self, kind):
@@ -80,7 +74,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
                 return grep_result
 
         # 24 f_ocean Barcelona nodes (8 CPUs per node, 2.1 GHz) (f_ocean queue)
-        if kind == 'f_ocean' or  kind == 'barcelona':
+        if kind == 'f_ocean' or kind == 'barcelona':
             grep_result = grep_qnodes('"rzcl05[1-9]|rzcl06[0-9]|rzcl07[0-4]"')
         # 12 f_ocean2 nodes (16 CPUs per node, 2.6 GHz) (f_ocean2 queue)
         elif kind == 'f_ocean2':
@@ -138,13 +132,11 @@ class BatchSystem(util.batch.general.system.BatchSystem):
 
         return (free_cpus, free_memory)
 
-
     def _nodes_state(self):
         state = {}
         for kind in self.node_infos.kinds():
             state[kind] = self._nodes_state_one_kind(kind)
         return util.batch.general.system.NodesState(state)
-
 
 
 BATCH_SYSTEM = BatchSystem()
@@ -154,9 +146,8 @@ BATCH_SYSTEM = BatchSystem()
 
 class Job(util.batch.general.system.Job):
 
-    def __init__(self, output_dir, force_load=False):
-        super().__init__(output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, max_job_name_len=15)
-
+    def __init__(self, output_dir, force_load=False, remove_output_dir_on_close=False):
+        super().__init__(output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, max_job_name_len=15, remove_output_dir_on_close=remove_output_dir_on_close)
 
     def set_job_options(self, job_name, nodes_setup, queue=None):
         # set queue if missing
@@ -193,7 +184,6 @@ class Job(util.batch.general.system.Job):
         # super
         super().set_job_options(job_name, nodes_setup, queue=queue, cpu_kind=cpu_kind)
 
-
     def _job_file_header(self, use_mpi=True):
         content = []
         # shell
@@ -220,4 +210,3 @@ class Job(util.batch.general.system.Job):
         content.append('')
         content.append('')
         return os.linesep.join(content)
-

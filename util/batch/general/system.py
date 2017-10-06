@@ -1,6 +1,7 @@
 import abc
 import math
 import os
+import shutil
 import subprocess
 import time
 
@@ -317,7 +318,6 @@ class CommandError(Exception):
         super().__init__(message)
 
 
-
 class BatchSystem():
 
     def __init__(self, commands, queues, pre_commands={}, max_walltime={}, node_infos={}):
@@ -330,7 +330,6 @@ class BatchSystem():
         if not isinstance(node_infos, NodeInfos):
             node_infos = NodeInfos(node_infos)
         self.node_infos = node_infos
-
 
     @property
     def mpi_command(self):
@@ -352,7 +351,6 @@ class BatchSystem():
     def nodes_command(self):
         return self.command('nodes')
 
-
     def command(self, name):
         return self.commands[name]
 
@@ -369,7 +367,6 @@ class BatchSystem():
                     return '. activate {}'.format(conda_env)
             return ''
 
-
     def __str__(self):
         return 'General batch system'
 
@@ -379,7 +376,6 @@ class BatchSystem():
         if queue is not None and queue not in self.queues:
             raise ValueError('Unknown queue {}.'.format(queue))
         return queue
-
 
     def check_walltime(self, queue, walltime_hours):
         # get max walltime
@@ -399,7 +395,6 @@ class BatchSystem():
         # return
         assert (walltime_hours is None and max_walltime_for_queue == float('inf')) or walltime_hours <= max_walltime_for_queue
         return walltime_hours
-
 
     # other methods
 
@@ -421,7 +416,6 @@ class BatchSystem():
             util.logging.debug('Started job has ID {}.'.format(job_id))
             return job_id
 
-
     def job_state(self, job_id, return_output=True, status_command_args=None):
         # input values
         if status_command_args is None:
@@ -441,12 +435,10 @@ class BatchSystem():
                 output = output.decode("utf-8")
                 return output
 
-
     # best node setups
 
     def speed(self, node_kind, nodes, cpus):
         return self.node_infos.speed(node_kind) * nodes * cpus
-
 
     def is_free(self, memory, node_kind, nodes, cpus):
         # get nodes with required memory
@@ -458,7 +450,6 @@ class BatchSystem():
         free_nodes = free_nodes - self.node_infos.leave_free(node_kind)
 
         return free_nodes >= nodes
-
 
     @staticmethod
     def _best_cpu_configurations_for_state(nodes_state, node_kind, memory_required, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf')):
@@ -531,7 +522,6 @@ class BatchSystem():
         assert cpus is None or best_cpus == cpus or best_cpus == 0
         return (best_nodes, best_cpus)
 
-
     def best_cpu_configurations(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_max=float('inf'), walltime=None):
 
         util.logging.debug('Calculating best CPU configurations for {}GB memory with node kinds {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_max {} and walltime {}'.format(memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_max, walltime))
@@ -582,7 +572,6 @@ class BatchSystem():
         assert best_nodes * best_cpus <= total_cpus_max
         return best_configuration
 
-
     def wait_for_needed_resources(self, memory_required, node_kind=None, nodes=None, cpus=None, nodes_max=float('inf'), nodes_leave_free=0, total_cpus_min=1, total_cpus_max=float('inf')):
         util.logging.debug('Waiting for at least {} CPUs with {}GB memory, with node_kind {}, nodes {}, cpus {}, nodes_max {}, nodes_leave_free {}, total_cpus_min {} and total_cpus_max {}.'.format(total_cpus_min, memory_required, node_kind, nodes, cpus, nodes_max, nodes_leave_free, total_cpus_min, total_cpus_max))
 
@@ -603,7 +592,6 @@ class BatchSystem():
                 time.sleep(60)
 
         return (best_cpu_kind, best_nodes, best_cpus)
-
 
     # abstract methods
 
@@ -627,7 +615,10 @@ BATCH_SYSTEM = BatchSystem({}, ())
 
 class Job():
 
-    def __init__(self, output_dir, batch_system=None, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None):
+    def __init__(self, output_dir, batch_system=None, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None, remove_output_dir_on_close=False):
+        # remove_output_dir_on_close
+        self.remove_output_dir_on_close = remove_output_dir_on_close
+
         # batch system
         if batch_system is None:
             batch_system = BATCH_SYSTEM
@@ -665,7 +656,6 @@ class Job():
 
             util.logging.debug('Job {} initialized.'.format(option_file_expanded))
 
-
     def __del__(self):
         self.close()
 
@@ -674,7 +664,6 @@ class Job():
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
-
 
     def __str__(self):
         output_dir = self.output_dir
@@ -685,11 +674,9 @@ class Job():
         job_str = 'job {} with output path {}'.format(job_id, output_dir)
         return job_str
 
-
     @property
     def options(self):
         return self.__options
-
 
     # option properties
 
@@ -706,7 +693,6 @@ class Job():
                     raise
         finally:
             self.options.replace_environment_vars_at_get = replace_environment_vars_old
-
 
     @property
     def id(self):
@@ -788,7 +774,6 @@ class Job():
     def walltime_hours(self):
         return self.option_value('/job/walltime_hours', not_exist_okay=True)
 
-
     # write job file methods
 
     def set_job_options(self, job_name, nodes_setup, queue=None, cpu_kind=None):
@@ -807,7 +792,6 @@ class Job():
             self.options['/job/cpu_kind'] = cpu_kind
         if walltime_hours is not None:
             self.options['/job/walltime_hours'] = walltime_hours
-
 
     @abc.abstractmethod
     def _job_file_header(self, use_mpi=True):
@@ -841,14 +825,12 @@ class Job():
         content.append('')
         return os.linesep.join(content)
 
-
     def write_job_file(self, command, pre_command=None, use_mpi=True):
         job_file_command = self._job_file_header(use_mpi=use_mpi) + os.linesep + self._job_file_command(command, pre_command=pre_command, use_mpi=use_mpi)
         with open(self.option_file, mode='w') as f:
             f.write(job_file_command)
             f.flush()
             os.fsync(f.fileno())
-
 
     # other methods
 
@@ -861,7 +843,6 @@ class Job():
             with open(self.options['/job/id_file'], 'w') as id_file:
                 id_file.write(job_id)
 
-
     def is_started(self):
         try:
             self.options['/job/id']
@@ -869,7 +850,6 @@ class Job():
             return False
         else:
             return True
-
 
     def is_finished(self, check_exit_code=True):
         # if finished file exists, check exit code and output file
@@ -902,10 +882,8 @@ class Job():
         # if not not started or running, return false
         return False
 
-
     def is_running(self):
         return self.is_started() and not self.is_finished(check_exit_code=False)
-
 
     def wait_until_finished(self, check_exit_code=True, pause_seconds=None, pause_seconds_min=5, pause_seconds_max=60, pause_seconds_increment_cycle=50):
         adaptive = pause_seconds is None
@@ -927,7 +905,6 @@ class Job():
 
         util.logging.debug('Job {} finished with exit code {}.'.format(self.id, self.exit_code))
 
-
     def make_read_only_input(self, read_only=True):
         if read_only:
             self.options.make_read_only()
@@ -944,14 +921,20 @@ class Job():
         self.make_read_only_input(read_only=read_only)
         self.make_read_only_output(read_only=read_only)
 
-
     def close(self):
-        try:
-            options = self.options
-        except AttributeError:
-            pass
-        else:
-            options.close()
+        if not self.is_closed:
+            if self.remove_output_dir_on_close and self.is_finished(check_exit_code=False):
+                remove_dir = self.output_dir
+            else:
+                remove_dir = None
+
+            self.options.close()
+
+            if remove_dir is not None:
+                try:
+                    shutil.rmtree(remove_dir)
+                except OSError as e:
+                    util.logging.warning('Dir {} could not be removed: {}'.format(self.output_dir, e))
 
     @property
     def is_closed(self):
@@ -961,7 +944,6 @@ class Job():
             return True
         else:
             return options.is_closed
-
 
     # check integrity
 
@@ -982,7 +964,7 @@ class Job():
             job_id = self.id
             try:
                 is_running_batch_system = self.batch_system.is_job_running(job_id)
-            except:
+            except Exception:
                 pass
             else:
                 if is_running != is_running_batch_system:
@@ -1000,7 +982,7 @@ class Job():
             output = self.output
             for line in output.splitlines():
                 line_lower = line.lower()
-                if ('error' in line_lower and not 'error_path' in line_lower) or 'warning' in line_lower or 'fatal' in line_lower or 'permission denied' in line_lower:
+                if ('error' in line_lower and 'error_path' not in line_lower) or 'warning' in line_lower or 'fatal' in line_lower or 'permission denied' in line_lower:
                     raise JobError(self, 'There are errors in the job output file: {}!'.format(line))
 
         # check read only
@@ -1009,10 +991,11 @@ class Job():
 
         # check files
         output_dir = self.output_dir
+
         def check_if_file_exists(file, should_exists=True):
             if not file.startswith(output_dir):
                 raise JobError(self, 'Job option should start with {} but its is {}.'.format(output_dir, file))
-            exists =  os.path.exists(file)
+            exists = os.path.exists(file)
             if should_exists and not exists:
                 raise JobError(self, 'File {} does not exist.'.format(file))
             if not should_exists and exists:
@@ -1028,7 +1011,6 @@ class Job():
         if is_running:
             check_if_file_exists(self.finished_file, should_exists=False)
             check_if_file_exists(self.unfinished_file)
-
 
 
 class JobError(Exception):
@@ -1056,10 +1038,12 @@ class JobError(Exception):
         # super call
         super().__init__(error_message)
 
+
 class JobNotStartedError(JobError):
     def __init__(self, job):
         error_message = 'The job is not started!'
         super().__init__(job, error_message)
+
 
 class JobExitCodeError(JobError):
     def __init__(self, job):
@@ -1067,11 +1051,13 @@ class JobExitCodeError(JobError):
         error_message = 'The command of the job exited with code {}.'.format(self.exit_code)
         super().__init__(job, error_message, include_output=True)
 
+
 class JobExceededWalltimeError(JobError):
     def __init__(self, job):
         self.walltime = job.walltime_hours
         error_message = 'The job exceeded walltime {}.'.format(self.walltime)
         super().__init__(job, error_message)
+
 
 class JobMissingOptionError(JobError):
     def __init__(self, job, option):
