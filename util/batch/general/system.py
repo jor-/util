@@ -3,15 +3,16 @@ import math
 import os
 import shutil
 import subprocess
+import tempfile
 import time
 
 import numpy as np
 
+import util.constants
 import util.io.env
 import util.io.fs
-import util.options
-
 import util.logging
+import util.options
 
 
 # *** nodes *** #
@@ -615,9 +616,15 @@ BATCH_SYSTEM = BatchSystem({}, ())
 
 class Job():
 
-    def __init__(self, output_dir, batch_system=None, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None, remove_output_dir_on_close=False):
+    def __init__(self, output_dir=None, batch_system=None, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None, remove_output_dir_on_close=False):
         # remove_output_dir_on_close
         self.remove_output_dir_on_close = remove_output_dir_on_close
+
+        # if no output dir, use tmp output dir
+        if output_dir is None:
+            output_dir = util.constants.TMP_DIR
+            os.makedirs(output_dir, exist_ok=True)
+            output_dir = tempfile.mkdtemp(dir=output_dir, prefix='job_')
 
         # batch system
         if batch_system is None:
@@ -934,7 +941,7 @@ class Job():
                 try:
                     shutil.rmtree(remove_dir)
                 except OSError as e:
-                    util.logging.warning('Dir {} could not be removed: {}'.format(self.output_dir, e))
+                    util.logging.warning('Dir {} could not be removed: {}'.format(remove_dir, e))
 
     @property
     def is_closed(self):

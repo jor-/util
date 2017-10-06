@@ -146,8 +146,8 @@ BATCH_SYSTEM = BatchSystem()
 
 class Job(util.batch.general.system.Job):
 
-    def __init__(self, output_dir, force_load=False, remove_output_dir_on_close=False):
-        super().__init__(output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, max_job_name_len=15, remove_output_dir_on_close=remove_output_dir_on_close)
+    def __init__(self, output_dir=None, force_load=False, remove_output_dir_on_close=False):
+        super().__init__(output_dir=output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, max_job_name_len=15, remove_output_dir_on_close=remove_output_dir_on_close)
 
     def set_job_options(self, job_name, nodes_setup, queue=None):
         # set queue if missing

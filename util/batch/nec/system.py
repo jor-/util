@@ -73,9 +73,9 @@ BATCH_SYSTEM = BatchSystem()
 
 class Job(util.batch.general.system.Job):
 
-    def __init__(self, output_dir, force_load=False, remove_output_dir_on_close=False):
+    def __init__(self, output_dir=None, force_load=False, remove_output_dir_on_close=False):
         from util.batch.nec.constants import EXCEEDED_WALLTIME_ERROR_MESSAGE
-        super().__init__(output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, exceeded_walltime_error_message=EXCEEDED_WALLTIME_ERROR_MESSAGE, remove_output_dir_on_close=remove_output_dir_on_close)
+        super().__init__(output_dir=output_dir, batch_system=BATCH_SYSTEM, force_load=force_load, exceeded_walltime_error_message=EXCEEDED_WALLTIME_ERROR_MESSAGE, remove_output_dir_on_close=remove_output_dir_on_close)
 
     def set_job_options(self, job_name, nodes_setup, queue=None):
         # set queue if missing
