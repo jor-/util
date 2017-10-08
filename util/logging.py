@@ -132,6 +132,7 @@ class Logger():
                 self.logger.exception(eValue)
             self.logger.info('Logging stopped.')
         self.close()
+        return False
 
 
     def close(self):

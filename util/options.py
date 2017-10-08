@@ -37,6 +37,7 @@ class OptionsFile():
 
     def __exit__(self, type, value, traceback):
         self.close()
+        return False
 
     def __setitem__(self, key, value):
         # handle None value

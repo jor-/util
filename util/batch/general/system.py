@@ -671,6 +671,7 @@ class Job():
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+        return False
 
     def __str__(self):
         output_dir = self.output_dir
@@ -930,6 +931,7 @@ class Job():
 
     def close(self):
         if not self.is_closed:
+            assert not self.options.is_closed
             if self.remove_output_dir_on_close and self.is_finished(check_exit_code=False):
                 remove_dir = self.output_dir
             else:

@@ -234,6 +234,7 @@ class FileLock:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.release()
+        return False
 
     def __del__(self):
         if self._lock_count > 1:

@@ -141,6 +141,7 @@ class FileLock(object):
 
     def __exit__(self, type, value, traceback):
         self.release()
+        return False
 
     def __del__(self):
         self.release()
