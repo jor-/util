@@ -1,9 +1,10 @@
+import os.path
+
 import util.cache.auxiliary
 import util.io.fs
 import util.io.universal
 
 import util.logging
-
 
 
 # file cache
@@ -46,18 +47,36 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
 
             # if cache file is defined, use cache
             if cache_file is not None and load_function is not None:
-                # if cache file is available, load cached value
+                # try to load cache file
                 try:
                     value = load_function(cache_file)
+                except FileNotFoundError as e:
+                    util.logging.debug('No cached value found at {}.'.format(cache_file))
+                    calculate_value = True
+                except OSError as e:
+                    util.logging.warn('Cached value at {} could not be loaded: {}.'.format(cache_file, e))
+                    calculate_value = True
+                else:
                     util.logging.debug('Calculated value loaded from cache file {}.'.format(cache_file))
-                # if cache file is not available, calculate value and save as cached value
-                except OSError:
-                    util.logging.debug('No cached value found for {}.'.format(cache_file))
+                    calculate_value = False
+
+                # if cache file is not loadable, calculate value and save as cached value
+                if calculate_value:
                     value = function(*args, **kargs)
                     if save_function is not None:
                         util.logging.debug('Saving calculated value to cache file {}.'.format(cache_file))
-                        save_function(cache_file, value)
-                        util.io.fs.apply_recursively(cache_file, util.io.fs.remove_write_permission)
+                        try:
+                            save_function(cache_file, value)
+                        except PermissionError as e:
+                            if os.path.exists(cache_file):
+                                util.logging.debug('Cache file {} was already created while calculating the value.'.format(cache_file))
+                            else:
+                                util.logging.warn('File permissions are not sufficient to save calculated value to cache file {}: {}.'.format(cache_file, e))
+                        except OSError as e:
+                            util.logging.warn('The calculated value could not be saved to cache file {}: {}.'.format(cache_file, e))
+                        else:
+                            util.logging.debug('Calculated value saved to cache file {}.'.format(cache_file))
+                            util.io.fs.apply_recursively(cache_file, util.io.fs.remove_write_permission)
                     else:
                         util.logging.debug('Not saving calculated value to cache file {} because no save function is provided.'.format(cache_file))
 
@@ -71,4 +90,3 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
         return wrapper
 
     return lambda function: decorate(function, cache_file_function=cache_file_function, load_function=load_function, save_function=save_function)
-
