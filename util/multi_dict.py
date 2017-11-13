@@ -5,12 +5,16 @@ import util.io.object
 import util.logging
 
 
-def _isdict(d):
+def _is_dict(d):
     if isinstance(d, dict):
         return True
     else:
         from blist import sorteddict
         return isinstance(d, sorteddict)
+
+
+def _is_list(d):
+    return isinstance(d, list)
 
 
 class MultiDict():
@@ -45,45 +49,63 @@ class MultiDict():
 
     # get #
 
-    def get_value_list(self, key):
+    def get_value(self, key, sub_dict_allowed=True):
         value = self.value_dict
+        # get value for key if available
         for i in range(len(key)):
-            if not _isdict(value):
+            if not _is_dict(value):
                 raise KeyError('No value for key {} available. (Under key {} is a value of type {}).'.format(key, key[:i], type(value)))
             try:
                 value = value[key[i]]
             except KeyError as e:
                 raise KeyError('No value for key {} available. (Miss at the {}th index.'.format(key, i)) from e
+        # convert to multi dict if it is a sub dictionary
+        if not _is_list(value):
+            assert _is_dict(value)
+            if sub_dict_allowed:
+                sub_dict = value
+                value = MultiDict()
+                value._value_dict = sub_dict
+            else:
+                raise KeyError('The value for key {} is a sub dictionary of this multi dictionary, which is not allowed.'.format(key))
         return value
 
     def __getitem__(self, key):
-        return self.get_value_list(key)
+        return self.get_value(key)
 
-    def _get_last_dict(self, key):
+    def _get_or_init_last_dict(self, key):
         value_dict = self.value_dict
         value_dict_type = type(value_dict)
         for i in range(len(key) - 1):
             value_dict = value_dict.setdefault(key[i], value_dict_type())
+        assert _is_dict(value_dict)
         return value_dict
 
     # set #
 
-    def set_value_list(self, key, value_list):
-        value_list = list(value_list)
-        last_dict = self._get_last_dict(key)
-        last_dict[key[len(key) - 1]] = value_list
+    def set_value(self, key, value, overwrite=True):
+        # check value type
+        if (not _is_dict(value)) or (not (_is_list(value))):
+            raise ValueError('Value is neither a dict nor a list. Its of type {}.'.format(type(value)))
+        # check overwrite
+        last_dict = self._get_or_init_last_dict(key)
+        if not overwrite and key[-1] in last_dict:
+            raise KeyError('For key {} a value is already available. Overwriting is not allowed.'.format(key))
+        # set value
+        last_dict[key[-1]] = value
 
     def __setitem__(self, key, value):
-        self.set_value_list(key, value)
+        self.set_value(key, value)
 
     # has #
 
-    def has_values(self, key):
+    def has_values(self, key, sub_dict_allowed=True):
         try:
-            value_list = self.get_value_list(key)
+            value_list = self.get_value(key, sub_dict_allowed=sub_dict_allowed)
         except KeyError:
             return False
-        return len(value_list) > 0
+        else:
+            return len(value_list) > 0
 
     def __contains__(self, key):
         return self.has_values(key)
@@ -104,9 +126,16 @@ class MultiDict():
     # *** add *** #
 
     def _get_or_init_value_list(self, key):
-        last_dict = self._get_last_dict(key)
-        value_list = last_dict.setdefault(key[len(key) - 1], [])
-        return value_list
+        last_dict = self._get_or_init_last_dict(key)
+        try:
+            value = last_dict[key[-1]]
+        except KeyError:
+            value = []
+            last_dict[key[-1]] = value
+        else:
+            if not(_is_list(value)):
+                raise KeyError('No value list for key {} available. (Under key {} is a value of type {}).'.format(key, key[:-1], type(value)))
+        return value
 
     def extend_value_list(self, key, value_list):
         if len(value_list) > 0:
@@ -145,7 +174,7 @@ class MultiDict():
 
     def remove_value(self, key, value):
         util.logging.debug('Removing value {} for key {}.'.format(value, key))
-        value_list = self.get_value_list(key)
+        value_list = self.get_value(key, sub_dict_allowed=False)
         n = len(value_list)
         value_list[:] = [v for v in value_list if not np.all(np.isclose(v, value))]
         if len(value_list) == n:
@@ -158,8 +187,7 @@ class MultiDict():
             for value in value_list:
                 self.remove_value(key, value)
 
-
-    # access
+    # *** access *** #
 
     def keys(self):
         all_keys = []
@@ -168,9 +196,7 @@ class MultiDict():
                 all_keys.append(key)
 
         all_keys = np.array(all_keys)
-        # assert all_keys.ndim == 2
         return all_keys
-
 
     def values(self):
         all_values = []
@@ -179,7 +205,6 @@ class MultiDict():
 
         all_values = np.array(all_values)
         return all_values
-
 
     def items(self):
         all_keys = self.keys()
@@ -196,20 +221,13 @@ class MultiDict():
     def toarray(self):
         return self.items()
 
-
-    # io
+    # *** io *** #
     def save(self, file, only_dict=True):
         util.logging.debug('Saving {} to {}.'.format(self, file))
         if only_dict:
             util.io.object.save(file, self.value_dict)
         else:
             util.io.object.save(file, self)
-
-
-    # def load(self, file):
-    #     util.logging.debug('Loading {} from {}.'.format(self, file))
-    #     self._value_dict = util.io.io.load_object(file)
-    #     return self
 
     @classmethod
     def load(cls, file):
@@ -234,7 +252,7 @@ class MultiDict():
 
         return obj
 
-    # create
+    # *** create *** #
 
     def new_like(self, sorted=None):
         if sorted is None:
@@ -242,11 +260,9 @@ class MultiDict():
         new = type(self)(sorted=sorted)
         return new
 
-
     def copy(self):
         import copy
         return copy.deepcopy(self)
-
 
     def _return_items_as_type(self, keys, value_lists, return_type=None):
         util.logging.debug('Returning {} values as type {}.'.format(len(keys), return_type))
@@ -257,7 +273,6 @@ class MultiDict():
         if return_type == 'multi_dict':
             return_type = 'multi_dict_unsorted'
 
-
         # check input
         if return_type not in self.SUPPORTED_RETURN_TYPES:
             raise ValueError('Unknown return_type "{}". Only {} are supported.'.format(return_type, self.SUPPORTED_RETURN_TYPES))
@@ -266,7 +281,6 @@ class MultiDict():
         if n != len(value_lists):
             raise ValueError('Len of keys {} and len of value lists {} have to be the same!'.format(len(keys), len(value_lists)))
 
-
         # make list of value lists
         value_lists = list(value_lists)
         for i in range(n):
@@ -274,7 +288,6 @@ class MultiDict():
                 value_lists[i] = list(value_lists[i])
             except TypeError:
                 value_lists[i] = [value_lists[i]]
-
 
         # return multi_dict type
         if return_type in ('self', 'self_type', 'self_type_unsorted', 'self_type_sorted', 'multi_dict_unsorted', 'multi_dict_sorted'):
@@ -332,8 +345,7 @@ class MultiDict():
 
         return obj
 
-
-    # iterate
+    # *** iterate *** #
 
     def _iterate_generator_value_dict(self, value_dict, value_dict_type=None, key_prefix=()):
         if value_dict_type is None:
@@ -345,11 +357,9 @@ class MultiDict():
             else:
                 yield (total_key, value)
 
-
     def iterator_keys_and_value_lists(self):
         value_dict = self.value_dict
         yield from self._iterate_generator_value_dict(value_dict)
-
 
     def iterate_items(self, fun, min_number_of_values=1, return_type='array'):
         assert callable(fun)
@@ -372,14 +382,11 @@ class MultiDict():
         # finishing
         return self._return_items_as_type(new_keys, new_values, return_type=return_type)
 
-
     def iterate_values(self, fun, min_number_of_values=1, return_type='array'):
         fun_wrapper = lambda key, values: fun(values)
         return self.iterate_items(fun_wrapper, min_number_of_values=min_number_of_values, return_type=return_type)
 
-
-
-    # transform keys
+    # *** transform keys *** #
 
     def transform_keys(self, transform_function):
         util.logging.debug('Transforming keys of {}.'.format(self))
@@ -392,12 +399,10 @@ class MultiDict():
             key_transformed = transform_function(key)
             self.extend_value_list(key_transformed, value_list)
 
-
     def keys_to_int_keys(self, dtype=np.int):
         util.logging.debug('Converting keys to type {}.'.format(dtype))
         transform_function = lambda key: tuple(np.array(np.round(key), dtype=dtype))
         self.transform_keys(transform_function)
-
 
     def dicard_key_dim(self, key_dim):
         util.logging.debug('Discarding key dim {}.'.format(key_dim))
@@ -410,14 +415,11 @@ class MultiDict():
 
         self.transform_keys(transform_function)
 
-
     def dicard_key_dims(self, key_dims):
         for key_dim in key_dims:
             self.dicard_key_dim(key_dim)
 
-
-
-    # transform values
+    # *** transform values *** #
 
     def transform_value_lists(self, transform_function):
         util.logging.debug('Transforming value lists of {}.'.format(self))
@@ -425,7 +427,7 @@ class MultiDict():
 
         for (key, value_list) in self.iterator_keys_and_value_lists():
             transformed_value_list = transform_function(key, value_list)
-            self.set_value_list(key, transformed_value_list)
+            self[key] = transformed_value_list
 
     def transform_values(self, transform_function):
         util.logging.debug('Transforming values of {}.'.format(self))
@@ -439,36 +441,17 @@ class MultiDict():
 
         self.transform_value_lists(transform_function_wapper)
 
-        # for (key, value_list) in self.iterator_keys_and_value_lists():
-        #     transformed_value_list = []
-        #     for value in value_list:
-        #         transformed_value_list.append(transform_function(key, value))
-        #     self.set_value_list(key, transformed_value_list)
-
-
     def set_min_value(self, min_value):
         util.logging.debug('Applying min value {} to values.'.format(min_value))
-
         transform_function = lambda key, value: max([value, min_value])
         self.transform_value(transform_function)
 
-
-#     def is_at_least_value(self, value_threshold):
-#         util.logging.debug('Applying is at least value {} to values.'.format(value_threshold))
-#
-#         transform_function = lambda key, value: value >= value_threshold)
-#         self.transform_value(transform_function)
-
-
     def log_values(self):
         util.logging.debug('Applying logarithm to values.')
-
         transform_function = lambda key, value: np.log(value)
         self.transform_value(transform_function)
 
-
-
-    # filter
+    # *** filter *** #
 
     def filter_with_boolean_function(self, boolean_filter_function, return_type='self'):
         assert callable(boolean_filter_function)
@@ -484,21 +467,15 @@ class MultiDict():
         util.logging.debug('Filtered {} value lists.'.format(len(filtered_value_lists)))
         return self._return_items_as_type(filtered_keys, filtered_value_lists, return_type=return_type)
 
-
     def filter_min_number_of_values(self, min_number_of_values=1, return_type='self'):
         def boolean_filter_function(key, value_list):
             return len(value_list) >= min_number_of_values
-
         return self.filter_with_boolean_function(boolean_filter_function, return_type=return_type)
-
 
     def filter_key_range(self, key_index, bounds, return_type='self'):
         def boolean_filter_function(key, value_list):
             return bounds[0] <= key[key_index] <= bounds[1]
-
         return self.filter_with_boolean_function(boolean_filter_function, return_type=return_type)
-
-
 
     def filter_with_list_function(self, list_filter_function, return_type='self'):
         assert callable(list_filter_function)
@@ -515,7 +492,6 @@ class MultiDict():
         util.logging.debug('Filtered {} value lists.'.format(len(filtered_value_lists)))
         return self._return_items_as_type(filtered_keys, filtered_value_lists, return_type=return_type)
 
-
     def filter_finite(self, return_type='self'):
         def list_filter_function(key, value_list):
             filtered_value_list = []
@@ -526,17 +502,12 @@ class MultiDict():
 
         return self.filter_with_list_function(list_filter_function, return_type=return_type)
 
-
-
-
-
-    # compute values
+    # *** compute values *** #
 
     def numbers(self, min_number_of_values=1, return_type='array'):
         util.logging.debug('Calculate numbers of values with at least {} values.'.format(min_number_of_values))
 
         return self.iterate_values(len, min_number_of_values, return_type=return_type)
-
 
     def means(self, min_number_of_values=1, min_value=0, return_type='array'):
         util.logging.debug('Calculate means of values with at least {} values with minimal mean {}.'.format(min_number_of_values, min_value))
@@ -549,7 +520,6 @@ class MultiDict():
             return mean
 
         return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
-
 
     def variances(self, min_number_of_values=3, min_value=0, return_type='array'):
         util.logging.debug('Calculate variances of values with at least {} values with minimal variance {}.'.format(min_number_of_values, min_value))
@@ -565,7 +535,6 @@ class MultiDict():
 
         return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
 
-
     def standard_deviations(self, min_number_of_values=3, min_value=0, return_type='array'):
         util.logging.debug('Calculate standard deviations of values with at least {} values with minimal deviation {}.'.format(min_number_of_values, min_value))
         if min_value is None:
@@ -574,16 +543,13 @@ class MultiDict():
         def calculate_function(values):
             mean = np.average(values)
             number_of_values = values.size
-            deviation = (np.sum((values - mean)**2) / (number_of_values - 1))**(1/2)
+            deviation = (np.sum((values - mean)**2) / (number_of_values - 1))**(0.5)
             deviation = max([deviation, min_value])
             return deviation
 
         return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
 
-
-
-
-    # tests for normality
+    # *** tests for normality *** #
 
     def dagostino_pearson_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
         util.logging.debug('Calculate D´Agostino-Person-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
@@ -593,13 +559,12 @@ class MultiDict():
 
         if alpha is not None:
             if return_type == 'array':
-                test_values[:,-1] = (test_values[:,-1] >= alpha).astype(np.float)
+                test_values[:, -1] = (test_values[:, -1] >= alpha).astype(np.float)
             else:
                 transform_function = lambda key, value: (value >= alpha).astype(np.float)
                 self.transform_value(transform_function)
 
         return test_values
-
 
     def shapiro_wilk_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
         util.logging.debug('Calculate Shapiro-Wilk-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
@@ -609,13 +574,12 @@ class MultiDict():
 
         if alpha is not None:
             if return_type == 'array':
-                test_values[:,-1] = (test_values[:,-1] >= alpha).astype(np.float)
+                test_values[:, -1] = (test_values[:, -1] >= alpha).astype(np.float)
             else:
                 transform_function = lambda key, value: (value >= alpha).astype(np.float)
                 self.transform_value(transform_function)
 
         return test_values
-
 
     def anderson_darling_test(self, min_number_of_values=50, alpha=0.05, return_type='array'):
         util.logging.debug('Calculate Anderson-Darling-test for normality of values with minimal {} values with alpha {}.'.format(min_number_of_values, alpha))
@@ -642,12 +606,10 @@ class MultiDict():
         return test_values
 
 
-
 class MultiDictPreprocessKey(MultiDict):
 
     def __init__(self, sorted=False):
         super().__init__(sorted=sorted)
-
 
     @staticmethod
     def _check_keys(keys):
@@ -657,20 +619,17 @@ class MultiDictPreprocessKey(MultiDict):
     def _preprocess_keys(keys):
         raise NotImplementedError("Please implement this method.")
 
+    # *** override for key pairs *** #
 
-    # override for key pairs
-
-    def get_value_list(self, key):
+    def get_value(self, key, sub_dict_allowed=True):
         self._check_keys(key)
         key = self._preprocess_keys(key)
-        return super().get_value_list(key)
+        return super().get_value(key, sub_dict_allowed=sub_dict_allowed)
 
-
-    def set_value_list(self, key, value_list):
+    def set_value(self, key, value, overwrite=True):
         self._check_keys(key)
         key = self._preprocess_keys(key)
-        super().set_value_list(key, value_list)
-
+        super().set_value(key, value, overwrite=overwrite)
 
     def _get_or_init_value_list(self, key):
         self._check_keys(key)
@@ -678,26 +637,29 @@ class MultiDictPreprocessKey(MultiDict):
         return super()._get_or_init_value_list(key)
 
 
-
-
 class MultiDictPointPairs(MultiDictPreprocessKey):
 
     def __init__(self, sorted=False):
         super().__init__(sorted=sorted)
 
-
     @staticmethod
     def _check_keys(keys):
         try:
-            are_two_keys = len(keys) == 2
+            len(keys)
         except TypeError:
             raise ValueError('keys {} have to be a pair of keys.'.format(keys))
+        else:
+            if len(keys) != 2:
+                raise ValueError('keys {} have to be a pair of keys.'.format(keys))
 
         try:
-            are_two_keys = len(keys[0]) == len(keys[1])
+            len(keys[0])
+            len(keys[1])
         except (TypeError, KeyError):
             raise ValueError('keys {} have to be two keys of equal length.'.format(keys))
-
+        else:
+            if len(keys[0]) != len(keys[1]):
+                raise ValueError('keys {} have to be two keys of equal length.'.format(keys))
 
     def _iterate_generator_value_dict(self, value_dict, value_dict_type=None, key_prefix=()):
         if value_dict_type is None:
@@ -707,9 +669,8 @@ class MultiDictPointPairs(MultiDictPreprocessKey):
             if isinstance(value, value_dict_type):
                 yield from self._iterate_generator_value_dict(value, value_dict_type, key_prefix=total_key)
             else:
-                split_index = int(len(total_key)/2)
+                split_index = int(len(total_key) / 2)
                 yield ((total_key[0:split_index], total_key[split_index:]), value)
-
 
     def _return_items_as_type(self, keys, value_lists, return_type=None):
         if return_type is None or return_type == 'array':
@@ -722,32 +683,10 @@ class MultiDictPointPairs(MultiDictPreprocessKey):
         return super()._return_items_as_type(keys, value_lists, return_type=return_type)
 
 
-
-
-
 class MultiDictPermutablePointPairs(MultiDictPointPairs):
 
     def __init__(self, sorted=False):
         super().__init__(sorted=sorted)
-    #     self._pair_order = 1
-    #
-    #
-    # @property
-    # def pair_order(self):
-    #     return self._pair_order
-
-    # @staticmethod
-    # def _check_keys(keys):
-    #     try:
-    #         are_two_keys = len(keys) == 2
-    #     except TypeError:
-    #         raise ValueError('keys {} have to be a pair of keys.'.format(keys))
-    #
-    #     try:
-    #         are_two_keys = len(keys[0]) == len(keys[1])
-    #     except (TypeError, KeyError):
-    #         raise ValueError('keys {} have to be two keys of equal length.'.format(keys))
-
 
     @staticmethod
     def _preprocess_keys(keys):
@@ -759,37 +698,10 @@ class MultiDictPermutablePointPairs(MultiDictPointPairs):
         return keys
 
 
-    # def _iterate_generator_value_dict(self, value_dict, value_dict_type=None, key_prefix=()):
-    #     if value_dict_type is None:
-    #         value_dict_type = type(value_dict)
-    #     for (key, value) in value_dict.items():
-    #         total_key = key_prefix + (key,)
-    #         if isinstance(value, value_dict_type):
-    #             yield from self._iterate_generator_value_dict(value, value_dict_type, key_prefix=total_key)
-    #         else:
-    #             split_index = int(len(total_key)/2)
-    #             yield ((total_key[0:split_index], total_key[split_index:]), value)
-    #
-    #
-    # def _return_items_as_type(self, keys, value_lists, return_type=None):
-    #     if return_type is None or return_type == 'array':
-    #         flattened_keys = []
-    #         for key in keys:
-    #             flattened_key = tuple(np.array(key).flatten())
-    #             flattened_keys.append(flattened_key)
-    #         keys = flattened_keys
-    #
-    #     return super()._return_items_as_type(keys, value_lists, return_type=return_type)
-
-
-
-
-
 class MultiDictDiffPointPairs(MultiDictPreprocessKey):
 
     def __init__(self, sorted=False):
         super().__init__(sorted=sorted)
-
 
     @staticmethod
     def _preprocess_keys(keys):
@@ -800,5 +712,3 @@ class MultiDictDiffPointPairs(MultiDictPreprocessKey):
         else:
             key = tuple(np.abs(key_array))
         return key
-
-
