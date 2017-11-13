@@ -5,7 +5,6 @@ import util.io.object
 import util.logging
 
 
-
 def _isdict(d):
     if isinstance(d, dict):
         return True
@@ -37,14 +36,14 @@ class MultiDict():
     def SUPPORTED_RETURN_TYPES(self):
         return ('array', 'self', 'self_type', 'self_type_unsorted', 'self_type_sorted', 'multi_dict_unsorted', 'multi_dict_sorted')
 
-
-    # str
+    # *** str *** #
 
     def __str__(self):
         return str(self.value_dict)
 
+    # *** mapping methods *** #
 
-    # mapping methods
+    # get #
 
     def get_value_list(self, key):
         value = self.value_dict
@@ -60,25 +59,24 @@ class MultiDict():
     def __getitem__(self, key):
         return self.get_value_list(key)
 
-
     def _get_last_dict(self, key):
         value_dict = self.value_dict
         value_dict_type = type(value_dict)
-
-        for i in range(len(key)-1):
+        for i in range(len(key) - 1):
             value_dict = value_dict.setdefault(key[i], value_dict_type())
-
         return value_dict
 
+    # set #
 
     def set_value_list(self, key, value_list):
         value_list = list(value_list)
         last_dict = self._get_last_dict(key)
-        last_dict[key[len(key)-1]] = value_list
+        last_dict[key[len(key) - 1]] = value_list
 
     def __setitem__(self, key, value):
         self.set_value_list(key, value)
 
+    # has #
 
     def has_values(self, key):
         try:
@@ -90,6 +88,7 @@ class MultiDict():
     def __contains__(self, key):
         return self.has_values(key)
 
+    # length #
 
     @property
     def len(self):
@@ -102,13 +101,11 @@ class MultiDict():
     def __len__(self):
         return self.len
 
-
-
-    # add
+    # *** add *** #
 
     def _get_or_init_value_list(self, key):
         last_dict = self._get_last_dict(key)
-        value_list = last_dict.setdefault(key[len(key)-1], [])
+        value_list = last_dict.setdefault(key[len(key) - 1], [])
         return value_list
 
     def extend_value_list(self, key, value_list):
@@ -141,8 +138,7 @@ class MultiDict():
         add_function = lambda key, value: self.append_value(key, value)
         self._add_value_lists(keys, values, add_function)
 
-
-    # remove
+    # *** remove *** #
 
     def clear(self):
         self._value_dict = type(self.value_dict)()
@@ -237,18 +233,6 @@ class MultiDict():
             obj = loaded_object
 
         return obj
-
-
-    # properties
-
-    @property
-    def value_dict(self):
-        return self._value_dict
-
-    @property
-    def sorted(self):
-        return not isinstance(self.value_dict, dict)
-
 
     # create
 
