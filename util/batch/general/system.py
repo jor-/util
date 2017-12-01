@@ -312,10 +312,53 @@ class NodeSetupIncompleteError(Exception):
 
 class CommandError(Exception):
 
-    def __init__(self, command, cause=None):
-        message = 'Command {} could not be executed successfully.'.format(command)
-        self.message = message
+    def __init__(self, command, cause=None, return_code=None, output=None, error_output=None):
+
+        # store parameters
+        self.command = command
         self.cause = cause
+        self.return_code = return_code
+        self.output = output
+        self.error_output = error_output
+
+        # restore non-passed parameters from original exception
+        if cause is not None:
+
+            if return_code is None:
+                try:
+                    return_code = cause.returncode
+                except AttributeError:
+                    pass
+                else:
+                    self.return_code = return_code
+
+            if output is None:
+                try:
+                    output = cause.stdout
+                except AttributeError:
+                    pass
+                else:
+                    if output is not None:
+                        self.output = output.decode('utf8')
+
+            if error_output is None:
+                try:
+                    error_output = cause.stderr
+                except AttributeError:
+                    pass
+                else:
+                    if error_output is not None:
+                        self.error_output = error_output.decode('utf8')
+
+        # create message
+        message = 'Command {} could not be executed successfully.'.format(self.command)
+        if self.return_code is not None:
+            message = message + ' The return code was: {}.'.format(self.return_code)
+        if self.output is not None:
+            message = message + ' The output was: "{}".'.format(self.output)
+        if self.error_output is not None:
+            message = message + ' The error output was: "{}".'.format(self.error_output)
+        self.message = message
         super().__init__(message)
 
 
@@ -408,7 +451,7 @@ class BatchSystem():
         command = (self.submit_command, job_file)
         try:
             output = subprocess.check_output(command, stderr=subprocess.PIPE)
-        except (OSError, subprocess.CalledProcessError) as e:
+        except (subprocess.CalledProcessError, OSError) as e:
             raise util.batch.general.system.CommandError(command, cause=e) from e
         else:
             util.logging.debug('Job submit result is {}.'.format(output))
@@ -428,7 +471,7 @@ class BatchSystem():
         command = (self.status_command,) + status_command_args + (job_id,)
         try:
             output = subprocess.check_output(command, stderr=subprocess.PIPE)
-        except (OSError, subprocess.CalledProcessError) as e:
+        except (subprocess.CalledProcessError, OSError) as e:
             raise util.batch.general.system.CommandError(command, cause=e) from e
         else:
             util.logging.debug('Status command result: {}'.format(output))

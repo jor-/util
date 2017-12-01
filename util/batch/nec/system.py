@@ -36,8 +36,8 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def _nodes_state(self):
         nodes_command = self.nodes_command
         try:
-            output = subprocess.check_output(nodes_command)
-        except (OSError, subprocess.CalledProcessError) as e:
+            output = subprocess.check_output(nodes_command, stderr=subprocess.PIPE)
+        except (subprocess.CalledProcessError, OSError) as e:
             raise util.batch.general.system.CommandError(nodes_command, cause=e) from e
         else:
             output = output.decode('utf8')

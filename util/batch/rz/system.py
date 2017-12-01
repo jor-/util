@@ -67,8 +67,8 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         def grep_qnodes(expression):
             command = '{} | grep -E {}'.format(self.nodes_command, expression)
             try:
-                grep_result = subprocess.check_output(command, shell=True).decode("utf-8")
-            except (OSError, subprocess.CalledProcessError) as e:
+                grep_result = subprocess.check_output(command, stderr=subprocess.PIPE, shell=True).decode("utf-8")
+            except (subprocess.CalledProcessError, OSError) as e:
                 raise util.batch.general.system.CommandError(command, cause=e) from e
             else:
                 return grep_result
