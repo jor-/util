@@ -59,19 +59,20 @@ class Database(util.index_database.general.Database):
             except FileNotFoundError:
                 db = value[np.newaxis]
             else:
-                if index < len(db):
-                    has_value = self.has_value(index)
-                    if overwrite or not has_value:
+                db_extension_len = index - len(db) + 1
+                # index already in array
+                if db_extension_len <= 0:
+                    if overwrite or not self.has_value(index):
                         db[index] = value
                     else:
                         util.logging.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
                         raise util.index_database.general.DatabaseOverwriteError(self, index)
+                # index not in array
                 else:
-                    db_extension_len = index - len(db) + 1
                     db_extension = np.empty([db_extension_len, db.shape[1]]) * np.nan
                     db = np.concatenate([db, db_extension])
                     db[index] = value
-
+            # save changed array
             self.locked_file.save(db)
 
     def add_value(self, value):
