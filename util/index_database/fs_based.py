@@ -141,12 +141,12 @@ class Database(util.index_database.general.Database):
                 util.logging.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
                 raise util.index_database.general.DatabaseOverwriteError(self, index)
 
-    def used_indices(self):
+    def all_indices(self):
         # get all value files
         all_index_dirs = util.io.fs.find_with_regular_expression(self._base_dir, self._index_dir_regular_expression_search, exclude_files=True, use_absolute_filenames=False, recursive=False)
 
         # get all used indices
-        used_indices = []
+        all_indices = []
         for index_dir in all_index_dirs:
             # get name starting at index
             extracted = re.split(self._index_dir_regular_expression_split, index_dir)
@@ -156,10 +156,10 @@ class Database(util.index_database.general.Database):
             extracted = re.search(r'\d+', extracted).group()
             # append int index
             index = int(extracted)
-            used_indices.append(index)
+            all_indices.append(index)
 
-        util.logging.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
-        return used_indices
+        util.logging.debug('{}: Got {} used indices.'.format(self, len(all_indices)))
+        return all_indices
 
     def remove_index(self, index, force=False):
         util.logging.debug('{}: Removing index {}.'.format(self, index))

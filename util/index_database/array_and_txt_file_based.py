@@ -68,8 +68,8 @@ class Database(util.index_database.general.Database):
     def all_values(self):
         return self.array_db.all_values()
 
-    def used_indices(self):
-        return self.array_db.used_indices()
+    def all_indices(self):
+        return self.array_db.all_indices()
 
     def remove_index(self, index, force=False):
         util.logging.debug('{}: Removing index {}.'.format(self, index))
@@ -89,7 +89,7 @@ class Database(util.index_database.general.Database):
 
     def merge_txt_file_db_to_array_db(self):
         util.logging.debug('{}: Merging file db to array db.'.format(self))
-        for index in self.txt_file_db.used_indices():
+        for index in self.txt_file_db.all_indices():
             txt_file_db_value = self.txt_file_db.get_value(index)
             if not self.array_db.has_value(index) or not self.are_values_equal(self.array_db.get_value(index), txt_file_db_value):
                 self.array_db.set_value(index, txt_file_db_value, overwrite=False)
@@ -103,22 +103,22 @@ class Database(util.index_database.general.Database):
         array_db = self.array_db
         file_db = self.txt_file_db
 
-        file_used_indices = file_db.used_indices()
-        array_used_indices = array_db.used_indices()
-        file_used_indices = set(file_used_indices)
-        array_used_indices = set(array_used_indices)
+        file_all_indices = file_db.all_indices()
+        array_all_indices = array_db.all_indices()
+        file_all_indices = set(file_all_indices)
+        array_all_indices = set(array_all_indices)
 
-        diff = array_used_indices - file_used_indices
+        diff = array_all_indices - file_all_indices
         if len(diff) > 0:
             raise util.index_database.general.DatabaseError(self, 'Array db has values at indices {} and file db has no values their!'.format(diff))
-        diff = file_used_indices - array_used_indices
+        diff = file_all_indices - array_all_indices
         if len(diff) > 0:
             raise util.index_database.general.DatabaseError(self, 'File db has values at indices {} and array db has no values their!'.format(diff))
 
         # check if different values in array and text database
         util.logging.debug('{}: Checking for different values in array and file database.'.format(self))
 
-        for index in array_used_indices:
+        for index in array_all_indices:
             v_a = array_db.get_value(index)
             v_f = file_db.get_value(index)
             diff = np.max(np.abs(v_a - v_f))

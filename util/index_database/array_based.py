@@ -91,17 +91,17 @@ class Database(util.index_database.general.Database):
             util.logging.debug('{}: Got {} used values.'.format(self, len(used_values)))
             return used_values
 
-    def used_indices(self):
+    def all_indices(self):
         try:
             db = self.locked_file.load()
         except FileNotFoundError:
             return ()
         else:
             used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
-            used_indices = np.where(used_mask)[0]
+            all_indices = np.where(used_mask)[0]
 
-            util.logging.debug('{}: Got {} used indices.'.format(self, len(used_indices)))
-            return used_indices.astype(np.int32)
+            util.logging.debug('{}: Got {} used indices.'.format(self, len(all_indices)))
+            return all_indices.astype(np.int32)
 
     def remove_index(self, index):
         util.logging.debug('{}: Removing index {}.'.format(self, index))

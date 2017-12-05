@@ -132,13 +132,13 @@ class Database:
             raise ValueError('Value must be finite. But it is {}.'.format(value))
 
         # get used indices
-        used_indices = self.used_indices()
+        all_indices = self.all_indices()
 
         # create value
         index = 0
         created = False
         while not created:
-            if index not in used_indices:
+            if index not in all_indices:
                 try:
                     self.set_value(index, value, overwrite=False)
                 except DatabaseOverwriteError:
@@ -153,16 +153,16 @@ class Database:
         return index
 
     def all_values(self):
-        np.vstack(map(self.get_value, self.used_indices))
+        np.vstack(map(self.get_value, self.all_indices))
 
     # *** access to indices *** #
 
     @abc.abstractmethod
-    def used_indices(self):
+    def all_indices(self):
         raise NotImplementedError()
 
-    def number_of_used_indices(self):
-        return len(self.used_indices())
+    def number_of_indices(self):
+        return len(self.all_indices())
 
     @abc.abstractmethod
     def remove_index(self, index):
@@ -173,16 +173,16 @@ class Database:
         value = np.asanyarray(value)
 
         # get all used indices
-        used_indices = self.used_indices()
-        used_indices = np.asarray(used_indices)
+        all_indices = self.all_indices()
+        all_indices = np.asarray(all_indices)
 
         # init value differences
-        n = len(used_indices)
+        n = len(all_indices)
         value_differences = np.empty(n)
 
         # calculate value differences
         for i in range(n):
-            current_index = used_indices[i]
+            current_index = all_indices[i]
             try:
                 current_value = self.get_value(current_index)
             except DatabaseIndexError as e:
@@ -193,7 +193,7 @@ class Database:
 
         # return sorted indices
         sort = np.argsort(value_differences)
-        return used_indices[sort]
+        return all_indices[sort]
 
     def closest_index(self, value):
         util.logging.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
