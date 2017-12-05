@@ -126,6 +126,11 @@ class Database:
     def add_value(self, value):
         util.logging.debug('{}: Adding value {}'.format(self, value))
 
+        # checking value
+        value = np.asanyarray(value)
+        if not np.all(np.isfinite(value)):
+            raise ValueError('Value must be finite. But it is {}.'.format(value))
+
         # get used indices
         used_indices = self.used_indices()
 
