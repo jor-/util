@@ -127,14 +127,3 @@ class Database(util.index_database.general.Database):
     def index(self, value):
         with self.locked_file.lock_object(exclusive=False):
             return super().index(value)
-
-    # *** check integrity *** #
-
-    def check_integrity(self):
-        util.logging.debug('{}: Checking for same values mutiple times in database.'.format(self))
-        values = self.all_values()
-        unique_values, inverse_indices, counts = np.unique(values, axis=0, return_inverse=True, return_counts=True)
-        for bad_unique_index in np.where(counts > 1)[0]:
-            bad_indices = np.where(inverse_indices == bad_unique_index)[0]
-            assert len(bad_indices) > 1
-            util.logging.error('{}: Indices {} have same value {}.'.format(self, bad_indices, values[bad_indices[0]]))
