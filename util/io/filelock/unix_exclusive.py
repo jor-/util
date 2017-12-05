@@ -27,7 +27,6 @@ class FileLock(object):
         self.pid = os.getpid()
         self.fd = None
 
-
     def lock_pid(self):
         """
         Get the pid of the lock.
@@ -37,7 +36,6 @@ class FileLock(object):
             return int(open(self.lock_filename).read())
         else:
             return None
-
 
     def is_locked_by_me(self):
         """
@@ -84,7 +82,6 @@ class FileLock(object):
                 os.close(lock_fd)
         return False
 
-
     def acquire_try_once(self):
         """
         Try to aquire the lock once.
@@ -103,7 +100,6 @@ class FileLock(object):
                 util.logging.debug('I got the lock {}.'.format(self.lock_filename))
                 return True
 
-
     def acquire(self):
         """
         Try to aquire the lock.
@@ -121,7 +117,6 @@ class FileLock(object):
         if not self.is_locked_by_me():
             raise util.io.filelock.general.FileLockTimeoutError(self.lock_filename, self.timeout)
 
-
     def release(self):
         """
         Release the lock.
@@ -134,7 +129,6 @@ class FileLock(object):
             os.close(self.fd)
             self.fd = None
 
-
     def __enter__(self):
         self.acquire()
         return self
@@ -145,7 +139,6 @@ class FileLock(object):
 
     def __del__(self):
         self.release()
-
 
 
 class TestFileLock(object):
@@ -178,7 +171,5 @@ class TestFileLock(object):
         try:
             with FileLock(self.filename, timeout=1):
                 assert False
-        except FileLockTimeoutError:
+        except util.io.filelock.general.FileLockTimeoutError:
             assert True
-
-

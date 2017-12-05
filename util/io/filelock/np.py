@@ -10,4 +10,3 @@ class LockedFile(util.io.filelock.unix.LockedFile):
 
     def _save(self, file, value):
         np.save(file, value)
-    

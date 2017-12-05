@@ -7,9 +7,7 @@ import time
 
 import util.io.fs
 import util.io.filelock.general
-
 import util.logging
-
 
 
 class FileLock:
@@ -23,13 +21,13 @@ class FileLock:
         self._fd = None
         util.logging.debug('{}: Initiating file lock with timeout {} and sleep {}.'.format(self, timeout, sleep))
 
-
     def __str__(self):
         if self._exclusive:
             return 'File lock (exclusive) for {}'.format(self.file)
         else:
             return 'File lock (shared) for {}'.format(self.file)
 
+    # *** lock file and state *** #
 
     @property
     def file(self):
@@ -38,7 +36,6 @@ class FileLock:
     @property
     def lockfile(self):
         return self._file + '.lock'
-
 
     @property
     def exclusive(self):
@@ -50,7 +47,6 @@ class FileLock:
             raise ValueError('You have to relase the lock first to change its exclusive property.')
         self._exclusive = exclusive
 
-
     def is_locked(self, exclusive_is_okay=True, shared_is_okay=True):
         return self._lock_count > 0 and ((self._exclusive and exclusive_is_okay) or (not self._exclusive and shared_is_okay))
 
@@ -59,8 +55,7 @@ class FileLock:
             self.exclusive = exclusive
         return self
 
-
-    # acquire and release
+    # *** acquire and release *** #
 
     def _open_lockfile(self):
         if self._fd is None:
@@ -81,7 +76,6 @@ class FileLock:
 
         assert self._fd is not None
 
-
     def _close_lockfile(self):
         # close
         if self._fd is not None:
@@ -90,7 +84,6 @@ class FileLock:
             util.logging.debug('{}: Lock file {} closed.'.format(self, self.lockfile))
 
         assert self._fd is None
-
 
     def _lock_lockfile(self, exclusive=True, blocking=True):
         assert self._fd is not None
@@ -111,7 +104,6 @@ class FileLock:
 
         assert self.is_locked(exclusive_is_okay=exclusive, shared_is_okay=not exclusive)
 
-
     def _unlock_lockfile(self):
         # unlock
         if self._lock_count > 0:
@@ -122,7 +114,6 @@ class FileLock:
             util.logging.debug('{}: Lock file {} unlocked.'.format(self, self.lockfile))
 
         assert not self.is_locked()
-
 
     def _acquire(self, exclusive=True, timeout=None):
         # save start time for timeout
@@ -164,7 +155,7 @@ class FileLock:
                     # else wait
                     else:
                         time.sleep(self._sleep)
-        except:
+        except Exception:
             self._unlock_lockfile()
             self._close_lockfile()
             raise
@@ -173,14 +164,12 @@ class FileLock:
         assert util.io.fs.fd_is_file(self._fd, self.lockfile, not_exist_okay=False)
         util.logging.debug('{}: Acquired.'.format(self))
 
-
     def acquire(self):
         if self._lock_count == 0:
             self._acquire(exclusive=self._exclusive, timeout=self._timeout)
         else:
             self._lock_count = self._lock_count + 1
         util.logging.debug('{}: Now aquired {} times. (One time added).'.format(self, self._lock_count))
-
 
     def _release(self):
         try:
@@ -217,7 +206,6 @@ class FileLock:
         assert not self.is_locked()
         util.logging.debug('{}: Entirely released.'.format(self))
 
-
     def release(self):
         if self._lock_count == 1:
             self._release()
@@ -227,6 +215,7 @@ class FileLock:
         else:
             util.logging.debug('{}: Must not be released since it is not aquired.'.format(self))
 
+    # *** contex manager *** #
 
     def __enter__(self):
         self.acquire()
@@ -241,8 +230,6 @@ class FileLock:
             self._release()
 
 
-
-
 class LockedFile(FileLock):
 
     def __init__(self, file, cache_beyond_lock=True, timeout=None, sleep=0.5):
@@ -252,19 +239,17 @@ class LockedFile(FileLock):
         self.file_value = None
         self.cached_file_modified_time = None
 
-
     def _release(self):
         if not self.cache_beyond_lock:
             self.file_value = None
         super()._release()
 
-
-    # modified time
+    # *** modified time *** #
 
     def modified_time(self):
         return os.stat(self.file).st_mtime_ns
 
-    # cache functions
+    # *** cache functions *** #
 
     def _cache_set_value(self, value):
         self.file_value = value
@@ -274,8 +259,7 @@ class LockedFile(FileLock):
     def _cache_is_valid(self):
         return self.file_value is not None and (not self.cache_beyond_lock or self.cached_file_modified_time == self.modified_time())
 
-
-    # load
+    # *** load *** #
 
     @abc.abstractmethod
     def _load(self, file):
@@ -294,8 +278,8 @@ class LockedFile(FileLock):
         assert value is not None
         return value
 
+    # *** save *** #
 
-    # save
     @abc.abstractmethod
     def _save(self, file, value):
         pass
@@ -306,4 +290,3 @@ class LockedFile(FileLock):
             self._save(self.file, value)
             self._cache_set_value(value)
         util.logging.debug('Locked file {}: Content saved.'.format(self.file))
-
