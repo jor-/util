@@ -30,7 +30,7 @@ class Database(util.index_database.general.Database):
         # set array file
         self.locked_file = util.io.filelock.np.LockedArray(array_file)
 
-    # *** access *** #
+    # *** access to values *** #
 
     def get_value(self, index):
         # load database array
@@ -79,29 +79,7 @@ class Database(util.index_database.general.Database):
         with self.locked_file.lock(exclusive=True):
             return super().add_value(value)
 
-    def all_values(self):
-        try:
-            db = self.locked_file.load()
-        except FileNotFoundError:
-            return ()
-        else:
-            used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
-            used_values = db[used_mask]
-
-            util.logging.debug('{}: Got {} used values.'.format(self, len(used_values)))
-            return used_values
-
-    def all_indices(self):
-        try:
-            db = self.locked_file.load()
-        except FileNotFoundError:
-            return ()
-        else:
-            used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
-            all_indices = np.where(used_mask)[0]
-
-            util.logging.debug('{}: Got {} used indices.'.format(self, len(all_indices)))
-            return all_indices.astype(np.int32)
+    # *** access to indices *** #
 
     def remove_index(self, index):
         util.logging.debug('{}: Removing index {}.'.format(self, index))
@@ -125,3 +103,28 @@ class Database(util.index_database.general.Database):
     def index(self, value):
         with self.locked_file.lock(exclusive=False):
             return super().index(value)
+
+    # *** all values and indices *** #
+
+    def all_indices(self):
+        all_indices = self.all_indices_and_values()[0]
+        util.logging.debug('{}: Got {} used indices.'.format(self, len(all_indices)))
+        return all_indices
+
+    def all_values(self):
+        all_values = self.all_indices_and_values()[1]
+        util.logging.debug('{}: Got {} used values.'.format(self, len(all_values)))
+        return all_values
+
+    def all_indices_and_values(self):
+        try:
+            db = self.locked_file.load()
+        except FileNotFoundError:
+            return ((), ())
+        else:
+            used_mask = np.all(np.logical_not(np.isnan(db)), axis=1)
+            used_indices = np.where(used_mask)[0]
+            used_indices = used_indices.astype(np.int32)
+            used_values = db[used_mask]
+            util.logging.debug('{}: Got {} used indices and values.'.format(self, len(used_indices)))
+            return (used_indices, used_values)

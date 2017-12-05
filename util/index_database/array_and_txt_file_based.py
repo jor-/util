@@ -41,7 +41,7 @@ class Database(util.index_database.general.Database):
         if value_filename != self.txt_file_db.value_filenames[0]:
             self.txt_file_db.value_filenames[0] = value_filename
 
-    # *** access *** #
+    # *** access to values *** #
 
     def get_value(self, index):
         return self.array_db.get_value(index)
@@ -65,11 +65,7 @@ class Database(util.index_database.general.Database):
                 raise e
         return index
 
-    def all_values(self):
-        return self.array_db.all_values()
-
-    def all_indices(self):
-        return self.array_db.all_indices()
+    # *** access to indices *** #
 
     def remove_index(self, index, force=False):
         util.logging.debug('{}: Removing index {}.'.format(self, index))
@@ -84,6 +80,14 @@ class Database(util.index_database.general.Database):
 
     def index(self, value):
         return self.array_db.index(value)
+
+    # *** all values and indices *** #
+
+    def all_indices(self):
+        return self.array_db.all_indices()
+
+    def all_values(self):
+        return self.array_db.all_values()
 
     # *** merge *** #
 

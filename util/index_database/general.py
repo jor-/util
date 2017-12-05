@@ -152,14 +152,7 @@ class Database:
         util.logging.debug('{}: Value {} added with index {}.'.format(self, value, index))
         return index
 
-    def all_values(self):
-        np.vstack(map(self.get_value, self.all_indices))
-
     # *** access to indices *** #
-
-    @abc.abstractmethod
-    def all_indices(self):
-        raise NotImplementedError()
 
     def number_of_indices(self):
         return len(self.all_indices())
@@ -226,6 +219,18 @@ class Database:
         if index is None and add:
             index = self.add_value(value)
         return index
+
+    # *** all values and indices *** #
+
+    @abc.abstractmethod
+    def all_indices(self):
+        raise NotImplementedError()
+
+    def all_values(self):
+        np.vstack(map(self.get_value, self.all_indices))
+
+    def all_indices_and_values(self):
+        return (self.all_indices(), self.all_values())
 
     # *** check integrity *** #
 
