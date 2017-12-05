@@ -56,7 +56,7 @@ class Database(util.index_database.general.Database):
         util.logging.debug('{}: Setting value at index {} to {} with overwrite {}.'.format(self, index, value, overwrite))
         value = np.asanyarray(value)
 
-        with self.locked_file.lock_object(exclusive=True):
+        with self.locked_file.lock(exclusive=True):
             try:
                 db = self.locked_file.load()
             except FileNotFoundError:
@@ -78,7 +78,7 @@ class Database(util.index_database.general.Database):
             self.locked_file.save(db)
 
     def add_value(self, value):
-        with self.locked_file.lock_object(exclusive=True):
+        with self.locked_file.lock(exclusive=True):
             return super().add_value(value)
 
     def all_values(self):
@@ -108,7 +108,7 @@ class Database(util.index_database.general.Database):
     def remove_index(self, index):
         util.logging.debug('{}: Removing index {}.'.format(self, index))
 
-        with self.locked_file.lock_object(exclusive=True):
+        with self.locked_file.lock(exclusive=True):
             if not self.has_value(index):
                 raise util.index_database.general.DatabaseIndexError(self, index)
 
@@ -121,9 +121,9 @@ class Database(util.index_database.general.Database):
             self.locked_file.save(db)
 
     def closest_indices(self, value):
-        with self.locked_file.lock_object(exclusive=False):
+        with self.locked_file.lock(exclusive=False):
             return super().closest_indices(value)
 
     def index(self, value):
-        with self.locked_file.lock_object(exclusive=False):
+        with self.locked_file.lock(exclusive=False):
             return super().index(value)

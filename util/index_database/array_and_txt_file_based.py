@@ -59,7 +59,7 @@ class Database(util.index_database.general.Database):
 
     def add_value(self, value):
         util.logging.debug('{}: Adding value {}'.format(self, value))
-        with self.array_db.locked_file.lock_object(exclusive=True):
+        with self.array_db.locked_file.lock(exclusive=True):
             index = self.array_db.add_value(value)
             try:
                 self.txt_file_db.set_value(index, value, overwrite=False)

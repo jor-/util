@@ -49,7 +49,7 @@ class FileLock:
     def is_locked(self, exclusive_is_okay=True, shared_is_okay=True):
         return self._lock_count > 0 and ((self._exclusive and exclusive_is_okay) or (not self._exclusive and shared_is_okay))
 
-    def lock_object(self, exclusive=True):
+    def lock(self, exclusive=True):
         if not (not exclusive and self.exclusive and self.is_locked()):
             self.exclusive = exclusive
         return self
@@ -271,7 +271,7 @@ class LockedFile(FileLock):
     def load(self):
         if not self._cache_is_valid():
             util.logging.debug('Locked file {}: Loading value.'.format(self.file))
-            with self.lock_object(exclusive=False):
+            with self.lock(exclusive=False):
                 value = self._load_function(self.file)
                 self._cache_set_value(value)
             util.logging.debug('Locked file {}: Value loaded.'.format(self.file))
@@ -285,7 +285,7 @@ class LockedFile(FileLock):
 
     def save(self, value):
         util.logging.debug('Locked file {}: Saving content.'.format(self.file))
-        with self.lock_object(exclusive=True):
+        with self.lock(exclusive=True):
             self._save_function(self.file, value)
             self._cache_set_value(value)
         util.logging.debug('Locked file {}: Content saved.'.format(self.file))
