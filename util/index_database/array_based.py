@@ -31,7 +31,7 @@ class Database(util.index_database.general.Database):
         os.makedirs(os.path.dirname(array_file), exist_ok=True)
 
         # set array file
-        self.locked_file = util.io.filelock.np.LockedFile(array_file)
+        self.locked_file = util.io.filelock.np.LockedArray(array_file)
 
     # *** access *** #
 

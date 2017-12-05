@@ -3,7 +3,7 @@ import numpy as np
 import util.io.filelock.unix
 
 
-class LockedFile(util.io.filelock.unix.LockedFile):
+class LockedArray(util.io.filelock.unix.LockedFile):
 
     def __init__(self, file, cache_beyond_lock=True, timeout=None, sleep=0.5):
         save_function = np.save
