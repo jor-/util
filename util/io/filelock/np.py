@@ -5,8 +5,7 @@ import util.io.filelock.unix
 
 class LockedFile(util.io.filelock.unix.LockedFile):
 
-    def _load(self, file):
-        return np.load(file)
-
-    def _save(self, file, value):
-        np.save(file, value)
+    def __init__(self, file, cache_beyond_lock=True, timeout=None, sleep=0.5):
+        save_function = np.save
+        load_function = np.load
+        super().__init__(file, save_function, load_function, timeout=timeout, sleep=sleep)

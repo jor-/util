@@ -1,4 +1,3 @@
-import abc
 import fcntl
 import errno
 import os
@@ -232,12 +231,20 @@ class FileLock:
 
 class LockedFile(FileLock):
 
-    def __init__(self, file, cache_beyond_lock=True, timeout=None, sleep=0.5):
+    def __init__(self, file, save_function, load_function, cache_beyond_lock=True, timeout=None, sleep=0.5):
         util.logging.debug('Locked file {}: Creating lock file with cache_beyond_lock {}.'.format(file, cache_beyond_lock))
         super().__init__(file, timeout=timeout, sleep=sleep)
+
         self.cache_beyond_lock = cache_beyond_lock
         self.file_value = None
         self.cached_file_modified_time = None
+
+        if not callable(save_function):
+            raise ValueError('save_function must be a function.')
+        self._save_function = save_function
+        if not callable(load_function):
+            raise ValueError('load_function must be a function.')
+        self._load_function = load_function
 
     def _release(self):
         if not self.cache_beyond_lock:
@@ -261,15 +268,11 @@ class LockedFile(FileLock):
 
     # *** load *** #
 
-    @abc.abstractmethod
-    def _load(self, file):
-        pass
-
     def load(self):
         if not self._cache_is_valid():
             util.logging.debug('Locked file {}: Loading value.'.format(self.file))
             with self.lock_object(exclusive=False):
-                value = self._load(self.file)
+                value = self._load_function(self.file)
                 self._cache_set_value(value)
             util.logging.debug('Locked file {}: Value loaded.'.format(self.file))
         else:
@@ -280,13 +283,9 @@ class LockedFile(FileLock):
 
     # *** save *** #
 
-    @abc.abstractmethod
-    def _save(self, file, value):
-        pass
-
     def save(self, value):
         util.logging.debug('Locked file {}: Saving content.'.format(self.file))
         with self.lock_object(exclusive=True):
-            self._save(self.file, value)
+            self._save_function(self.file, value)
             self._cache_set_value(value)
         util.logging.debug('Locked file {}: Content saved.'.format(self.file))
