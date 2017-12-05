@@ -1,10 +1,9 @@
-import numpy as np
-
 import os
+
+import numpy as np
 
 import util.index_database.general
 import util.io.filelock.np
-
 import util.logging
 
 
