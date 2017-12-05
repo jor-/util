@@ -10,11 +10,8 @@ import util.logging
 
 class Database(util.index_database.general.Database):
 
-    def __init__(self, array_file, value_file, value_reliable_decimal_places=18, tolerance_options=None):
-        self._min_absolute_tolerance = 10**(-value_reliable_decimal_places)
-        # call super constructor
+    def __init__(self, array_file, value_file, value_reliable_decimal_places=None, tolerance_options=None):
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
-        # create array and file db
         self.array_db = util.index_database.array_based.Database(array_file, value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
         value_dir, value_filename = os.path.split(value_file)
         self.txt_file_db = util.index_database.txt_file_based.Database(value_dir, value_filename, value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)

@@ -4,7 +4,7 @@ import util.petsc.universal
 
 class Database(util.index_database.fs_based.Database):
 
-    def __init__(self, value_dir, value_filenames, value_reliable_decimal_places=15, tolerance_options=None):
+    def __init__(self, value_dir, value_filenames, value_reliable_decimal_places=None, tolerance_options=None):
         # call super constructor
         super().__init__(value_dir, value_filenames, value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
 

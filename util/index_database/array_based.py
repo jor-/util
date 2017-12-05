@@ -9,11 +9,8 @@ import util.logging
 
 class Database(util.index_database.general.Database):
 
-    def __init__(self, array_file, value_reliable_decimal_places=15, tolerance_options=None):
-        # call super constructor
+    def __init__(self, array_file, value_reliable_decimal_places=None, tolerance_options=None):
         super().__init__(value_reliable_decimal_places=value_reliable_decimal_places, tolerance_options=tolerance_options)
-
-        # set array file
         self.array_file = array_file
 
     def __str__(self):

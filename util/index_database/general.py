@@ -7,9 +7,10 @@ import util.logging
 
 class Database:
 
-    def __init__(self, value_reliable_decimal_places=18, tolerance_options=None):
-
+    def __init__(self, value_reliable_decimal_places=None, tolerance_options=None):
         # set value format
+        if value_reliable_decimal_places is None:
+            value_reliable_decimal_places = np.finfo(np.float64).precision
         value_reliable_decimal_places = int(value_reliable_decimal_places)
         assert value_reliable_decimal_places >= 0
         self.value_fmt = '%.{}f'.format(value_reliable_decimal_places)
@@ -36,6 +37,7 @@ class Database:
 
         # min absolute tolerance
         min_absolute_tolerance = 10**(-value_reliable_decimal_places)
+        self._min_absolute_tolerance = min_absolute_tolerance
 
         # set absolute option
         try:
