@@ -138,20 +138,6 @@ def load_txt(file):
     return values
 
 
-def save_np_and_txt(file, array, compressed=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True, format_string='%.6g'):
-    (file_without_ext, file_ext) = os.path.splitext(file)
-    (dir, filename_without_ext) = os.path.split(file_without_ext)
-    os.makedirs(dir, exist_ok=True)
-
-    file_np = add_file_ext(file_without_ext, compressed=compressed)
-    file_txt = file_without_ext + '.txt'
-
-    array = np.asarray(array)
-
-    save(file_np, array, compressed=compressed, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
-    save_txt(file_txt, array, format_string=format_string, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
-
-
 def save_np_or_txt(file, values, make_read_only=False, overwrite=False, create_path_if_not_exists=True, save_as_np=True, save_as_txt=False):
     file_without_ext, ext = os.path.splitext(file)
     if save_as_np:
