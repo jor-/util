@@ -76,19 +76,25 @@ def save(file, values, compressed=None, make_read_only=False, overwrite=False, c
 
 
 def load(file, mmap_mode=None):
-    # load value
-    value = np.load(file, mmap_mode=mmap_mode)
-    # unpack value if npz file with one variable
+    # load values
+    values = np.load(file, mmap_mode=mmap_mode)
+
+    # unpack values if npz file with one array
     try:
-        value.keys
+        values.keys
     except AttributeError:
         pass
     else:
-        keys = value.keys()
+        keys = values.keys()
         if len(keys) == 1:
-            value = value[keys[0]]
+            values = values[keys[0]]
+
+    # if zero dimensional array, unpack value
+    if values.ndim == 0:
+        values = values.reshape(1)
+
     # return
-    return value
+    return values
 
 
 def save_txt(file, values, format_string=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
@@ -98,7 +104,7 @@ def save_txt(file, values, format_string=None, make_read_only=False, overwrite=F
 
     # cast value to array
     values = np.asarray(values)
-    if len(values.shape) == 0:
+    if values.ndim == 0:
         values = values.reshape(1)
 
     # chose format string if not passed
@@ -131,9 +137,9 @@ def load_txt(file):
     if (values_int == values).all():
         values = values_int
 
-    # if only one value return pure value
-    if values.size == 1:
-        values = values[0]
+    # if zero dimensional array, unpack value
+    if values.ndim == 0:
+        values = values.reshape(1)
 
     return values
 
