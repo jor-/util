@@ -7,6 +7,7 @@ import util.io.fs
 
 FILE_EXT = '.npy'
 COMPRESSED_FILE_EXT = '.npz'
+TEXT_FILE_EXT = '.txt'
 
 
 def get_ext(compressed=False):
@@ -33,33 +34,33 @@ def save(file, values, compressed=None, make_read_only=False, overwrite=False, c
     # check input values
     is_values_dict = isinstance(values, dict)
     is_values_tuple = (isinstance(values, tuple) or isinstance(values, list)) and all(map(lambda a: isinstance(a, np.ndarray), values))
-    
+
     if not is_values_dict and not is_values_tuple:
         values = np.asanyarray(values)
-    
+
     if is_file(file, compressed=False):
         if compressed:
             raise ValueError('Compressed values can only be stored in "npz" file format, but the file {} has ending "npy".'.format(file))
         if is_values_dict or is_values_tuple:
             raise ValueError('Multiple values {} can only be stored in "npz" file format, but the file {} has ending "npy".'.format(file))
-    
+
     # set file ext
-    use_npz = is_values_dict or is_values_tuple or (compressed is not None and compressed) or is_file(file, compressed=True)    
+    use_npz = is_values_dict or is_values_tuple or compressed or is_file(file, compressed=True)
     file = add_file_ext(file, compressed=use_npz)
-    
+
     # set compressed if not passed
     if compressed is None:
         compressed = use_npz
-    
+
     # create dir
     if create_path_if_not_exists:
         (dir, filename) = os.path.split(file)
         os.makedirs(dir, exist_ok=True)
-    
+
     # remove if overwrite
     if overwrite:
         util.io.fs.remove_file(file, force=True, not_exist_okay=True)
-    
+
     # save
     if use_npz:
         if compressed:
@@ -68,15 +69,15 @@ def save(file, values, compressed=None, make_read_only=False, overwrite=False, c
             np.savez(file, values)
     else:
         np.save(file, values)
-    
+
     # make read only
     if make_read_only:
         util.io.fs.make_read_only(file)
-    
+
 
 def load(file, mmap_mode=None):
     # load value
-    value = np.load(file,mmap_mode=mmap_mode)
+    value = np.load(file, mmap_mode=mmap_mode)
     # unpack value if npz file with one variable
     try:
         value.keys
@@ -91,21 +92,29 @@ def load(file, mmap_mode=None):
 
 
 def save_txt(file, values, format_string=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
-    values = np.asarray(values)
+    # append file extension if needed
+    if not file.endswith(TEXT_FILE_EXT):
+        file = file + TEXT_FILE_EXT
 
+    # cast value to array
+    values = np.asarray(values)
     if len(values.shape) == 0:
         values = values.reshape(1)
 
     # chose format string if not passed
     if format_string is None:
-        if values.dtype == np.int:
+        if values.dtype.kind == 'i':
             format_string = '%d'
         else:
-            format_string = '%.18e'
+            assert values.dtype.kind == 'f'
+            format_string = '%.{}e'.format(np.finfo(values.dtype).precision)
 
+    # create path if needed
     if create_path_if_not_exists:
         (dir, filename) = os.path.split(file)
         os.makedirs(dir, exist_ok=True)
+
+    # save value
     if overwrite:
         util.io.fs.remove_file(file, force=True, not_exist_okay=True)
     np.savetxt(file, values, fmt=format_string)
