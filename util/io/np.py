@@ -150,3 +150,28 @@ def save_np_and_txt(file, array, compressed=None, make_read_only=False, overwrit
 
     save(file_np, array, compressed=compressed, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
     save_txt(file_txt, array, format_string=format_string, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
+
+
+def save_np_or_txt(file, values, make_read_only=False, overwrite=False, create_path_if_not_exists=True, save_as_np=True, save_as_txt=False):
+    file_without_ext, ext = os.path.splitext(file)
+    if save_as_np:
+        if ext == FILE_EXT or ext == COMPRESSED_FILE_EXT:
+            file_np = file
+        else:
+            file_np = file_without_ext
+        save(file_np, values, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
+    if save_as_txt:
+        if ext == TEXT_FILE_EXT:
+            file_txt = file
+        else:
+            file_txt = file_without_ext
+        save_txt(file_txt, values, make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
+
+
+def load_np_or_txt(file, mmap_mode=None):
+    if file.endswith(TEXT_FILE_EXT):
+        return load_txt(file)
+    elif file.endswith(FILE_EXT) or file.endswith(COMPRESSED_FILE_EXT):
+        return load(file, mmap_mode=mmap_mode)
+    else:
+        raise ValueError('File {} has unknown file extension.'.format(file))
