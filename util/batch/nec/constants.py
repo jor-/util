@@ -8,9 +8,9 @@ PRE_COMMANDS['metos3d'] = PRE_COMMANDS['mpirun']
 COMMANDS = {
     'mpirun': 'mpirun $NQSII_MPIOPTS -np {cpus:d} {command}',
     'time': 'TIME_FMT="\nStatistics for %C:\nElapsed time: %Es, Exit code: %x\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs"\ncommand time -f "$TIME_FMT" {command}',
-    'sub': 'qsub',
+    'sub': '/usr/bin/nqsII/qsub',
     'stat': '/usr/local/bin/qstatall',
-    'nodes': 'qcl',
+    'nodes': '/usr/local/bin/qcl',
     'python': 'python3'
 }
 
