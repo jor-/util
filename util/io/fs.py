@@ -3,7 +3,6 @@ import fnmatch
 import os
 import re
 import stat
-import time
 
 import util.logging
 
@@ -122,13 +121,18 @@ def find_with_regular_expression(path, regular_expression, exclude_files=False, 
     return filtered_results
 
 
-def get_dirs(path=os.getcwd(), filename_pattern=None, use_absolute_filenames=False, recursive=False):
+def get_dirs(path=None, filename_pattern=None, use_absolute_filenames=False, recursive=False):
+    if path is None:
+        path = os.getcwd()
     if filename_pattern is None:
         filename_pattern = '*'
     dirs = find_with_filename_pattern(path, filename_pattern, exclude_files=True, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
     return dirs
 
-def get_files(path=os.getcwd(), filename_pattern=None, use_absolute_filenames=False, recursive=False):
+
+def get_files(path=None, filename_pattern=None, use_absolute_filenames=False, recursive=False):
+    if path is None:
+        path = os.getcwd()
     if filename_pattern is None:
         filename_pattern = '*'
     files = find_with_filename_pattern(path, filename_pattern, exclude_dirs=True, use_absolute_filenames=use_absolute_filenames, recursive=recursive)
@@ -153,7 +157,7 @@ def remove_write_permission(file):
     for write_permission in (stat.S_IWUSR, stat.S_IWGRP, stat.S_IWOTH):
         permission_new = permission_new & ~ write_permission
     os.chmod(file, permission_new)
-    util.logging.debug('Removing write permission of file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:],oct( permission_new)[-3:]))
+    util.logging.debug('Removing write permission of file {}. Mode changed from {} to {}.'.format(file, oct(permission_old)[-3:], oct(permission_new)[-3:]))
 
 
 def add_write_permission(file):
@@ -277,4 +281,3 @@ def fd_is_file(fd, file, not_exist_okay=False):
 
     # check if same device and inode
     return fd_stat.st_dev == file_stat.st_dev and fd_stat.st_ino == file_stat.st_ino
-
