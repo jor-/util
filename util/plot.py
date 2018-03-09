@@ -22,10 +22,10 @@ DEFAULT_FONT_SIZE = 20
 # plot types
 
 def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0, use_log_scale=False, v_min=None, v_max=None, caption=None, tick_font_size=DEFAULT_FONT_SIZE, power_limit=3, dpi=100, contours=False, contours_text_brightness=0.5, colorbar=True):
-    
+
     if data.dtype == np.float128:
         data = data.astype(np.float64)
-    
+
 
     def get_masks(data, land_value=np.nan, no_data_value=0):
         def get_value_mask(array, value):
@@ -118,7 +118,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
             no_data_array[no_data_mask[t,:,:,z]] = 1
             no_data_array[land_mask[t,:,:,z]] = (1 + 9 * land_brightness) / 10
             no_data_array[land_mask[t,:,:,0]] = land_brightness
-            
+
 
             # make figure
             fig = plt.figure()
@@ -135,7 +135,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     norm = matplotlib.colors.BoundaryNorm(np.arange(v_min, v_max+1), colormap.N)
                 else:
                     norm = None
-                
+
 
             # plot no data mask
             colormap_no_data = plt.cm.gray
@@ -148,7 +148,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
             # disable axis labels
             plt.axis('off')
-            
+
             # chose tick locator
             if colorbar or contours:
                 # chose tick base
@@ -162,10 +162,10 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                         v_max_tick = 1
                 tick_base_exp = int(np.ceil(np.log10(v_max_tick))) - 1
                 tick_base = 10 ** tick_base_exp
-                
+
                 if (current_data > tick_base).sum() < (~np.isnan(current_data)).sum() / 100:    # decrease tick if too few data above tick
                     tick_base = tick_base / 10
-                
+
                 # chose locator
                 if use_log_scale:
                     tick_locator = plt.LogLocator(base=tick_base, subs=tick_base/10)
@@ -175,16 +175,16 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
             # plot colorbar
             if colorbar:
                 divider = mpl_toolkits.axes_grid1.make_axes_locatable(plt.gca())
-                cax = divider.append_axes("right", size="3%", pad=0.1) 
-                               
+                cax = divider.append_axes("right", size="3%", pad=0.1)
+
                 cb = plt.colorbar(axes_image, cax=cax)
                 cb.locator = tick_locator
                 cb.update_ticks()
-                
+
                 if not use_log_scale:
                     cb.formatter.set_powerlimits((-power_limit, power_limit))
                     cb.update_ticks()
-            
+
             # plot contours
             if contours:
                 contour_plot = plt.contour(current_data, locator=tick_locator, colors='k', linestyles=['dashed', 'solid'], linewidths=0.5, norm=norm)
@@ -195,8 +195,8 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 else:
                     label_fmt = '%d'
                 plt.clabel(contour_plot, contour_plot.levels[1::2], fontsize=8, fmt=label_fmt, colors=str(contours_text_brightness))
-            
-    
+
+
             # set caption
             if caption is not None:
                 plt.xlabel(caption, fontsize=font_size, fontweight='bold')
@@ -212,7 +212,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
 def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, spine_line_width=1, use_log_scale=False, transparent=True, tick_font_size=DEFAULT_FONT_SIZE, legend_font_size=DEFAULT_FONT_SIZE, x_label=None, y_label=None, axis_label_font_size=DEFAULT_FONT_SIZE, dpi=800):
     util.logging.debug('Plotting line.')
-    
+
     # check if multi line
     try:
         y[0][0]
@@ -220,7 +220,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
         is_multi_line = False
     else:
         is_multi_line = True
-    
+
     # check input and prepare
     if len(x) != len(y):
         if not is_multi_line:
@@ -236,7 +236,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
                     raise ValueError('For multiline plot, if x has one dim and y has two dims, the first dim of x must have the same size as the second dim of y, but shape x is {} and shape y is {}.'.format(x.shape, y.shape))
                 else:
                     x = np.tile(x, y.shape[1]).reshape(y.shape[1], -1)
-        
+
 
     # prepare line(s)
     if len(y) > 0:
@@ -244,7 +244,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
         if is_multi_line:
             xs = x
             ys = y
-    
+
             # copy line setups for each line if only one line setup passed
             number_of_lines = len(ys)
             line_setups = []
@@ -252,7 +252,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
                 if np.asarray(line_setup).ndim == 0:
                     line_setup = (line_setup,) * len(y)
                 line_setups.append(line_setup)
-    
+
             line_labels = line_setups[0]
             line_widths = line_setups[1]
             line_styles = line_setups[2]
@@ -362,13 +362,13 @@ def scatter(x, y, file, point_size=20, dpi=800):
 
 
 
-def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, weights=None, use_log_scale=False, type='bar', tick_font_size=DEFAULT_FONT_SIZE, tick_power=None, dpi=800):
+def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, weights=None, use_log_scale=False, type='bar', tick_font_size=DEFAULT_FONT_SIZE, tick_power=None, tick_number=None, dpi=800):
     util.logging.debug('Plotting histogram.')
 
     # make fig
     fig = plt.figure()
 
-    #
+    # make bins
     if bins is None:
         if step_size is None:
             raise ValueError('Either "bins" or "step_size" has to be defined.')
@@ -376,7 +376,7 @@ def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, wei
             x_min = np.floor(np.min(data) / step_size) * step_size
         if x_max is None:
             x_max = np.ceil(np.max(data) / step_size) * step_size
-        bins = np.arange(x_min, x_max+step_size, step_size)
+        bins = np.arange(x_min, x_max + step_size, step_size)
 
     # plot
     (n, bins, patches) = plt.hist(data, bins=bins, weights=weights, log=use_log_scale, histtype=type)
@@ -386,6 +386,10 @@ def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, wei
     if tick_power is not None:
         set_tick_power_fix(fig.gca(), axis='y', power=tick_power)
     set_tick_font(fig.gca(), size=tick_font_size)
+
+    # set tick number
+    if tick_number is not None:
+        set_number_of_ticks(fig.gca(), tick_number, axis='x')
 
     # save and close
     save_and_close_fig(fig, file, dpi=dpi)
@@ -400,21 +404,21 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
 
     # make figure
     fig = plt.figure()
-    
+
     # plot sparsity_pattern
     if scipy.sparse.issparse(A):
         util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} and dpi {} to file {}.'.format(A, markersize, dpi, file))
         plt.spy(A, markersize=markersize, marker=',', markeredgecolor='k', markerfacecolor='k')
-    
+
     # plot matrix values
     else:
         util.logging.debug('Plotting values for matrix {!r} with dpi {} to file {}.'.format(A, dpi, file))
         v_abs_max = np.abs(A).max()
-        axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)   
+        axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)
         cb = fig.colorbar(axes_image)
-        cb.ax.tick_params(labelsize=font_size) 
-        fig.gca().set_xticks([]) 
-        fig.gca().set_yticks([]) 
+        cb.ax.tick_params(labelsize=font_size)
+        fig.gca().set_xticks([])
+        fig.gca().set_yticks([])
 
     # set power limits
     if axis_labels:
@@ -422,15 +426,15 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
         formatter.set_powerlimits((-3,3))
         fig.gca().xaxis.set_major_formatter(formatter)
         fig.gca().yaxis.set_major_formatter(formatter)
-    
+
     # disable axis labels
     else:
         plt.axis('off')
-    
+
     # set caption
     if caption is not None:
         plt.xlabel(caption, fontsize=font_size, fontweight='bold')
-    
+
     # save and close
     save_and_close_fig(fig, file, dpi=dpi)
 
@@ -441,7 +445,7 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
     intervals = np.asanyarray(intervals)
     assert intervals.ndim == 2
     assert len(intervals) == 2
-    
+
     # calculate data
     intervals_half_sizes = (intervals[1] - intervals[0]) / 2
     means = intervals_half_sizes + intervals[0]
@@ -452,14 +456,14 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
 
     # make figure
     fig = plt.figure()
-    
+
     # plot
     linewidth = 3
     plt.errorbar(np.arange(1, n+1), means, xerr=0, yerr=intervals_half_sizes, linestyle='', linewidth=linewidth, elinewidth=linewidth, capsize=linewidth*3, capthick=linewidth, marker='.', markersize=linewidth*5)
-    
+
     # set y limits
     plt.xlim(0.5, n + 0.5)
-    
+
     # y tick formatter
     if use_percent_ticks:
         fmt = '%.0f%%'
@@ -469,14 +473,13 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
     # set caption
     if caption is not None:
         plt.xlabel(caption, fontsize=font_size, fontweight='bold')
-    
+
     # save and close
     save_and_close_fig(fig, file, dpi=dpi)
 
 
+# *** auxiliary functions *** #
 
-
-# auxiliary functions
 
 def trim(file):
     util.logging.debug('Trimming plot %s.' % file)
@@ -485,6 +488,7 @@ def trim(file):
 
 def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True):
     plt.tight_layout()
+    os.makedirs(os.path.dirname(file), exist_ok=True)
     plt.savefig(file, bbox_inches='tight', transparent=transparent, dpi=dpi)
     plt.close(fig)
     trim(file)
@@ -493,10 +497,9 @@ def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True
     util.logging.debug('Plot saved to {}.'.format(file))
 
 
-
 def set_spine_line_size(fig, line_width):
     axes = fig.gca()
-    for axis in ['top','bottom','left','right']:
+    for axis in ['top', 'bottom', 'left', 'right']:
         axes.spines[axis].set_linewidth(line_width)
 
 
@@ -507,7 +510,6 @@ def set_font_all(fig, family='sans-serif', weight='bold', size=12):
         t.set_fontproperties(font_properties)
 
 
-
 def set_tick_font(axes, family='sans-serif', weight='bold', size=12):
     font_properties = matplotlib.font_manager.FontProperties(family=family, weight=weight, size=size)
     plt.setp(axes.get_xticklabels(), fontproperties=font_properties)
@@ -516,8 +518,9 @@ def set_tick_font(axes, family='sans-serif', weight='bold', size=12):
     plt.setp(axes.get_yaxis().get_offset_text(), fontproperties=font_properties)
 
 
-def set_tick_power_limits(axis='y', power_limits=(-2,2)):
+def set_tick_power_limits(axis='y', power_limits=(-2, 2)):
     plt.ticklabel_format(style='sci', axis=axis, scilimits=power_limits)
+
 
 def set_tick_power_fix(axes, axis='y', power=3):
     f = FixedOrderFormatter(power)
@@ -525,6 +528,11 @@ def set_tick_power_fix(axes, axis='y', power=3):
         axes.yaxis.set_major_formatter(f)
     if axis == 'x' or axis == 'both':
         axes.xaxis.set_major_formatter(f)
+
+
+def set_number_of_ticks(axes, number, axis='x'):
+    axes.locator_params(tight=True, axis=axis, nbins=number)
+
 
 class FixedOrderFormatter(matplotlib.ticker.ScalarFormatter):
     """Formats axis ticks using scientific notation with a constant order of
@@ -548,16 +556,13 @@ def set_legend_font(fig, family='sans-serif', weight='bold', size=12):
 
 def set_global_font_size(size=20):
     util.logging.debug('Setting font size for plots to {}.'.format(size))
-
-    font = {'family' : 'sans-serif',
-            'weight' : 'bold',
-            'size'   : size
-    }
+    font = {'family': 'sans-serif',
+            'weight': 'bold',
+            'size': size}
     matplotlib.rc('font', **font)
 
 
 def get_colors(n, colormap_name='gist_rainbow'):
     colormap = plt.get_cmap(colormap_name)
-    colors = [colormap(i/(n-1)) for i in range(n)]
+    colors = [colormap(i / (n - 1)) for i in range(n)]
     return colors
-
