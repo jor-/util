@@ -9,6 +9,25 @@ import util.logging
 
 # file cache
 
+def save(file, value, save_function):
+    if save_function is not None:
+        util.logging.debug('Saving calculated value to cache file {}.'.format(file))
+        try:
+            save_function(file, value)
+        except PermissionError as e:
+            if os.path.exists(file):
+                util.logging.debug('Cache file {} was already created while calculating the value.'.format(file))
+            else:
+                util.logging.warn('File permissions are not sufficient to save calculated value to cache file {}: {}.'.format(file, e))
+        except OSError as e:
+            util.logging.warn('The calculated value could not be saved to cache file {}: {}.'.format(file, e))
+        else:
+            util.logging.debug('Calculated value saved to cache file {}.'.format(file))
+            util.io.fs.apply_recursively(file, util.io.fs.remove_write_permission)
+    else:
+        util.logging.debug('Not saving calculated value to cache file {} because no save function is provided.'.format(file))
+
+
 def decorator(cache_file_function=None, load_function=None, save_function=None):
     if load_function is None:
         load_function = util.io.universal.load
@@ -63,22 +82,7 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
                 # if cache file is not loadable, calculate value and save as cached value
                 if calculate_value:
                     value = function(*args, **kargs)
-                    if save_function is not None:
-                        util.logging.debug('Saving calculated value to cache file {}.'.format(cache_file))
-                        try:
-                            save_function(cache_file, value)
-                        except PermissionError as e:
-                            if os.path.exists(cache_file):
-                                util.logging.debug('Cache file {} was already created while calculating the value.'.format(cache_file))
-                            else:
-                                util.logging.warn('File permissions are not sufficient to save calculated value to cache file {}: {}.'.format(cache_file, e))
-                        except OSError as e:
-                            util.logging.warn('The calculated value could not be saved to cache file {}: {}.'.format(cache_file, e))
-                        else:
-                            util.logging.debug('Calculated value saved to cache file {}.'.format(cache_file))
-                            util.io.fs.apply_recursively(cache_file, util.io.fs.remove_write_permission)
-                    else:
-                        util.logging.debug('Not saving calculated value to cache file {} because no save function is provided.'.format(cache_file))
+                    save(cache_file, value, save_function)
 
             # if cache file not defined, calculate value without cache
             else:
