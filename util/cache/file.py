@@ -12,6 +12,7 @@ import util.logging
 def save(file, value, save_function):
     if save_function is not None:
         util.logging.debug('Saving calculated value to cache file {}.'.format(file))
+        os.makedirs(os.path.dirname(file), exist_ok=True)
         try:
             save_function(file, value)
         except PermissionError as e:
