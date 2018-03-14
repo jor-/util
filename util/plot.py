@@ -408,7 +408,7 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
     # plot sparsity_pattern
     if scipy.sparse.issparse(A):
         util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} and dpi {} to file {}.'.format(A, markersize, dpi, file))
-        plt.spy(A, markersize=markersize, marker=',', markeredgecolor='k', markerfacecolor='k')
+        plt.spy(A, markersize=markersize, marker=',', markeredgecolor='k', markerfacecolor='k', precision='present')
 
     # plot matrix values
     else:
