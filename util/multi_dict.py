@@ -85,7 +85,7 @@ class MultiDict():
 
     def set_value(self, key, value, overwrite=True):
         # check value type
-        if (not _is_dict(value)) or (not (_is_list(value))):
+        if not (_is_dict(value) or _is_list(value)):
             raise ValueError('Value is neither a dict nor a list. Its of type {}.'.format(type(value)))
         # check overwrite
         last_dict = self._get_or_init_last_dict(key)
