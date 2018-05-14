@@ -38,19 +38,21 @@ def save(file, values, compressed=None, make_read_only=False, overwrite=False, c
     if not is_values_dict and not is_values_tuple:
         values = np.asanyarray(values)
 
-    if is_file(file, compressed=False):
-        if compressed:
-            raise ValueError('Compressed values can only be stored in "npz" file format, but the file {} has ending "npy".'.format(file))
-        if is_values_dict or is_values_tuple:
-            raise ValueError('Multiple values {} can only be stored in "npz" file format, but the file {} has ending "npy".'.format(file))
-
-    # set file ext
+    # check if have to use npz
     use_npz = is_values_dict or is_values_tuple or compressed or is_file(file, compressed=True)
-    file = add_file_ext(file, compressed=use_npz)
 
     # set compressed if not passed
     if compressed is None:
         compressed = use_npz
+
+    # check file format
+    if not is_file(file, compressed=compressed):
+        if compressed:
+            raise ValueError('Compressed values can only be stored files with "npz" ending, but the file is {}.'.format(file))
+        if not compressed:
+            raise ValueError('Uncompressed values can only be stored files with "np" ending, but the file is {}.'.format(file))
+    if (is_values_dict or is_values_tuple) and is_file(file, compressed=False):
+        raise ValueError('Multiple values {} can only be stored in files with "npz" ending, but the file is {}.'.format(file))
 
     # create dir
     if create_path_if_not_exists:
