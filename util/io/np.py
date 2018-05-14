@@ -30,6 +30,32 @@ def add_file_ext(file, compressed=False):
     return util.io.fs.add_file_ext_if_needed(file, ext)
 
 
+def _save_generic(file, values, save_function, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
+
+    # create dir
+    if create_path_if_not_exists:
+        (dir, filename) = os.path.split(file)
+        os.makedirs(dir, exist_ok=True)
+
+    # check if file already exists
+    saved = False
+    if os.path.exists(file):
+        file_values = load_np_or_txt(file)
+        if np.all(values == file_values):
+            util.logging.warn('The value was already saved in {}'.format(file))
+            saved = True
+        elif overwrite:
+            util.io.fs.remove_file(file, force=True, not_exist_okay=True)
+
+    # save
+    if not saved:
+        save_function(file, values)
+
+    # make read only
+    if make_read_only:
+        util.io.fs.make_read_only(file)
+
+
 def save(file, values, compressed=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
     # check input values
     is_values_dict = isinstance(values, dict)
@@ -54,27 +80,44 @@ def save(file, values, compressed=None, make_read_only=False, overwrite=False, c
     if (is_values_dict or is_values_tuple) and is_file(file, compressed=False):
         raise ValueError('Multiple values {} can only be stored in files with "npz" ending, but the file is {}.'.format(file))
 
-    # create dir
-    if create_path_if_not_exists:
-        (dir, filename) = os.path.split(file)
-        os.makedirs(dir, exist_ok=True)
+    # save
+    def save_function(file, values):
+        if use_npz:
+            if compressed:
+                np.savez_compressed(file, values)
+            else:
+                np.savez(file, values)
+        else:
+            np.save(file, values)
 
-    # remove if overwrite
-    if overwrite:
-        util.io.fs.remove_file(file, force=True, not_exist_okay=True)
+    _save_generic(file, values, save_function,
+                  make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
+
+
+def save_txt(file, values, format_string=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
+    # append file extension if needed
+    if not file.endswith(TEXT_FILE_EXT):
+        file = file + TEXT_FILE_EXT
+
+    # cast value to array
+    values = np.asarray(values)
+    if values.ndim == 0:
+        values = values.reshape(1)
+
+    # chose format string if not passed
+    if format_string is None:
+        if values.dtype.kind == 'i':
+            format_string = '%d'
+        else:
+            assert values.dtype.kind == 'f'
+            format_string = '%.{}e'.format(np.finfo(values.dtype).precision)
 
     # save
-    if use_npz:
-        if compressed:
-            np.savez_compressed(file, values)
-        else:
-            np.savez(file, values)
-    else:
-        np.save(file, values)
+    def save_function(file, values):
+        np.savetxt(file, values, fmt=format_string)
 
-    # make read only
-    if make_read_only:
-        util.io.fs.make_read_only(file)
+    _save_generic(file, values, save_function,
+                  make_read_only=make_read_only, overwrite=overwrite, create_path_if_not_exists=create_path_if_not_exists)
 
 
 def load(file, mmap_mode=None):
@@ -97,37 +140,6 @@ def load(file, mmap_mode=None):
 
     # return
     return values
-
-
-def save_txt(file, values, format_string=None, make_read_only=False, overwrite=False, create_path_if_not_exists=True):
-    # append file extension if needed
-    if not file.endswith(TEXT_FILE_EXT):
-        file = file + TEXT_FILE_EXT
-
-    # cast value to array
-    values = np.asarray(values)
-    if values.ndim == 0:
-        values = values.reshape(1)
-
-    # chose format string if not passed
-    if format_string is None:
-        if values.dtype.kind == 'i':
-            format_string = '%d'
-        else:
-            assert values.dtype.kind == 'f'
-            format_string = '%.{}e'.format(np.finfo(values.dtype).precision)
-
-    # create path if needed
-    if create_path_if_not_exists:
-        (dir, filename) = os.path.split(file)
-        os.makedirs(dir, exist_ok=True)
-
-    # save value
-    if overwrite:
-        util.io.fs.remove_file(file, force=True, not_exist_okay=True)
-    np.savetxt(file, values, fmt=format_string)
-    if make_read_only:
-        util.io.fs.make_read_only(file)
 
 
 def load_txt(file):
