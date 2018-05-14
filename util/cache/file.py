@@ -17,11 +17,11 @@ def save(file, value, save_function):
             save_function(file, value)
         except PermissionError as e:
             if os.path.exists(file):
-                util.logging.debug('Cache file {} was already created while calculating the value.'.format(file))
+                util.logging.debug('Cache file {} was already created while calculating the value.'.format(file), exc_info=True)
             else:
-                util.logging.warn('File permissions are not sufficient to save calculated value to cache file {}: {}.'.format(file, e))
+                util.logging.warn('File permissions are not sufficient to save calculated value to cache file {}: {}.'.format(file, e), exc_info=True)
         except OSError as e:
-            util.logging.warn('The calculated value could not be saved to cache file {}: {}.'.format(file, e))
+            util.logging.warn('The calculated value could not be saved to cache file {}: {}.'.format(file, e), exc_info=True)
         else:
             util.logging.debug('Calculated value saved to cache file {}.'.format(file))
             util.io.fs.apply_recursively(file, util.io.fs.remove_write_permission)
