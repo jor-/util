@@ -26,7 +26,6 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     if data.dtype == np.float128:
         data = data.astype(np.float64)
 
-
     def get_masks(data, land_value=np.nan, no_data_value=0):
         def get_value_mask(array, value):
             if value is None:
@@ -37,18 +36,15 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 mask = array == value
             return mask
 
-
         land_mask = get_value_mask(data, land_value)
         no_data_mask = get_value_mask(data, no_data_value)
 
         return (land_mask, no_data_mask)
 
-
     util.logging.debug('Plotting data.')
 
     # set font size
     set_global_font_size(tick_font_size)
-
 
     # reshape data
     original_shape = data.shape
@@ -57,7 +53,6 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         data = data.reshape((1,) + original_shape + (1,))
     elif original_dim == 3:
         data = data.reshape((1,) + original_shape)
-
 
     # get masks and v_min and v_max
     (land_mask, no_data_mask) = get_masks(data, land_value=land_value, no_data_value=no_data_value)
@@ -73,7 +68,6 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         v_max = data_max
     util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
-
     # remove negative values for log plot
     if use_log_scale:
         data = np.array(data, copy=True)
@@ -84,13 +78,11 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         if v_min <= 1:
             v_min = 1
 
-
     # splite filename
     file_root, file_extension = os.path.splitext(file)
 
-
     # prepare no_data_array
-    no_data_array = np.empty_like(data[0,:,:,0])
+    no_data_array = np.empty_like(data[0, :, :, 0])
 
     t_len = data.shape[0]
     t_len_str = str(t_len)
@@ -102,23 +94,22 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
         # append depth to filename
         if z_len > 1:
-            current_file_with_z += '_layer_' + z_len_str + '_' + str(z+1).zfill(len(z_len_str))
+            current_file_with_z += '_layer_' + z_len_str + '_' + str(z + 1).zfill(len(z_len_str))
 
         for t in range(t_len):
             current_file = current_file_with_z
 
             # append time to filename
             if t_len > 1:
-                current_file += '_time_' + t_len_str + '_' + str(t+1).zfill(len(t_len_str))
+                current_file += '_time_' + t_len_str + '_' + str(t + 1).zfill(len(t_len_str))
 
             current_file += file_extension
 
             # make no_data with 1 where no data, 0.5 where water at surface, 0 where land and nan where data (1 is white, 0 is black)
             no_data_array = no_data_array * np.nan
-            no_data_array[no_data_mask[t,:,:,z]] = 1
-            no_data_array[land_mask[t,:,:,z]] = (1 + 9 * land_brightness) / 10
-            no_data_array[land_mask[t,:,:,0]] = land_brightness
-
+            no_data_array[no_data_mask[t, :, :, z]] = 1
+            no_data_array[land_mask[t, :, :, z]] = (1 + 9 * land_brightness) / 10
+            no_data_array[land_mask[t, :, :, 0]] = land_brightness
 
             # make figure
             fig = plt.figure()
@@ -132,10 +123,9 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 norm = matplotlib.colors.LogNorm(vmin=v_min, vmax=v_max)
             else:
                 if issubclass(data.dtype.type, np.integer):
-                    norm = matplotlib.colors.BoundaryNorm(np.arange(v_min, v_max+1), colormap.N)
+                    norm = matplotlib.colors.BoundaryNorm(np.arange(v_min, v_max + 1), colormap.N)
                 else:
                     norm = None
-
 
             # plot no data mask
             colormap_no_data = plt.cm.gray
@@ -143,7 +133,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
             axes_image = plt.imshow(no_data_array.transpose(), origin='lower', aspect='equal', cmap=colormap_no_data, vmin=0, vmax=1)
 
             # plot data
-            current_data = data[t,:,:,z].transpose()
+            current_data = data[t, :, :, z].transpose()
             axes_image = plt.imshow(current_data, origin='lower', aspect='equal', cmap=colormap, vmin=v_min, vmax=v_max, norm=norm)
 
             # disable axis labels
@@ -168,7 +158,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
                 # chose locator
                 if use_log_scale:
-                    tick_locator = plt.LogLocator(base=tick_base, subs=tick_base/10)
+                    tick_locator = plt.LogLocator(base=tick_base, subs=tick_base / 10)
                 else:
                     tick_locator = plt.MultipleLocator(base=tick_base)
 
@@ -181,7 +171,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 cb.locator = tick_locator
                 cb.update_ticks()
 
-                if not use_log_scale:
+                if power_limit is not None and not use_log_scale:
                     cb.formatter.set_powerlimits((-power_limit, power_limit))
                     cb.update_ticks()
 
@@ -196,18 +186,14 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     label_fmt = '%d'
                 plt.clabel(contour_plot, contour_plot.levels[1::2], fontsize=8, fmt=label_fmt, colors=str(contours_text_brightness))
 
-
             # set caption
             if caption is not None:
-                plt.xlabel(caption, fontsize=font_size, fontweight='bold')
+                plt.xlabel(caption, fontsize=tick_font_size, fontweight='bold')
 
             # save and close
             save_and_close_fig(fig, current_file, dpi=dpi)
 
     util.logging.debug('Plot completed.')
-
-
-
 
 
 def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, spine_line_width=1, use_log_scale=False, transparent=True, tick_font_size=DEFAULT_FONT_SIZE, legend_font_size=DEFAULT_FONT_SIZE, x_label=None, y_label=None, axis_label_font_size=DEFAULT_FONT_SIZE, dpi=800):
@@ -236,7 +222,6 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
                     raise ValueError('For multiline plot, if x has one dim and y has two dims, the first dim of x must have the same size as the second dim of y, but shape x is {} and shape y is {}.'.format(x.shape, y.shape))
                 else:
                     x = np.tile(x, y.shape[1]).reshape(y.shape[1], -1)
-
 
     # prepare line(s)
     if len(y) > 0:
@@ -301,8 +286,7 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
             x_max = max([x_max, x[-1]])
 
             # plot line
-            plt.plot(x, y, line_style, color=line_color, linewidth=line_width, markersize=line_width*3, label=line_label)
-
+            plt.plot(x, y, line_style, color=line_color, linewidth=line_width, markersize=line_width * 3, label=line_label)
 
     # set axis labels
     if x_label is not None:
@@ -339,13 +323,12 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
     save_and_close_fig(fig, file, dpi=dpi)
 
 
-
 def scatter(x, y, file, point_size=20, dpi=800):
     # check and prepare input
     if x.ndim == 2 and x.shape[1] > 2:
         raise ValueError('Scatter plots for x dim {} is not supported.'.format(x.shape[1]))
     if x.ndim == 2 and x.shape[1] == 1:
-        x = x[:,0]
+        x = x[:, 0]
 
     # make figure
     fig = plt.figure()
@@ -355,11 +338,10 @@ def scatter(x, y, file, point_size=20, dpi=800):
         plt.scatter(x, y, s=point_size)
     if x.ndim == 2:
         ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(x[:,0], x[:,1], y, s=point_size)
+        ax.scatter(x[:, 0], x[:, 1], y, s=point_size)
 
     # save and close
     save_and_close_fig(fig, file, dpi=dpi)
-
 
 
 def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, weights=None, use_log_scale=False, type='bar', tick_font_size=DEFAULT_FONT_SIZE, tick_power=None, tick_number=None, dpi=800):
@@ -395,7 +377,6 @@ def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, wei
     save_and_close_fig(fig, file, dpi=dpi)
 
 
-
 def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT_FONT_SIZE, dpi=800):
     import scipy.sparse
 
@@ -423,7 +404,7 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
     # set power limits
     if axis_labels:
         formatter = plt.ScalarFormatter()
-        formatter.set_powerlimits((-3,3))
+        formatter.set_powerlimits((-3, 3))
         fig.gca().xaxis.set_major_formatter(formatter)
         fig.gca().yaxis.set_major_formatter(formatter)
 
@@ -437,8 +418,6 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
 
     # save and close
     save_and_close_fig(fig, file, dpi=dpi)
-
-
 
 
 def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=DEFAULT_FONT_SIZE, dpi=800):
@@ -459,7 +438,8 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
 
     # plot
     linewidth = 3
-    plt.errorbar(np.arange(1, n+1), means, xerr=0, yerr=intervals_half_sizes, linestyle='', linewidth=linewidth, elinewidth=linewidth, capsize=linewidth*3, capthick=linewidth, marker='.', markersize=linewidth*5)
+    plt.errorbar(np.arange(1, n + 1), means, xerr=0, yerr=intervals_half_sizes, linestyle='', linewidth=linewidth, elinewidth=linewidth,
+                 capsize=linewidth * 3, capthick=linewidth, marker='.', markersize=linewidth * 5)
 
     # set y limits
     plt.xlim(0.5, n + 0.5)
