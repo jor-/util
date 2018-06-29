@@ -23,8 +23,7 @@ DEFAULT_FONT_SIZE = 20
 
 def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0, use_log_scale=False, v_min=None, v_max=None, caption=None, tick_font_size=DEFAULT_FONT_SIZE, power_limit=3, dpi=100, contours=False, contours_text_brightness=0.5, colorbar=True):
 
-    if data.dtype == np.float128:
-        data = data.astype(np.float64)
+    data = np.asanyarray(data)
 
     def get_masks(data, land_value=np.nan, no_data_value=0):
         def get_value_mask(array, value):
@@ -54,29 +53,37 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     elif original_dim == 3:
         data = data.reshape((1,) + original_shape)
 
-    # get masks and v_min and v_max
+    # get masks
     (land_mask, no_data_mask) = get_masks(data, land_value=land_value, no_data_value=no_data_value)
+    del land_value
+    del no_data_value
+
+    # convert data to float if int
+    if data.dtype == np.float128 or np.issubdtype(data.dtype, np.integer):
+        data = data.astype(np.float64, copy=True)
+    else:
+        data = data.copy()
+
+    # set land and no data with specific values
+    data[land_mask] = np.nan
+    data[no_data_mask] = np.nan
+
+    # get v_min and v_max
     if v_min is None or v_max is None or contours:
         data_mask = np.logical_not(np.logical_or(no_data_mask, land_mask))
         data_min = np.min(data[data_mask])
         data_max = np.max(data[data_mask])
 
-    # v_min and v_max
     if v_min is None:
         v_min = data_min
     if v_max is None:
         v_max = data_max
-    util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
-    # remove negative values for log plot
     if use_log_scale:
-        data = np.array(data, copy=True)
-        data[land_mask] = np.nan
-        land_value = np.nan
-        data[no_data_mask] = np.inf
-        no_data_value = np.inf
         if v_min <= 1:
             v_min = 1
+
+    util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
     # splite filename
     file_root, file_extension = os.path.splitext(file)
@@ -153,7 +160,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 tick_base_exp = int(np.ceil(np.log10(v_max_tick))) - 1
                 tick_base = 10 ** tick_base_exp
 
-                if (current_data > tick_base).sum() < (~np.isnan(current_data)).sum() / 100:    # decrease tick if too few data above tick
+                if (current_data[np.logical_not(np.isnan(current_data))] > tick_base).sum() < (np.logical_not(np.isnan(current_data))).sum() / 100:    # decrease tick if too few data above tick
                     tick_base = tick_base / 10
 
                 # chose locator
