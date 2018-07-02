@@ -162,10 +162,16 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     if current_data_max == 0:
                         contours = False
                         v_max_tick = 1
+                v_min_tick = v_min
                 tick_base_exp = int(np.ceil(np.log10(v_max_tick))) - 1
                 tick_base = 10 ** tick_base_exp
 
-                if (current_data[np.logical_not(np.isnan(current_data))] > tick_base).sum() < (np.logical_not(np.isnan(current_data))).sum() / 100:    # decrease tick if too few data above tick
+                # decrease tick if too few data above tick
+                if (current_data[np.logical_not(np.isnan(current_data))] > tick_base).sum() < (np.logical_not(np.isnan(current_data))).sum() / 100:
+                    tick_base = tick_base / 10
+
+                # decrease tick if too few ticks
+                if v_max_tick / tick_base - v_min_tick / tick_base < 3:
                     tick_base = tick_base / 10
 
                 # chose locator
