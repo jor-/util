@@ -21,7 +21,10 @@ DEFAULT_FONT_SIZE = 20
 
 # plot types
 
-def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0, use_log_scale=False, v_min=None, v_max=None, caption=None, tick_font_size=DEFAULT_FONT_SIZE, power_limit=3, dpi=100, contours=False, contours_text_brightness=0.5, colorbar=True):
+def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
+         use_log_scale=False, v_min=None, v_max=None, caption=None, tick_font_size=DEFAULT_FONT_SIZE, power_limit=3, dpi=100,
+         contours=False, contours_text_brightness=0.5, colorbar=True,
+         colormap=None):
 
     data = np.asanyarray(data)
 
@@ -96,6 +99,12 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     z_len = data.shape[3]
     z_len_str = str(z_len)
 
+    # set colormap
+    if colormap is None:
+        colormap = plt.cm.jet
+    colormap.set_bad(color='w', alpha=0.0)
+
+    # plot each layer
     for z in range(z_len):
         current_file_with_z = file_root
 
@@ -120,10 +129,6 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
             # make figure
             fig = plt.figure()
-
-            # chose colormap
-            colormap = plt.cm.jet
-            colormap.set_bad(color='w', alpha=0.0)
 
             # chose norm
             if use_log_scale:
