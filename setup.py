@@ -1,6 +1,5 @@
-# util: a collection of useful functions
-# Copyright (C) 2011-2017  Joscha Reimer jor@informatik.uni-kiel.de
-# 
+# Copyright (C) 2011-2018  Joscha Reimer jor@informatik.uni-kiel.de
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
