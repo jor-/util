@@ -2,48 +2,83 @@
 UTIL
 ====
 
-What is this?
---------------
-
 This is a collection of Python modules containing auxiliary functions used in several other projects.
 
 
-Installation
-------------
+Release info
+============
 
-This package can be installed using pip (recommended way):
+There are several ways to obtain and install this package.
 
-    ``pip3 install utillib``
+Conda
+-----
 
-or by downloading and running:
-
-    ``python3 setup.py install``
-
-
-Web sites
----------
-
-The source code of this package is hosted on:
-
-    https://github.com/jor-/util
-
-A Python wheel is available on:
-    
-    https://pypi.python.org/pypi/utillib
+.. image:: https://img.shields.io/conda/v/jore/util.svg
+    :target: https://anaconda.org/jore/util
+    :alt: Conda version
+.. image:: https://anaconda.org/jore/util/badges/latest_release_date.svg
+    :target: https://anaconda.org/jore/util
+    :alt: Conda last updated
+.. image:: https://anaconda.org/jore/util/badges/platforms.svg
+    :target: https://anaconda.org/jore/util
+    :alt: Conda platforms
+.. image:: https://anaconda.org/jore/util/badges/license.svg
+    :target: https://anaconda.org/jore/util
+    :alt: Conda licence
 
 
-Author
+To install this package with *conda* run:
+
+    ``conda install -c jore util``
+
+https://anaconda.org/jore/util
+
+
+pip
+---
+
+.. image:: https://img.shields.io/pypi/v/util.svg
+    :target: https://pypi.python.org/pypi/util
+    :alt: PyPI version
+.. image:: https://img.shields.io/pypi/format/util.svg
+    :target: https://pypi.python.org/pypi/util
+    :alt: PyPI format
+.. image:: https://img.shields.io/pypi/l/util.svg
+    :target: https://pypi.python.org/pypi/util
+    :alt: PyPI licence
+
+To install this package with *pip* run:
+
+    ``pip install 'util'``
+
+https://pypi.python.org/pypi/util
+
+
+GitHub
 ------
 
-Joscha Reimer
+.. image:: https://img.shields.io/github/tag/jor-/util.svg
+    :target: https://github.com/jor-/util
+    :alt: GitHub last tag
+.. image:: https://img.shields.io/github/license/jor-/util.svg
+    :target: https://github.com/jor-/util
+    :alt: GitHub license
 
-    jor@informatik.uni-kiel.de
+To clone this package with *git* run:
+
+    ``git clone https://github.com/jor-/util.git``
+
+To install this package after that with *python* run:
+
+    ``cd util; python setup.py install``
+
+https://github.com/jor-/util
 
 
 Copyright
 =========
 
-Copyright (C) 2011-2017  Joscha Reimer jor@informatik.uni-kiel.de
+Copyright (C) 2011-2018  Joscha Reimer jor@informatik.uni-kiel.de
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
