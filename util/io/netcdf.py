@@ -28,7 +28,7 @@ def load_with_scipy(file, data_name):
 
     f = scipy.io.netcdf.netcdf_file(file, 'r')
     data_netcdf = f.variables[data_name]
-    data = np.array(data_netcdf.data, copy = True)
+    data = np.array(data_netcdf.data, copy=True)
     data[data == data_netcdf.missing_value] = np.nan
     f.close()
 
@@ -50,17 +50,16 @@ def load_with_netcdf4(file, data_name):
 def load(file, data_name):
     try:
         import netCDF4
-    except:
+    except ImportError:
         pass
     else:
         return load_with_netcdf4(file, data_name)
-    
+
     try:
         import scipy.io
-    except:
+    except ImportError:
         pass
     else:
         return load_with_scipy(file, data_name)
-    
+
     raise ImportError('Could not import netCDF4 nor scipy.io.')
-    
