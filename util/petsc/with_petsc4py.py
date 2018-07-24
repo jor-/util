@@ -14,7 +14,6 @@ def save_petsc(file, petsc_object):
     viewer.destroy()
 
 
-
 # load petsc
 
 def load_petsc_vec(file):
@@ -37,7 +36,6 @@ def load_petsc_mat(file):
     return mat
 
 
-
 def petsc_vec_to_array(vec):
     util.logging.debug('Converting petsc vector to array.')
     array = np.array(vec, copy=True)
@@ -49,15 +47,14 @@ def petsc_mat_to_array(mat, dtype=float):
     shape = mat.getSize()
     array = np.zeros(shape, dtype=dtype)
 
-    #get values row by row since petsc matrix are sparse
+    # get values row by row since petsc matrix are sparse
     for i in range(shape[0]):
         row = mat.getRow(i)
         indices = row[0]
         values = row[1]
-        array[i, indices] = values;
+        array[i, indices] = values
 
     return array
-
 
 
 def load_petsc_vec_to_numpy_array(file):
@@ -74,7 +71,6 @@ def load_petsc_mat_to_array(file, dtype=float):
     mat.destroy()
 
     return array
-
 
 
 # create functions
@@ -117,10 +113,10 @@ def create_petsc_mat_by_function(function, size, finish_assembly=True):
     util.logging.debug('Converting array to petsc mat.')
 
     mat = petsc.Mat()
-    mat.createDense([n,m], comm=petsc.COMM_WORLD)
+    mat.createDense([n, m], comm=petsc.COMM_WORLD)
 
     for i, j in np.ndindex(n, m):
-        mat.setValue(i, j, function(i,j))
+        mat.setValue(i, j, function(i, j))
 
     # assembly
     util.logging.debug('Beginning assembly.')
@@ -131,7 +127,6 @@ def create_petsc_mat_by_function(function, size, finish_assembly=True):
         mat.assemblyEnd(petsc.Mat.AssemblyType.FINAL)
 
     return mat
-
 
 
 # array to petsc
@@ -162,19 +157,16 @@ def array_to_petsc_mat(array, finish_assembly=True):
     # create mat
     util.logging.debug('Converting array to petsc mat.')
 
-    function = lambda i,j: array[i,j]
+    function = lambda i, j: array[i,j]
     mat = create_petsc_mat_by_function(function, (n, m), finish_assembly=finish_assembly)
 
     return mat
-
 
 
 # other
 
 def print_petsc(petsc_object):
     petsc_object.view(petsc.Viewer.STDOUT())
-
-
 
 
 def solve_linear_equations(A, b, solver_type=petsc.KSP.Type.CG, monitor=True):
@@ -216,7 +208,6 @@ def solve_linear_equations(A, b, solver_type=petsc.KSP.Type.CG, monitor=True):
     return x
 
 
-
 class Matrix_Shell_Petsc:
 
     def __init__(self, entry_function):
@@ -234,7 +225,6 @@ class Matrix_Shell_Petsc:
         scatter.scatterBegin(x, x_local)
         scatter.scatterEnd(x, x_local)
         scatter.destroy()
-
 
         # set y values
         y_ownership_range = y.getOwnershipRange()

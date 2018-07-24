@@ -5,6 +5,7 @@ import util.logging
 
 PETSC_VEC_HEADER = 1211214
 
+
 def load_petsc_vec_to_numpy_array(file):
     util.logging.debug('Loading petsc vector from {} to numpy vector.'.format(file))
 
@@ -39,8 +40,6 @@ def save_numpy_array_to_petsc_vec(file, vec):
         vec.tofile(file_object)
 
 
-
-
 def load_petsc_mat_to_array(file, dtype=float):
     util.logging.debug('Loading petsc matrix from %s.', file)
 
@@ -50,12 +49,12 @@ def load_petsc_mat_to_array(file, dtype=float):
     # omit header
     np.fromfile(f, dtype=">i4", count=1)
     # read dims
-    nx     = np.fromfile(f, dtype=">i4", count=1)
-    ny     = np.fromfile(f, dtype=">i4", count=1)
-    nnz    = np.fromfile(f, dtype=">i4", count=1)
-    nrow   = np.fromfile(f, dtype=">i4", count=nx)
+    nx = np.fromfile(f, dtype=">i4", count=1)
+    ny = np.fromfile(f, dtype=">i4", count=1)
+    nnz = np.fromfile(f, dtype=">i4", count=1)
+    nrow = np.fromfile(f, dtype=">i4", count=nx)
     colidx = np.fromfile(f, dtype=">i4", count=nnz)
-    val    = np.fromfile(f, dtype=">f8", count=nnz)
+    val = np.fromfile(f, dtype=">f8", count=nnz)
 
     # close file
     f.close()

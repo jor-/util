@@ -4,9 +4,9 @@ except ImportError:
     import util.petsc.without_petsc4py as petsc_module
 
 
-
 def load_petsc_vec_to_numpy_array(file):
     return petsc_module.load_petsc_vec_to_numpy_array(file)
+
 
 def save_numpy_array_to_petsc_vec(file, vec):
     import util.petsc.without_petsc4py
