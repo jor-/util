@@ -73,22 +73,19 @@ class Logger():
             try:
                 import colorlog
             except ImportError:
-                colorlog = None
-                logger.warn('The package colorlog is not installed. Using uncolored logging.')
-            if colorlog is not None:
+                formatter_stdout = formatter_normal
+            else:
                 formatter_stdout = colorlog.ColoredFormatter(
                     "%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(module)s:%(lineno)d -> %(message)s",
                     datefmt=None,
                     reset=True,
-                    log_colors={'DEBUG':    'cyan',
-                                'INFO':     'green',
-                                'WARNING':  'yellow',
-                                'ERROR':    'red',
+                    log_colors={'DEBUG': 'cyan',
+                                'INFO': 'green',
+                                'WARNING': 'yellow',
+                                'ERROR': 'red',
                                 'CRITICAL': 'red,bg_white'},
                     secondary_log_colors={},
                     style='%')
-            else:
-                formatter_stdout = formatter_normal
 
             # add stdout and stderr handler
             if disp_stdout:
@@ -122,8 +119,7 @@ class Logger():
 
     def __enter__(self):
         if self.enabled:
-            self.logger.info('Starting logging at {}.'.format(socket.gethostname()
-))
+            self.logger.info('Starting logging at {}.'.format(socket.gethostname()))
         return self
 
     def __exit__(self, eType, eValue, eTrace):
@@ -133,7 +129,6 @@ class Logger():
             self.logger.info('Logging stopped.')
         self.close()
         return False
-
 
     def close(self):
         if self.enabled:
@@ -163,4 +158,3 @@ class Logger():
             except AttributeError:
                 pass
         return False
-
