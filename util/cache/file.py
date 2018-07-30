@@ -70,7 +70,7 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
                 # try to load cache file
                 try:
                     value = load_function(cache_file)
-                except FileNotFoundError as e:
+                except FileNotFoundError:
                     util.logging.debug('No cached value found at {}.'.format(cache_file))
                     calculate_value = True
                 except OSError as e:
