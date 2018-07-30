@@ -126,13 +126,12 @@ def load(file, mmap_mode=None):
 
     # unpack values if npz file with one array
     try:
-        values.keys
+        values.values
     except AttributeError:
         pass
     else:
-        keys = values.keys()
-        if len(keys) == 1:
-            values = values[keys[0]]
+        if len(values) == 1:
+            values = next(iter(values.values()))
 
     # if zero dimensional array, unpack value
     if values.ndim == 0:

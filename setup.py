@@ -66,7 +66,7 @@ setuptools.setup(
         'pip>=1.4',
     ],
     install_requires=[
-        'numpy',
+        'numpy>=1.15',
     ],
     extras_require={
         'cache': ['cachetools'],
