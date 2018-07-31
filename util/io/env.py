@@ -1,5 +1,6 @@
 import os
 
+
 def load(variable_name):
     try:
         return os.environ[variable_name]
@@ -16,6 +17,7 @@ class EnvironmentLookupError(LookupError):
 
 PYTHONPATH_ENV_NAME = 'PYTHONPATH'
 
+
 def pythonpath():
     try:
         return os.environ[PYTHONPATH_ENV_NAME]
@@ -25,6 +27,6 @@ def pythonpath():
 
 CONDA_ENV_NAME = 'CONDA_DEFAULT_ENV'
 
+
 def conda_env():
     return os.environ[CONDA_ENV_NAME]
-
