@@ -23,10 +23,3 @@ def pythonpath():
         return os.environ[PYTHONPATH_ENV_NAME]
     except KeyError:
         return ''
-
-
-CONDA_ENV_NAME = 'CONDA_DEFAULT_ENV'
-
-
-def conda_env():
-    return os.environ[CONDA_ENV_NAME]
