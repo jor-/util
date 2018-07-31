@@ -9,6 +9,7 @@ import time
 import numpy as np
 
 import util.constants
+import util.io.conda
 import util.io.env
 import util.io.fs
 import util.logging
@@ -402,13 +403,6 @@ class BatchSystem():
         try:
             return self.pre_commands[name]
         except KeyError:
-            if name in ('python', 'python3'):
-                try:
-                    conda_env = util.io.env.conda_env()
-                except util.io.env.EnvironmentLookupError:
-                    pass
-                else:
-                    return '. activate {}'.format(conda_env)
             return ''
 
     def __str__(self):
@@ -848,7 +842,7 @@ class Job():
     def _job_file_header(self, use_mpi=True):
         raise NotImplementedError()
 
-    def _job_file_command(self, command, pre_command=None, add_timing=True, use_mpi=True):
+    def _job_file_command(self, command, pre_command=None, add_timing=True, use_mpi=True, use_conda=True):
         # add mpi
         if use_mpi:
             cpus = self.options['/job/nodes'] * self.options['/job/cpus']
@@ -862,6 +856,19 @@ class Job():
         content.append('touch {}'.format(self.options['/job/unfinished_file']))
         content.append('echo "Job started."')
         content.append('')
+        # add conda
+        if use_conda:
+            try:
+                conda_activate_file = util.io.conda.conda_activate_file()
+            except util.io.conda.CondaNotInstalledError:
+                pass
+            else:
+                content.append(f'. {conda_activate_file}')
+                try:
+                    conda_env = util.io.conda.conda_env()
+                except util.io.conda.CondaNotInstalledError:
+                    conda_env = ''  # base env
+                content.append(f'conda activate {conda_env}')
         # add commands
         if pre_command is not None:
             content.append(pre_command)
@@ -876,8 +883,8 @@ class Job():
         content.append('')
         return os.linesep.join(content)
 
-    def write_job_file(self, command, pre_command=None, use_mpi=True):
-        job_file_command = self._job_file_header(use_mpi=use_mpi) + os.linesep + self._job_file_command(command, pre_command=pre_command, use_mpi=use_mpi)
+    def write_job_file(self, command, pre_command=None, use_mpi=True, use_conda=True):
+        job_file_command = self._job_file_header(use_mpi=use_mpi) + os.linesep + self._job_file_command(command, pre_command=pre_command, use_mpi=use_mpi, use_conda=use_conda)
         with open(self.option_file, mode='w') as f:
             f.write(job_file_command)
             f.flush()
