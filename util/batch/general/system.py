@@ -1006,7 +1006,7 @@ class Job():
 
     # check integrity
 
-    def check_integrity(self, should_be_started=False, should_be_readonly=False):
+    def check_integrity(self, force_to_be_started=False, force_to_be_readonly=False):
 
         # check if options entires exist
         self.option_file
@@ -1019,7 +1019,7 @@ class Job():
         is_started = self.is_started()
         is_running = self.is_running()
 
-        if is_started or should_be_started:
+        if is_started or force_to_be_started:
             job_id = self.id
             try:
                 is_running_batch_system = self.batch_system.is_job_running(job_id)
@@ -1045,7 +1045,7 @@ class Job():
                     raise JobError(self, 'There are errors in the job output file: {}!'.format(line))
 
         # check read only
-        if should_be_readonly and not self.options.is_read_only():
+        if force_to_be_readonly and not self.options.is_read_only():
             raise JobError(self, 'Job option file is writeable!')
 
         # check files
