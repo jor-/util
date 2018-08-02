@@ -914,11 +914,22 @@ class Job():
     def is_finished(self, check_exit_code=True):
         # if finished file exists, check exit code and output file
         if os.path.exists(self.finished_file):
+            # check exit code
             if check_exit_code:
                 exit_code = self.exit_code
                 if exit_code != 0:
                     raise JobExitCodeError(self)
-            return self.output_file is None or os.path.exists(self.output_file)
+            # check if output file exists
+            output_file = pathlib.Path(self.output_file)
+            if output_file.exists():
+                return True
+            else:
+                finished_file = pathlib.Path(self.finished_file)
+                finished_file_time_since_creation_in_seconds = time.time() - finished_file.stat().st_mtime
+                if finished_file_time_since_creation_in_seconds > util.batch.general.constants.MAX_WAIT_FOR_OUTPUT_FILE_SECONDS:
+                    raise JobError(self, 'Output file is missing!')
+                else:
+                    return False
 
         # if finished file does not exist, check if running
         elif self.is_started():
