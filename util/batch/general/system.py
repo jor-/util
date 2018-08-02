@@ -1,6 +1,7 @@
 import abc
 import math
 import os
+import pathlib
 import shutil
 import subprocess
 import tempfile
@@ -9,6 +10,7 @@ import time
 import numpy as np
 
 import util.constants
+import util.batch.general.constants
 import util.io.conda
 import util.io.env
 import util.io.fs
@@ -65,7 +67,7 @@ class NodesState():
     def nodes_state_values_for_kind(self, kind):
         try:
             nodes_state_values_for_kind = self.nodes_state[kind]
-        except KeyError as e:
+        except KeyError:
             util.logging.warning('Node kind {} not found in nodes state {}.'.format(kind, self.nodes_state))
             nodes_state_values_for_kind = [np.array([]), np.array([])]
         return nodes_state_values_for_kind
@@ -1007,7 +1009,6 @@ class Job():
     # check integrity
 
     def check_integrity(self, force_to_be_started=False, force_to_be_readonly=False):
-
         # check if options entires exist
         self.option_file
         self.output_file
@@ -1015,11 +1016,24 @@ class Job():
         self.finished_file
         self.id_file
 
-        # check if started, running and finished state
-        is_started = self.is_started()
-        is_running = self.is_running()
+        # check for missing output file
+        output_file = pathlib.Path(self.output_file)
+        finished_file = pathlib.Path(self.finished_file)
+        if finished_file.exists() and not output_file.exists():
+            finished_file_time_since_creation_in_seconds = time.time() - finished_file.stat().st_mtime
+            if finished_file_time_since_creation_in_seconds >= util.batch.general.constants.MAX_WAIT_FOR_OUTPUT_FILE_SECONDS:
+                raise JobError(self, 'Output file is missing!')
 
-        if is_started or force_to_be_started:
+        # check started state
+        is_started = self.is_started()
+        if force_to_be_started and not is_started:
+            raise JobError(self, 'Job should be started!')
+
+        # check running state
+        is_running = self.is_running()
+        if is_running and not is_started:
+            raise JobError(self, 'Job is running but was not started!')
+        if is_started:
             job_id = self.id
             try:
                 is_running_batch_system = self.batch_system.is_job_running(job_id)
@@ -1029,12 +1043,16 @@ class Job():
                 if is_running != is_running_batch_system:
                     raise JobError(self, 'Its is not clear if the job is running!')
 
-        if is_started and not is_running:
-            is_finished = self.is_finished(check_exit_code=True)
-            if not is_finished:
+        # check finished state
+        should_be_finished = is_started and not is_running
+        is_finished = self.is_finished(check_exit_code=should_be_finished)
+        if is_finished and not is_started:
+            raise JobError(self, 'Job is finished but was not started!')
+        if should_be_finished != is_finished:
+            if should_be_finished:
                 raise JobError(self, 'The job should finished but it is not!')
-        else:
-            is_finished = self.is_finished(check_exit_code=False)
+            else:
+                raise JobError(self, 'The job is finished but it is should not!')
 
         # check errors in output file
         if is_started and os.path.exists(self.output_file) or is_finished:
