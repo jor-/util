@@ -885,8 +885,11 @@ class Job():
         content.append('')
         return os.linesep.join(content)
 
-    def write_job_file(self, command, pre_command=None, use_mpi=True, use_conda=True):
-        job_file_command = self._job_file_header(use_mpi=use_mpi) + os.linesep + self._job_file_command(command, pre_command=pre_command, use_mpi=use_mpi, use_conda=use_conda)
+    def write_job_file(self, command, pre_command=None, use_mpi=True, use_conda=True, add_timing=True):
+        job_file_command = (self._job_file_header(use_mpi=use_mpi) + os.linesep +
+                            self._job_file_command(command, pre_command=pre_command,
+                                                   use_mpi=use_mpi, use_conda=use_conda,
+                                                   add_timing=add_timing))
         with open(self.option_file, mode='w') as f:
             f.write(job_file_command)
             f.flush()
