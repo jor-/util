@@ -15,15 +15,16 @@ import util.logging
 class OptionsFile():
 
     def __init__(self, file, mode='a', none_value=np.empty(0), replace_environment_vars_at_set=False, replace_environment_vars_at_get=False):
-        # prepare file name
+        # file name
         if os.path.isdir(file):
             file = os.path.join(file, 'options.hdf5')
         else:
             (root, ext) = os.path.splitext(file)
             if ext == '':
                 file += '.hdf5'
+        self.__filename = file
         # open
-        self.open(file, mode)
+        self.open(mode=mode)
         # save variables
         self.none_value = none_value
         self.replace_environment_vars_at_set = replace_environment_vars_at_set
@@ -33,6 +34,7 @@ class OptionsFile():
         self.close()
 
     def __enter__(self):
+        self.open()
         return self
 
     def __exit__(self, type, value, traceback):
@@ -126,25 +128,27 @@ class OptionsFile():
 
     @property
     def filename(self):
-        hdf5_file = self.__hdf5_file
-        return hdf5_file.filename
+        return self.__filename
 
-    def open(self, file, mode='a'):
-        self.close()
+    def open(self, mode='a'):
+        if not self.is_opened:
+            file = self.filename
+            util.logging.debug('Opening option file {} with mode {}.'.format(file, mode))
 
-        util.logging.debug('Opening option file {} with mode {}.'.format(file, mode))
-
-        try:
-            f = h5py.File(file, mode=mode)
-        except OSError as e:
-            if mode != 'r':
-                util.logging.debug('File {} could not been open. Trying read_only mode.'.format(file))
-                self.open(file, mode='r')
+            try:
+                f = h5py.File(file, mode=mode)
+            except OSError as e:
+                if mode != 'r':
+                    util.logging.debug('File {} could not been open. Trying read_only mode.'.format(file))
+                    self.open(mode='r')
+                else:
+                    raise OSError('Option file {} could not been open. Error: {}. Error code: {}.'.format(file, e.strerror, e.errno)) from e
             else:
-                raise OSError('Option file {} could not been open. Error: {}. Error code: {}.'.format(file, e.strerror, e.errno)) from e
+                util.logging.debug('File {} opened.'.format(file))
+                self.__hdf5_file_object = f
         else:
-            util.logging.debug('File {} opened.'.format(file))
-            self.__hdf5_file_object = f
+            util.logging.debug('Option file {} is already opened.'.format(file))
+        return self
 
     def close(self):
         try:
@@ -195,10 +199,9 @@ class OptionsFile():
     def make_writable(self):
         if not self.is_writable():
             util.logging.debug('Opening {} writable.'.format(self.filename))
-            file = self.filename
             self.close()
-            util.io.fs.make_writable(file)
-            self.open(file)
+            util.io.fs.make_writable(self.filename)
+            self.open()
         else:
             util.logging.debug('File {} is writable.'.format(self.filename))
         assert self.is_writable
@@ -206,10 +209,9 @@ class OptionsFile():
     def make_read_only(self):
         if not self.is_read_only():
             util.logging.debug('Opening {} read_only.'.format(self.filename))
-            file = self.filename
             self.close()
-            util.io.fs.make_read_only(file)
-            self.open(file, 'r')
+            util.io.fs.make_read_only(self.filename)
+            self.open('r')
         else:
             util.logging.debug('File {} is read_only.'.format(self.filename))
         assert self.is_read_only
