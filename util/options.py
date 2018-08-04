@@ -161,13 +161,17 @@ class OptionsFile():
             del self.__hdf5_file_object
 
     @property
-    def is_closed(self):
+    def is_opened(self):
         try:
             self.__hdf5_file_object
         except AttributeError:
-            return True
-        else:
             return False
+        else:
+            return True
+
+    @property
+    def is_closed(self):
+        return not self.is_opened
 
     @staticmethod
     def _replace_environment_vars(value):
