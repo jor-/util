@@ -995,6 +995,11 @@ class Job():
         self.make_read_only_input(read_only=read_only)
         self.make_read_only_output(read_only=read_only)
 
+    def remove(self):
+        output_dir = self.output_dir
+        self.options.close()
+        shutil.rmtree(output_dir)
+
     def close(self):
         if not self.is_closed:
             assert not self.options.is_closed
