@@ -706,6 +706,7 @@ class Job():
         self.close()
 
     def __enter__(self):
+        self.open()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -1000,6 +1001,12 @@ class Job():
         self.options.close()
         shutil.rmtree(output_dir)
 
+    def open(self):
+        if not self.is_opened:
+            assert not self.options.is_opened
+            self.options.open()
+        return self
+
     def close(self):
         if not self.is_closed:
             assert not self.options.is_closed
@@ -1018,6 +1025,15 @@ class Job():
             # close options file
             self.options.close()
         assert self.is_closed
+
+    @property
+    def is_opened(self):
+        try:
+            options = self.options
+        except AttributeError:
+            return False
+        else:
+            return options.is_opened
 
     @property
     def is_closed(self):
