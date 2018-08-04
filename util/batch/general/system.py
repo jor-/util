@@ -1003,18 +1003,21 @@ class Job():
     def close(self):
         if not self.is_closed:
             assert not self.options.is_closed
-            if self.remove_output_dir_on_close and self.is_finished(check_exit_code=False):
-                remove_dir = self.output_dir
-            else:
-                remove_dir = None
-
-            self.options.close()
-
-            if remove_dir is not None:
+            # remove if output dir if desired
+            if self.remove_output_dir_on_close:
                 try:
-                    shutil.rmtree(remove_dir)
-                except OSError as e:
-                    util.logging.warning('Dir {} could not be removed: {}'.format(remove_dir, e))
+                    is_finished = self.is_finished(check_exit_code=True)
+                except JobExitCodeError as e:
+                    util.logging.warning('{} stopped with an error {} and thus is not removed.'.format(self, e))
+                else:
+                    if is_finished:
+                        try:
+                            self.remove()
+                        except OSError as e:
+                            util.logging.warning('{} could not be removed: {}'.format(self, e))
+            # close options file
+            self.options.close()
+        assert self.is_closed
 
     @property
     def is_closed(self):
