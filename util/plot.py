@@ -509,10 +509,12 @@ def violin(positions, dataset, file, font_size=DEFAULT_FONT_SIZE, dpi=800):
 
 # *** auxiliary functions *** #
 
-def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True):
+def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True, overwrite=False):
     plt.tight_layout()
     file = pathlib.Path(file)
     file.parent.mkdir(parents=True, exist_ok=True)
+    if overwrite and file.exists():
+        file.unlink()
     plt.savefig(file, bbox_inches='tight', transparent=transparent, dpi=dpi)
     plt.close(fig)
     if make_read_only:
