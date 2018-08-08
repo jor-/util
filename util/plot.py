@@ -1,4 +1,4 @@
-import os.path
+import pathlib
 
 import numpy as np
 
@@ -88,7 +88,9 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
     # splite filename
-    file_root, file_extension = os.path.splitext(file)
+    file = pathlib.PurePath(file)
+    file_extension = file.suffix
+    file_root = str(file.with_suffix(''))
 
     # prepare no_data_array
     no_data_array = np.empty_like(data[0, :, :, 0])
@@ -509,7 +511,8 @@ def violin(positions, dataset, file, font_size=DEFAULT_FONT_SIZE, dpi=800):
 
 def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True):
     plt.tight_layout()
-    os.makedirs(os.path.dirname(file), exist_ok=True)
+    file = pathlib.Path(file)
+    file.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(file, bbox_inches='tight', transparent=transparent, dpi=dpi)
     plt.close(fig)
     if make_read_only:
