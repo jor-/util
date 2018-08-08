@@ -15,16 +15,27 @@ import mpl_toolkits.axes_grid1
 import util.io.fs
 import util.logging
 
-DEFAULT_FONT_SIZE = 20
+# *** default values *** #
+
+_DEFAULT_VALUES = {'transparent': True,
+                   'make_read_only': True,
+                   'overwrite': False,
+                   'dpi': 800,
+                   'font_size': 20}
 
 
-# plot types
+# *** plot types *** #
 
 def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
-         use_log_scale=False, v_min=None, v_max=None, caption=None, tick_font_size=DEFAULT_FONT_SIZE, power_limit=3, dpi=100,
-         contours=False, contours_text_brightness=0.5, colorbar=True,
-         colormap=None):
+         use_log_scale=False, v_min=None, v_max=None, caption=None, power_limit=3,
+         contours=False, contours_text_brightness=0.5, colorbar=True, colormap=None,
+         **kwargs):
 
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
+
+    # prepare data
     data = np.asanyarray(data)
 
     def get_masks(data, land_value=np.nan, no_data_value=0):
@@ -43,9 +54,6 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         return (land_mask, no_data_mask)
 
     util.logging.debug('Plotting data.')
-
-    # set font size
-    set_global_font_size(tick_font_size)
 
     # reshape data
     original_shape = data.shape
@@ -210,13 +218,20 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 plt.xlabel(caption, fontsize=tick_font_size, fontweight='bold')
 
             # save and close
-            save_and_close_fig(fig, current_file, dpi=dpi)
+            _save_and_close_fig_with_kwargs(fig, current_file, **kwargs)
 
     util.logging.debug('Plot completed.')
 
 
-def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, spine_line_width=1, use_log_scale=False, transparent=True, tick_font_size=DEFAULT_FONT_SIZE, legend_font_size=DEFAULT_FONT_SIZE, x_label=None, y_label=None, axis_label_font_size=DEFAULT_FONT_SIZE, dpi=800):
+def line(x, y, file,
+         x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, spine_line_width=1, use_log_scale=False,
+         tick_font_size=_DEFAULT_VALUES['font_size'], legend_font_size=_DEFAULT_VALUES['font_size'], x_label=None, y_label=None, axis_label_font_size=_DEFAULT_VALUES['font_size'],
+         **kwargs):
     util.logging.debug('Plotting line.')
+
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
 
     # check if multi line
     try:
@@ -335,14 +350,19 @@ def line(x, y, file, x_order=0, line_label=None, line_width=1, line_style='-', l
     # legend
     legend = plt.legend(loc=0)
     if legend is not None:
+        transparent = kwargs['transparent']
         legend.get_frame().set_alpha(float(not transparent))
         set_legend_font(fig, size=legend_font_size)
 
     # save and close
-    save_and_close_fig(fig, file, dpi=dpi)
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def scatter(x, y, file, point_size=20, dpi=800):
+def scatter(x, y, file, point_size=20, **kwargs):
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
+
     # check and prepare input
     if x.ndim == 2 and x.shape[1] > 2:
         raise ValueError('Scatter plots for x dim {} is not supported.'.format(x.shape[1]))
@@ -360,11 +380,18 @@ def scatter(x, y, file, point_size=20, dpi=800):
         ax.scatter(x[:, 0], x[:, 1], y, s=point_size)
 
     # save and close
-    save_and_close_fig(fig, file, dpi=dpi)
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, weights=None, use_log_scale=False, type='bar', tick_font_size=DEFAULT_FONT_SIZE, tick_power=None, tick_number=None, dpi=800):
+def histogram(data, file,
+              bins=None, step_size=None, x_min=None, x_max=None, weights=None,
+              use_log_scale=False, type='bar', tick_font_size=_DEFAULT_VALUES['font_size'], tick_power=None, tick_number=None,
+              **kwargs):
     util.logging.debug('Plotting histogram.')
+
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
 
     # make fig
     fig = plt.figure()
@@ -393,26 +420,28 @@ def histogram(data, file, bins=None, step_size=None, x_min=None, x_max=None, wei
         set_number_of_ticks(fig.gca(), tick_number, axis='x')
 
     # save and close
-    save_and_close_fig(fig, file, dpi=dpi)
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT_FONT_SIZE, dpi=800):
+def spy(A, file, markersize=1, axis_labels=True, caption=None, **kwargs):
     import scipy.sparse
 
-    # set font size
-    set_global_font_size(font_size)
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
+    font_size = kwargs['font_size']
 
     # make figure
     fig = plt.figure()
 
     # plot sparsity_pattern
     if scipy.sparse.issparse(A):
-        util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} and dpi {} to file {}.'.format(A, markersize, dpi, file))
+        util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} to file {}.'.format(A, markersize, file))
         plt.spy(A, markersize=markersize, marker=',', markeredgecolor='k', markerfacecolor='k', precision='present')
 
     # plot matrix values
     else:
-        util.logging.debug('Plotting values for matrix {!r} with dpi {} to file {}.'.format(A, dpi, file))
+        util.logging.debug('Plotting values for matrix {!r} to file {}.'.format(A, file))
         v_abs_max = np.abs(A).max()
         axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)
         cb = fig.colorbar(axes_image)
@@ -436,10 +465,15 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, font_size=DEFAULT
         plt.xlabel(caption, fontsize=font_size, fontweight='bold')
 
     # save and close
-    save_and_close_fig(fig, file, dpi=dpi)
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=DEFAULT_FONT_SIZE, dpi=800):
+def intervals(intervals, file, use_percent_ticks=False, caption=None, **kwargs):
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
+
+    # prepare intervalls
     intervals = np.asanyarray(intervals)
     assert intervals.ndim == 2
     assert len(intervals) == 2
@@ -448,9 +482,6 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
     intervals_half_sizes = (intervals[1] - intervals[0]) / 2
     means = intervals_half_sizes + intervals[0]
     n = len(intervals_half_sizes)
-
-    # set font size
-    set_global_font_size(font_size)
 
     # make figure
     fig = plt.figure()
@@ -471,17 +502,18 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
 
     # set caption
     if caption is not None:
-        plt.xlabel(caption, fontsize=font_size, fontweight='bold')
+        plt.xlabel(caption, fontsize=kwargs['font_size'], fontweight='bold')
 
     # save and close
-    save_and_close_fig(fig, file, dpi=dpi)
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def violin(positions, dataset, file, font_size=DEFAULT_FONT_SIZE, dpi=800):
+def violin(positions, dataset, file, **kwargs):
     assert len(positions) == len(dataset)
 
-    # set font size
-    set_global_font_size(font_size)
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
 
     # make figure
     fig = plt.figure()
@@ -504,19 +536,44 @@ def violin(positions, dataset, file, font_size=DEFAULT_FONT_SIZE, dpi=800):
             axes.hlines(percentile, position - minor_percentile_line_length / 2, position + minor_percentile_line_length / 2, color=color)
 
     # save and close
-    save_and_close_fig(fig, file, dpi=dpi)
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
+
+
+# *** kwargs functions *** #
+
+def _set_default_kwargs(kwargs):
+    for key in kwargs.keys():
+        if key not in _DEFAULT_VALUES:
+            raise ValueError(f'Keyword parameter {key} is unknown.')
+    for (key, value) in _DEFAULT_VALUES.items():
+        kwargs.setdefault(key, value)
+
+
+def _save_and_close_fig_with_kwargs(*args, **kwargs):
+    KEYS = ('transparent', 'make_read_only', 'overwrite', 'dpi')
+    kwargs = {key: kwargs[key] for key in KEYS}
+    return save_and_close_fig(*args, **kwargs)
+
+
+def _set_global_font_size_with_kwargs(**kwargs):
+    KEYS = ('font_size',)
+    kwargs = {key: kwargs[key] for key in KEYS}
+    return set_global_font_size(**kwargs)
 
 
 # *** auxiliary functions *** #
 
-def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True, overwrite=False):
-    plt.tight_layout()
+def save_and_close_fig(fig, file, transparent=_DEFAULT_VALUES['transparent'], make_read_only=_DEFAULT_VALUES['make_read_only'], overwrite=_DEFAULT_VALUES['overwrite'], dpi=_DEFAULT_VALUES['dpi']):
+    # prepare file
     file = pathlib.Path(file)
     file.parent.mkdir(parents=True, exist_ok=True)
     if overwrite and file.exists():
         file.unlink()
+    # plot
+    plt.tight_layout()
     plt.savefig(file, bbox_inches='tight', pad_inches=0, transparent=transparent, dpi=dpi)
     plt.close(fig)
+    # make read only
     if make_read_only:
         util.io.fs.make_read_only(file)
     util.logging.debug('Plot saved to {}.'.format(file))
@@ -579,11 +636,11 @@ def set_legend_font(fig, family='sans-serif', weight='bold', size=12):
     plt.setp(legend.get_texts(), fontproperties=font_properties)
 
 
-def set_global_font_size(size=20):
-    util.logging.debug('Setting font size for plots to {}.'.format(size))
+def set_global_font_size(font_size=_DEFAULT_VALUES['font_size']):
+    util.logging.debug('Setting font size for plots to {}.'.format(font_size))
     font = {'family': 'sans-serif',
             'weight': 'bold',
-            'size': size}
+            'size': font_size}
     matplotlib.rc('font', **font)
 
 
