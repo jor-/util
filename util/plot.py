@@ -476,6 +476,36 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, font_size=
     save_and_close_fig(fig, file, dpi=dpi)
 
 
+def violin(positions, dataset, file, font_size=DEFAULT_FONT_SIZE, dpi=800):
+    assert len(positions) == len(dataset)
+
+    # set font size
+    set_global_font_size(font_size)
+
+    # make figure
+    fig = plt.figure()
+    axes = plt.gca()
+
+    # make violin plot
+    if len(positions) > 1:
+        widths = (positions[1:] - positions[:-1]).min() / 2
+    else:
+        widths = 0.5
+    plot_parts = axes.violinplot(dataset, positions=positions, widths=widths, showextrema=True, showmedians=True, showmeans=False)
+
+    # add quantile lines
+    color = plot_parts['cmedians'].get_color()
+    segment = plot_parts['cmedians'].get_segments()[0]
+    major_percentile_line_length = segment[1, 0] - segment[0, 0]
+    minor_percentile_line_length = major_percentile_line_length / 2
+    for (position, data) in zip(positions, dataset):
+        for percentile in np.percentile(data, [25, 75]):
+            axes.hlines(percentile, position - minor_percentile_line_length / 2, position + minor_percentile_line_length / 2, color=color)
+
+    # save and close
+    save_and_close_fig(fig, file, dpi=dpi)
+
+
 # *** auxiliary functions *** #
 
 
