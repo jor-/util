@@ -1,5 +1,4 @@
 import os.path
-import subprocess
 
 import numpy as np
 
@@ -508,18 +507,11 @@ def violin(positions, dataset, file, font_size=DEFAULT_FONT_SIZE, dpi=800):
 
 # *** auxiliary functions *** #
 
-
-def trim(file):
-    util.logging.debug('Trimming plot %s.' % file)
-    subprocess.check_output(('convert', '-trim', file, file))
-
-
 def save_and_close_fig(fig, file, transparent=True, dpi=800, make_read_only=True):
     plt.tight_layout()
     os.makedirs(os.path.dirname(file), exist_ok=True)
     plt.savefig(file, bbox_inches='tight', transparent=transparent, dpi=dpi)
     plt.close(fig)
-    trim(file)
     if make_read_only:
         util.io.fs.make_read_only(file)
     util.logging.debug('Plot saved to {}.'.format(file))
