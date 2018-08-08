@@ -82,7 +82,7 @@ setuptools.setup(
         'interpolate': ['scipy>=0.17'],
         'sparse': ['scipy>=0.19'],
         'netcdf': ['scipy'],
-        'plot': ['matplotlib'],
+        'plot': ['matplotlib', 'pycairo'],
         'scoop': ['scoop'],
         'deap': ['deap'],
     },
