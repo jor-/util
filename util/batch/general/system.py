@@ -717,7 +717,7 @@ class Job():
         output_dir = self.output_dir
         try:
             job_id = self.id
-        except KeyError:
+        except JobNotStartedError:
             job_id = '(not started)'
         job_str = 'job {} with output path {}'.format(job_id, output_dir)
         return job_str
