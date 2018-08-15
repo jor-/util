@@ -714,12 +714,16 @@ class Job():
         return False
 
     def __str__(self):
-        output_dir = self.output_dir
         try:
-            job_id = self.id
-        except JobNotStartedError:
-            job_id = '(not started)'
-        job_str = 'job {} with output path {}'.format(job_id, output_dir)
+            output_dir = self.output_dir
+        except util.options.ClosedOptionsFileError:
+            job_str = 'closed job'
+        else:
+            try:
+                job_id = self.id
+            except JobNotStartedError:
+                job_id = '(not started)'
+            job_str = 'job {} with output path {}'.format(job_id, output_dir)
         return job_str
 
     @property
