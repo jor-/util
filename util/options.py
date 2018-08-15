@@ -121,7 +121,7 @@ class OptionsFile():
         try:
             return self.__hdf5_file_object
         except AttributeError:
-            raise ValueError('File is closed.')
+            raise ClosedOptionsFileError(self)
 
     def __str__(self):
         return 'Option file {}'.format(self.filename)
@@ -293,41 +293,53 @@ class OptionsFile():
 
 # Options Dict
 
-class OptionError(KeyError):
+class OptionsFileError(Exception):
 
-    def __init__(self, option, option_object, message):
-        self.option = option
-        self.option_object = option_object
-        message = '{}: {}'.format(type(option_object).__name__, message)
+    def __init__(self, options_file, message):
+        self.options_file = options_file
         super().__init__(message)
+
+
+class ClosedOptionsFileError(OptionsFileError):
+
+    def __init__(self, option_object):
+        message = 'Options file is closed.'
+        super().__init__(option_object, message)
+
+class OptionError(OptionsFileError):
+
+    def __init__(self, option, options_file, message):
+        self.option = option
+        message = '{}: {}'.format(type(options_file).__name__, message)
+        super().__init__(options_file, message)
 
 
 class UnknownOptionError(OptionError):
 
-    def __init__(self, option, option_object):
+    def __init__(self, option, options_file):
         message = 'Option {} is unknown.'.format(option)
-        super().__init__(option, option_object, message)
+        super().__init__(option, options_file, message)
 
 
 class NoneSetOptionError(OptionError):
 
-    def __init__(self, option, option_object):
+    def __init__(self, option, options_file):
         message = 'Option {} is not set.'.format(option)
-        super().__init__(option, option_object, message)
+        super().__init__(option, options_file, message)
 
 
 class ImmutableOptionError(OptionError):
 
-    def __init__(self, option, option_object):
+    def __init__(self, option, options_file):
         message = 'Option {} can not be changed.'.format(option)
-        super().__init__(option, option_object, message)
+        super().__init__(option, options_file, message)
 
 
 class IncalculableOptionError(OptionError):
 
-    def __init__(self, option, option_object):
+    def __init__(self, option, options_file):
         message = 'Option {} is incalculable.'.format(option)
-        super().__init__(option, option_object, message)
+        super().__init__(option, options_file, message)
 
 
 class UnknownListenerError(KeyError):
