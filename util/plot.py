@@ -508,7 +508,7 @@ def intervals(intervals, file, use_percent_ticks=False, caption=None, **kwargs):
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def violin(positions, dataset, file, **kwargs):
+def violin(file, positions, dataset, **kwargs):
     assert len(positions) == len(dataset)
 
     # init
