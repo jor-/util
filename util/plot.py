@@ -358,7 +358,7 @@ def line(x, y, file,
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def scatter(x, y, file, point_size=20, **kwargs):
+def scatter(file, x, y, point_size=20, **kwargs):
     # init
     _set_default_kwargs(kwargs)
     _set_global_font_size_with_kwargs(**kwargs)
