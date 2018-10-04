@@ -358,26 +358,29 @@ def line(x, y, file,
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def scatter(file, x, y, point_size=20, **kwargs):
+def scatter(file, x, y, z=None, point_size=20, plot_3d=False, **kwargs):
     # init
     _set_default_kwargs(kwargs)
     _set_global_font_size_with_kwargs(**kwargs)
 
     # check and prepare input
-    if x.ndim == 2 and x.shape[1] > 2:
-        raise ValueError('Scatter plots for x dim {} is not supported.'.format(x.shape[1]))
-    if x.ndim == 2 and x.shape[1] == 1:
-        x = x[:, 0]
+    assert x.ndim == 1
+    assert y.ndim == 1
+    assert z is None or z.ndim == 1
 
     # make figure
     fig = plt.figure()
 
     # plot
-    if x.ndim == 1:
+    if z is None:
         plt.scatter(x, y, s=point_size)
-    if x.ndim == 2:
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(x[:, 0], x[:, 1], y, s=point_size)
+    else:
+        if plot_3d:
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(x, y, z, s=point_size)
+        else:
+            plt.scatter(x, y, c=z, s=point_size)
+            plt.colorbar()
 
     # save and close
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
