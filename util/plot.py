@@ -358,6 +358,25 @@ def line(x, y, file,
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
+def scatter_dataset_means(file, data, use_abs=False, **kwargs):
+    if data.ndim != 2:
+        raise ValueError(f'The parameter data has to be a two dimensional array but its shape is {data.shape}.')
+    if data.shape[1] not in (2, 3):
+        raise ValueError(f'The second dimension of the parameter data has to be 2 or 3 but its shape is {data.shape}.')
+
+    x = data[:, :-1]
+    y = data[:, -1]
+    positions = np.unique(x, axis=0)
+    if use_abs:
+        abs_function = np.abs
+    else:
+        abs_function = lambda x: x
+    dataset = np.array(tuple(np.mean(abs_function(y[np.all(x == p, axis=1)])) for p in positions))
+
+    scatter(file, *positions.T, dataset, **kwargs)
+    return file
+
+
 def scatter(file, x, y, z=None, point_size=20, plot_3d=False, **kwargs):
     # init
     _set_default_kwargs(kwargs)
