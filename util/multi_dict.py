@@ -521,6 +521,18 @@ class MultiDict():
 
         return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
 
+    def quantiles(self, quantile, min_number_of_values=1, min_value=None, return_type='array'):
+        util.logging.debug('Calculate {} quantilies of values with at least {} values with minimal value {}.'.format(quantile, min_number_of_values, min_value))
+        if min_value is None:
+            min_value = - np.inf
+
+        def calculate_function(values):
+            value = np.quantile(values, quantile)
+            value = np.maximum(value, min_value)
+            return value
+
+        return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
+
     def variances(self, min_number_of_values=3, min_value=0, return_type='array'):
         util.logging.debug('Calculate variances of values with at least {} values with minimal value {}.'.format(min_number_of_values, min_value))
         if min_value is None:
