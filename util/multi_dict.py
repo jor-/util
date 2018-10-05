@@ -509,7 +509,7 @@ class MultiDict():
 
         return self.iterate_values(len, min_number_of_values, return_type=return_type)
 
-    def means(self, min_number_of_values=1, min_value=0, return_type='array'):
+    def means(self, min_number_of_values=1, min_value=None, return_type='array'):
         util.logging.debug('Calculate means of values with at least {} values with minimal value {}.'.format(min_number_of_values, min_value))
         if min_value is None:
             min_value = - np.inf
