@@ -510,19 +510,19 @@ class MultiDict():
         return self.iterate_values(len, min_number_of_values, return_type=return_type)
 
     def means(self, min_number_of_values=1, min_value=0, return_type='array'):
-        util.logging.debug('Calculate means of values with at least {} values with minimal mean {}.'.format(min_number_of_values, min_value))
+        util.logging.debug('Calculate means of values with at least {} values with minimal value {}.'.format(min_number_of_values, min_value))
         if min_value is None:
             min_value = - np.inf
 
         def calculate_function(values):
-            mean = np.average(values)
-            mean = max([mean, min_value])
-            return mean
+            value = np.average(values)
+            value = np.maximum(value, min_value)
+            return value
 
         return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
 
     def variances(self, min_number_of_values=3, min_value=0, return_type='array'):
-        util.logging.debug('Calculate variances of values with at least {} values with minimal variance {}.'.format(min_number_of_values, min_value))
+        util.logging.debug('Calculate variances of values with at least {} values with minimal value {}.'.format(min_number_of_values, min_value))
         if min_value is None:
             min_value = 0
 
@@ -530,13 +530,13 @@ class MultiDict():
             mean = np.average(values)
             number_of_values = values.size
             variance = np.sum((values - mean)**2) / (number_of_values - 1)
-            variance = max([variance, min_value])
+            variance = np.maximum(variance, min_value)
             return variance
 
         return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
 
     def standard_deviations(self, min_number_of_values=3, min_value=0, return_type='array'):
-        util.logging.debug('Calculate standard deviations of values with at least {} values with minimal deviation {}.'.format(min_number_of_values, min_value))
+        util.logging.debug('Calculate standard deviations of values with at least {} values with minimal value {}.'.format(min_number_of_values, min_value))
         if min_value is None:
             min_value = 0
 
@@ -544,7 +544,7 @@ class MultiDict():
             mean = np.average(values)
             number_of_values = values.size
             deviation = (np.sum((values - mean)**2) / (number_of_values - 1))**(0.5)
-            deviation = max([deviation, min_value])
+            deviation = np.maximum(deviation, min_value)
             return deviation
 
         return self.iterate_values(calculate_function, min_number_of_values, return_type=return_type)
