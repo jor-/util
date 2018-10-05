@@ -561,6 +561,50 @@ def violin(file, positions, dataset, **kwargs):
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
+def percentiles(file, positions, dataset, percentiles_offsets=(2.5, 25), **kwargs):
+    assert len(positions) == len(dataset)
+
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
+
+    # make figure
+    fig = plt.figure()
+    axes = plt.gca()
+
+    # sort and check percentiles_offsets
+    percentiles_offsets = sorted(percentiles_offsets)
+    assert len(percentiles_offsets) == 0 or (percentiles_offsets[0] >= 0 and percentiles_offsets[-1] < 50)
+
+    # calculate percentiles
+    n = len(percentiles_offsets)
+    x = len(dataset)
+    y = n * 2 + 1
+    percentiles = np.empty((x, y))
+    for i in range(x):
+        for j in range(n):
+            percentiles[i, j] = np.percentile(dataset[i], percentiles_offsets[j])
+            percentiles[i, y - 1 - j] = np.percentile(dataset[i], 100 - percentiles_offsets[j])
+        percentiles[i, n] = np.percentile(dataset[i], 50)
+
+    # color
+    cmap = plt.get_cmap('hot')
+
+    def get_color(percentil_value):
+        assert percentil_value >= 0 and percentil_value <= 50
+        color_strength = (50 - percentil_value) / 50 * 0.9
+        return cmap(color_strength)
+
+    # plot percentiles
+    for i in range(n):
+        axes.fill_between(positions, percentiles[:, i], percentiles[:, y - 1 - i], color=get_color(percentiles_offsets[i]))
+    # plot median
+    axes.plot(positions, percentiles[:, n], color='black')
+
+    # save and close
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
+
+
 # *** kwargs functions *** #
 
 def _set_default_kwargs(kwargs):
