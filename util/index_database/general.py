@@ -161,8 +161,8 @@ class Database:
     def remove_index(self, index):
         raise NotImplementedError()
 
-    def closest_indices(self, value):
-        util.logging.debug('{}: Calculating closest indices for value {}.'.format(self, value))
+    def closest_index(self, value):
+        util.logging.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
         value = np.asanyarray(value)
 
         # get all used indices
@@ -186,13 +186,7 @@ class Database:
 
         # return sorted indices
         sort = np.argsort(value_differences)
-        return all_indices[sort]
-
-    def closest_index(self, value):
-        util.logging.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
-
-        # get closest indices
-        closest_indices = self.closest_indices(value)
+        closest_indices = all_indices[sort]
 
         # return
         if len(closest_indices) > 0:

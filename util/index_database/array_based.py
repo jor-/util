@@ -96,9 +96,9 @@ class Database(util.index_database.general.Database):
 
             self.locked_file.save(db)
 
-    def closest_indices(self, value):
+    def closest_index(self, value):
         with self.locked_file.lock(exclusive=False):
-            return super().closest_indices(value)
+            return super().closest_index(value)
 
     def index(self, value):
         with self.locked_file.lock(exclusive=False):

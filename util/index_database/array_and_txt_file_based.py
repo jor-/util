@@ -72,9 +72,6 @@ class Database(util.index_database.general.Database):
         self.txt_file_db.remove_index(index, force=force)
         self.array_db.remove_index(index)
 
-    def closest_indices(self, value):
-        return self.array_db.closest_indices(value)
-
     def closest_index(self, value):
         return self.array_db.closest_index(value)
 
