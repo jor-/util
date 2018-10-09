@@ -92,8 +92,7 @@ class Database(util.index_database.general.Database):
         util.logging.debug('{}: Merging file db to array db.'.format(self))
         for index in self.txt_file_db.all_indices():
             txt_file_db_value = self.txt_file_db.get_value(index)
-            if not self.array_db.has_value(index) or not self.are_values_equal(self.array_db.get_value(index), txt_file_db_value):
-                self.array_db.set_value(index, txt_file_db_value, overwrite=False)
+            self.array_db.set_value(index, txt_file_db_value, overwrite=False)
 
     # *** check integrity *** #
 

@@ -64,7 +64,7 @@ class Database(util.index_database.general.Database):
                 if db_extension_len <= 0:
                     if overwrite or not self.has_value(index):
                         db[index] = value
-                    else:
+                    elif not np.all(self.get_value(index) == value):
                         util.logging.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
                         raise util.index_database.general.DatabaseOverwriteError(self, index)
                 # index not in array

@@ -137,7 +137,7 @@ class Database(util.index_database.general.Database):
             if overwrite or not value_file_exists:
                 self._save_file(value_file, value[i])
                 util.io.fs.make_read_only(value_file)
-            else:
+            elif not np.all(self.get_value(index) == value):
                 util.logging.debug('{}: Overwritting value at index {} is not allowed.'.format(self, index))
                 raise util.index_database.general.DatabaseOverwriteError(self, index)
 
