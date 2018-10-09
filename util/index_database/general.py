@@ -74,34 +74,6 @@ class Database:
     def absolute_tolerance(self):
         return self._tolerance_options['absolute']
 
-    # *** value comparison *** #
-
-    def value_difference(self, v1, v2):
-        # check input
-        if len(v1) != len(v2):
-            raise ValueError('Both values must have equal lengths, but length of {} is {} and length of {} is {}.'.format(v1, len(v1), v2, len(v2)))
-        if not len(self.relative_tolerance) in (1, len(v1)):
-            raise ValueError('The relative tolerances must be a scalar or of equal length as the values, but the relative tolerance is {} with length {} and the values have length {}.'.format(self.relative_tolerance, len(self.relative_tolerance), len(v1)))
-        if not len(self.relative_tolerance) in (1, len(v1)):
-            raise ValueError('The absolute tolerances must be a scalar or of equal length as the values, but the absolute tolerance is {} with length {} and the values have length {}.'.format(self.absolute_tolerance, len(self.absolute_tolerance), len(v1)))
-
-        # calculate value weights
-        relative_weights = np.minimum(np.abs(v1), np.abs(v2))
-
-        assert len(self.relative_tolerance) in (1, len(v1))
-        assert len(self.absolute_tolerance) in (1, len(v1))
-        total_weights = np.maximum(relative_weights * self.relative_tolerance, self.absolute_tolerance)
-        assert np.all(total_weights > 0)
-
-        # calculate max difference
-        value_differences = np.abs(v1 - v2) / total_weights
-        value_difference = value_differences.max()
-
-        return value_difference
-
-    def are_values_equal(self, v1, v2):
-        return self.value_difference(v1, v2) <= 1
-
     # *** access to values *** #
 
     @abc.abstractmethod
@@ -161,7 +133,31 @@ class Database:
     def remove_index(self, index):
         raise NotImplementedError()
 
-    def closest_index(self, value):
+    def _get_closest_index_and_matches(self, value):
+
+        def value_difference(self, v1, v2):
+            # check input
+            if len(v1) != len(v2):
+                raise ValueError('Both values must have equal lengths, but length of {} is {} and length of {} is {}.'.format(v1, len(v1), v2, len(v2)))
+            if not len(self.relative_tolerance) in (1, len(v1)):
+                raise ValueError('The relative tolerances must be a scalar or of equal length as the values, but the relative tolerance is {} with length {} and the values have length {}.'.format(self.relative_tolerance, len(self.relative_tolerance), len(v1)))
+            if not len(self.relative_tolerance) in (1, len(v1)):
+                raise ValueError('The absolute tolerances must be a scalar or of equal length as the values, but the absolute tolerance is {} with length {} and the values have length {}.'.format(self.absolute_tolerance, len(self.absolute_tolerance), len(v1)))
+
+            # calculate value weights
+            relative_weights = np.minimum(np.abs(v1), np.abs(v2))
+
+            assert len(self.relative_tolerance) in (1, len(v1))
+            assert len(self.absolute_tolerance) in (1, len(v1))
+            total_weights = np.maximum(relative_weights * self.relative_tolerance, self.absolute_tolerance)
+            assert np.all(total_weights > 0)
+
+            # calculate max difference
+            value_differences = np.abs(v1 - v2) / total_weights
+            value_difference = value_differences.max()
+
+            return value_difference
+
         util.logging.debug('{}: Searching for index of value as close as possible to {}.'.format(self, value))
         value = np.asanyarray(value)
 
@@ -182,26 +178,31 @@ class Database:
                 util.logging.warnig('{}: Could not read the value file for index {}: {}'.format(self, current_index, e.with_traceback(None)))
                 value_differences[i] = float('inf')
             else:
-                value_differences[i] = self.value_difference(value, current_value)
+                value_differences[i] = value_difference(self, value, current_value)
 
-        # return sorted indices
-        sort = np.argsort(value_differences)
-        closest_indices = all_indices[sort]
-
-        # return
-        if len(closest_indices) > 0:
-            util.logging.debug('{}: Closest index is {}.'.format(self, closest_indices[0]))
-            return closest_indices[0]
+        # get closest index
+        if n > 0:
+            i = np.argmin(value_differences)
+            closest_index = all_indices[i]
+            value_difference = value_differences[i]
+            matches = value_difference <= 1
+            util.logging.debug('{}: Closest index is {}.'.format(self, closest_index))
         else:
+            closest_index = None
+            matches = None
             util.logging.debug('{}: No closest index found.'.format(self))
-            return None
+
+        return closest_index, matches
+
+    def closest_index(self, value):
+        return self._get_closest_index_and_matches(value)[0]
 
     def index(self, value):
         # search for directories with matching parameters
         util.logging.debug('{}: Searching for index of value {}.'.format(self, value))
 
-        closest_index = self.closest_index(value)
-        if closest_index is not None and self.are_values_equal(value, self.get_value(closest_index)):
+        closest_index, matches = self._get_closest_index_and_matches(value)
+        if closest_index is not None and matches:
             util.logging.debug('{}: Index for value {} is {}.'.format(self, value, closest_index))
             return closest_index
         else:
