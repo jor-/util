@@ -64,9 +64,11 @@ setuptools.setup(
     setup_requires=[
         'setuptools>=0.8',
         'pip>=1.4',
+
     ],
     install_requires=[
         'numpy>=1.15',
+        'overrides',
     ],
     extras_require={
         'cache': ['cachetools'],
