@@ -35,18 +35,14 @@ class Database(collections.abc.MutableMapping):
         except KeyError:
             absolute = None
 
-        tolerance_dtype = np.float64
-        min_absolute_tolerance = np.finfo(tolerance_dtype).eps
         if absolute is None:
+            tolerance_dtype = np.float64
+            min_absolute_tolerance = np.finfo(tolerance_dtype).eps
             absolute = np.array([min_absolute_tolerance])
         else:
             absolute = np.asanyarray(absolute).reshape(-1)
             if np.any(absolute < 0):
-                raise ValueError('The absolute tolerance {absolute} has to be positive.')
-            elif np.any(absolute < min_absolute_tolerance):
-                util.logging.warn('The absolute tolerance {absolute} is not support. Using smallest supported absolute tolerance {min_absolute_tolerance}.')
-                absolute = np.asanyarray(absolute, dtype=tolerance_dtype)
-                absolute[absolute < min_absolute_tolerance] = min_absolute_tolerance
+                raise ValueError('The absolute tolerance {absolute} has to be non negative.')
 
         self.tolerance_options['absolute'] = absolute
 
@@ -114,10 +110,15 @@ class Database(collections.abc.MutableMapping):
         assert len(self.relative_tolerance) in (1, len(key))
         assert len(self.absolute_tolerance) in (1, len(key))
         total_weights = np.maximum(relative_weights * self.relative_tolerance, self.absolute_tolerance)
-        assert np.all(total_weights > 0)
+        assert np.all(total_weights >= 0)
 
         # calculate max difference
-        value_differences = np.abs(keys - key) / total_weights
+        value_differences = np.abs(keys - key)
+        equal_mask = value_differences == 0
+        zero_weights_mask = total_weights == 0
+        value_differences[np.logical_not(zero_weights_mask)] = value_differences[np.logical_not(zero_weights_mask)] / total_weights[np.logical_not(zero_weights_mask)]
+        value_differences[zero_weights_mask] = np.inf
+        value_differences[equal_mask] = 0
         value_differences = value_differences.max(axis=1)
 
         # get closest index
