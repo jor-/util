@@ -358,25 +358,6 @@ def line(x, y, file,
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def scatter_dataset_means(file, data, use_abs=False, **kwargs):
-    if data.ndim != 2:
-        raise ValueError(f'The parameter data has to be a two dimensional array but its shape is {data.shape}.')
-    if data.shape[1] not in (2, 3):
-        raise ValueError(f'The second dimension of the parameter data has to be 2 or 3 but its shape is {data.shape}.')
-
-    x = data[:, :-1]
-    y = data[:, -1]
-    positions = np.unique(x, axis=0)
-    if use_abs:
-        abs_function = np.abs
-    else:
-        abs_function = lambda x: x
-    dataset = np.array(tuple(np.mean(abs_function(y[np.all(x == p, axis=1)])) for p in positions))
-
-    scatter(file, *positions.T, dataset, **kwargs)
-    return file
-
-
 def scatter(file, x, y, z=None, point_size=20, plot_3d=False, **kwargs):
     # init
     _set_default_kwargs(kwargs)
@@ -403,6 +384,92 @@ def scatter(file, x, y, z=None, point_size=20, plot_3d=False, **kwargs):
 
     # save and close
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
+
+
+def _get_positions_and_dataset_means_from_data(data, use_abs=False):
+    if data.ndim != 2:
+        raise ValueError(f'The parameter data has to be a two dimensional array but its shape is {data.shape}.')
+    if data.shape[1] not in (2, 3):
+        raise ValueError(f'The second dimension of the parameter data has to be two or three but its shape is {data.shape}.')
+
+    x = data[:, :-1]
+    y = data[:, -1]
+    positions = np.unique(x, axis=0)
+    if use_abs:
+        abs_function = np.abs
+    else:
+        def abs_function(x):
+            return x
+    dataset = np.array(tuple(np.mean(abs_function(y[np.all(x == p, axis=1)])) for p in positions))
+
+    return positions, dataset
+
+
+def scatter_dataset_means(file, data, use_abs=False, **kwargs):
+    positions, dataset = _get_positions_and_dataset_means_from_data(data, use_abs=use_abs)
+    scatter(file, *positions.T, dataset, **kwargs)
+    return file
+
+
+def imshow_dataset_means(file, data, use_abs=False, colorbar=True, **kwargs):
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
+
+    # check input
+    if data.ndim != 2:
+        raise ValueError(f'The parameter data has to be a two dimensional array but its shape is {data.shape}.')
+    if data.shape[1] != 3:
+        raise ValueError(f'The second dimension of the parameter data has to be three but its shape is {data.shape}.')
+
+    # generate positions and dataset means
+    positions, dataset = _get_positions_and_dataset_means_from_data(data, use_abs=use_abs)
+
+    # make image array with nan where no data
+    positions_x, positions_x_indices = np.unique(positions[:, 0], return_inverse=True)
+    positions_y, positions_y_indices = np.unique(positions[:, 1], return_inverse=True)
+
+    n = len(positions_x)
+    m = len(positions_y)
+    im_array_dtype = np.promote_types(dataset.dtype, np.min_scalar_type(np.nan))
+    im_array = np.ones([n, m], dtype=im_array_dtype) * np.nan
+    for i, j, a in zip(positions_x_indices, positions_y_indices, dataset):
+        im_array[i, j] = a
+
+    # make figure
+    fig = plt.figure()
+
+    # plot image data
+    plt.imshow(im_array, origin='lower', aspect='equal', interpolation='nearest')
+
+    # get axes
+    axes = plt.gca()
+
+    def ticks_to_labels(ticks):
+        def tick_to_label(f):
+            f = np.round(f, decimals=-(int(np.floor(np.log10(f))) - 4))
+            return '{:g}'.format()
+        return [ticks_to_labels(value) for value in ticks]
+
+    # update x tick labels
+    ticks = axes.get_xticks()
+    mask = np.logical_and(ticks >= 0, ticks < n)
+    ticks[mask] = positions_x[ticks[mask].astype(np.min_scalar_type(n))]
+    axes.set_xticklabels(ticks_to_labels(ticks))
+
+    # update y tick labels
+    ticks = axes.get_yticks()
+    mask = np.logical_and(ticks >= 0, ticks < m)
+    ticks[mask] = positions_y[ticks[mask].astype(np.min_scalar_type(m))]
+    axes.set_yticklabels(ticks_to_labels(ticks))
+
+    # make colorbar
+    if colorbar:
+        plt.colorbar()
+
+    # save and close
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
+    return file
 
 
 def histogram(data, file,
