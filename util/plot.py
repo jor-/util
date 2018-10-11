@@ -557,6 +557,45 @@ def spy(A, file, markersize=1, axis_labels=True, caption=None, **kwargs):
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
+def sparse_matrices_patterns_with_differences(file, A, B, markersize=1,
+                                              colors=((1, 0, 0), (0, 0, 1), (0.5, 0, 0.5), (1, 0, 1)),
+                                              labels=('A only nonzero', 'B only nonzero', 'A and B nonzero and unequal', 'A and B nonzero and equal'),
+                                              **kwargs):
+    # init
+    _set_default_kwargs(kwargs)
+    _set_global_font_size_with_kwargs(**kwargs)
+
+    # calculate sparsity patterns
+    not_equal_pattern = A != B
+    nonzero_pattern_A = A != 0
+    nonzero_pattern_B = B != 0
+    del A
+    del B
+    nonzero_pattern_A_or_B = nonzero_pattern_A - nonzero_pattern_B
+    nonzero_pattern_A_only = nonzero_pattern_A.multiply(nonzero_pattern_A_or_B)
+    nonzero_pattern_B_only = nonzero_pattern_B.multiply(nonzero_pattern_A_or_B)
+    del nonzero_pattern_A_or_B
+    not_equal_nonzeros_pattern = (not_equal_pattern).multiply(nonzero_pattern_A).multiply(nonzero_pattern_B)
+    del nonzero_pattern_B
+    equal_pattern = nonzero_pattern_A - (nonzero_pattern_A).multiply(not_equal_pattern)
+    del not_equal_pattern, nonzero_pattern_A
+
+    # make figure
+    fig = plt.figure()
+
+    # plot sparsity_pattern
+    patterns = (nonzero_pattern_A_only, nonzero_pattern_B_only, not_equal_nonzeros_pattern, equal_pattern)
+    for pattern, color, label in zip(patterns, colors, labels):
+        if pattern.nnz > 0:
+            plt.spy(pattern, markersize=markersize, color=color, label=label)
+
+    plt.legend()
+    plt.axis('off')
+
+    # save and close
+    _save_and_close_fig_with_kwargs(fig, file, **kwargs)
+
+
 def intervals(intervals, file, use_percent_ticks=False, caption=None, **kwargs):
     # init
     _set_default_kwargs(kwargs)
