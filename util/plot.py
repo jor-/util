@@ -216,7 +216,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
             # set caption
             if caption is not None:
-                plt.xlabel(caption, fontsize=tick_font_size, fontweight='bold')
+                plt.xlabel(caption)
 
             # save and close
             _save_and_close_fig_with_kwargs(fig, current_file, **kwargs)
