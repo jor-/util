@@ -138,6 +138,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
             # make figure
             fig = plt.figure()
+            axes = fig.gca()
 
             # chose norm
             if use_log_scale:
@@ -211,7 +212,7 @@ def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     label_fmt = '%1.{:d}f'.format(np.abs(tick_base_exp))
                 else:
                     label_fmt = '%d'
-                plt.clabel(contour_plot, contour_plot.levels[1::2], fontsize=8, fmt=label_fmt, colors=str(contours_text_brightness))
+                axes.clabel(contour_plot, contour_plot.levels[1::2], fontsize=8, fmt=label_fmt, colors=str(contours_text_brightness))
 
             # set caption
             if caption is not None:
