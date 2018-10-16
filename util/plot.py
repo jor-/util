@@ -489,7 +489,8 @@ def histogram(data, file,
     # make bins
     if bins is None:
         if step_size is None:
-            raise ValueError('Either "bins" or "step_size" has to be defined.')
+            step_size = (np.percentile(data, 95) - np.percentile(data, 5)) / 10
+            step_size = np.round(step_size, decimals=int(-np.floor(np.log10(step_size))))
         if x_min is None:
             x_min = np.floor(np.min(data) / step_size) * step_size
         if x_max is None:
