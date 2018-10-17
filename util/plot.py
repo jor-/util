@@ -598,7 +598,7 @@ def sparse_matrices_patterns_with_differences(file, A, B, markersize=1,
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def intervals(intervals, file, use_percent_ticks=False, caption=None, **kwargs):
+def intervals(file, intervals, use_percent_ticks=False, caption=None, **kwargs):
     # init
     _set_default_kwargs(kwargs)
     _set_global_font_size_with_kwargs(**kwargs)
