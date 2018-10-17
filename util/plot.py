@@ -473,7 +473,7 @@ def imshow_dataset_means(file, data, use_abs=False, colorbar=True, **kwargs):
     return file
 
 
-def histogram(data, file,
+def histogram(file, data,
               bins=None, step_size=None, x_min=None, x_max=None, weights=None,
               use_log_scale=False, type='bar', tick_font_size=_DEFAULT_VALUES['font_size'], tick_power=None, tick_number=None,
               **kwargs):
