@@ -514,7 +514,7 @@ def histogram(file, data,
     _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def spy(A, file, markersize=1, axis_labels=True, caption=None, **kwargs):
+def spy(file, A, markersize=1, axis_labels=True, caption=None, **kwargs):
     import scipy.sparse
 
     # init
