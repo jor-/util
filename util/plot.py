@@ -26,7 +26,7 @@ _DEFAULT_VALUES = {'transparent': True,
 
 # *** plot types *** #
 
-def data(data, file, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
+def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
          use_log_scale=False, v_min=None, v_max=None, caption=None, power_limit=3,
          contours=False, contours_text_brightness=0.5, colorbar=True, colormap=None,
          **kwargs):
