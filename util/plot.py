@@ -224,7 +224,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     util.logging.debug('Plot completed.')
 
 
-def line(x, y, file,
+def line(file, x, y,
          x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, spine_line_width=1, use_log_scale=False,
          tick_font_size=_DEFAULT_VALUES['font_size'], legend_font_size=_DEFAULT_VALUES['font_size'], x_label=None, y_label=None, axis_label_font_size=_DEFAULT_VALUES['font_size'],
          **kwargs):
