@@ -532,6 +532,10 @@ def histogram(file, data,
         _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
+def _draw_sparse_matrices_pattern(A, markersize=1, **kwargs):
+    plt.spy(A, markersize=markersize, marker=',', markerfacecolor='k', markeredgecolor='k', markeredgewidth=0, precision='present', **kwargs)
+
+
 def spy(file, A, markersize=1, axis_labels=True, caption=None, overwrite=True, **kwargs):
     import scipy.sparse
 
@@ -549,7 +553,7 @@ def spy(file, A, markersize=1, axis_labels=True, caption=None, overwrite=True, *
         # plot sparsity_pattern
         if scipy.sparse.issparse(A):
             util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} to file {}.'.format(A, markersize, file))
-            plt.spy(A, markersize=markersize, marker=',', markeredgecolor='k', markerfacecolor='k', precision='present')
+            _draw_sparse_matrices_pattern(A, markersize=markersize)
 
         # plot matrix values
         else:
@@ -613,7 +617,7 @@ def sparse_matrices_patterns_with_differences(file, A, B, markersize=1,
         patterns = (nonzero_pattern_A_only, nonzero_pattern_B_only, not_equal_nonzeros_pattern, equal_pattern)
         for pattern, color, label in zip(patterns, colors, labels):
             if pattern.nnz > 0:
-                plt.spy(pattern, markersize=markersize, color=color, label=label)
+                _draw_sparse_matrices_pattern(pattern, markersize=markersize, color=color, label=label)
 
         plt.legend()
         plt.axis('off')
