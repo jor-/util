@@ -532,13 +532,7 @@ def histogram(file, data,
         _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def _draw_sparse_matrices_pattern(A, markersize=1, **kwargs):
-    plt.spy(A, markersize=markersize, marker=',', markerfacecolor='k', markeredgecolor='k', markeredgewidth=0, precision='present', **kwargs)
-
-
-def spy(file, A, markersize=1, axis_labels=True, caption=None, overwrite=True, **kwargs):
-    import scipy.sparse
-
+def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, overwrite=True, **kwargs):
     # check if file should be saved
     if _check_file(file, overwrite=overwrite):
 
@@ -550,20 +544,14 @@ def spy(file, A, markersize=1, axis_labels=True, caption=None, overwrite=True, *
         # make figure
         fig = plt.figure()
 
-        # plot sparsity_pattern
-        if scipy.sparse.issparse(A):
-            util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} to file {}.'.format(A, markersize, file))
-            _draw_sparse_matrices_pattern(A, markersize=markersize)
-
         # plot matrix values
-        else:
-            util.logging.debug('Plotting values for matrix {!r} to file {}.'.format(A, file))
-            v_abs_max = np.abs(A).max()
-            axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)
-            cb = fig.colorbar(axes_image)
-            cb.ax.tick_params(labelsize=font_size)
-            fig.gca().set_xticks([])
-            fig.gca().set_yticks([])
+        util.logging.debug('Plotting values for matrix {!r} to file {}.'.format(A, file))
+        v_abs_max = np.abs(A).max()
+        axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)
+        cb = fig.colorbar(axes_image)
+        cb.ax.tick_params(labelsize=font_size)
+        fig.gca().set_xticks([])
+        fig.gca().set_yticks([])
 
         # set power limits
         if axis_labels:
@@ -576,9 +564,38 @@ def spy(file, A, markersize=1, axis_labels=True, caption=None, overwrite=True, *
         else:
             plt.axis('off')
 
-        # set caption
-        if caption is not None:
-            plt.xlabel(caption, fontsize=font_size, fontweight='bold')
+        # save and close
+        _save_and_close_fig_with_kwargs(fig, file, **kwargs)
+
+
+def _draw_sparse_matrix_pattern(A, markersize=1, **kwargs):
+    plt.spy(A, markersize=markersize, marker=',', markerfacecolor='k', markeredgecolor='k', markeredgewidth=0, precision='present', **kwargs)
+
+
+def sparse_matrix_pattern(file, A, markersize=1, axis_labels=False, overwrite=True, **kwargs):
+    # check if file should be saved
+    if _check_file(file, overwrite=overwrite):
+
+        # init
+        _set_default_kwargs(kwargs)
+        _set_global_font_size_with_kwargs(**kwargs)
+
+        # make figure
+        fig = plt.figure()
+
+        # plot sparsity_pattern
+        util.logging.debug('Plotting sparsity pattern for matrix {!r} with markersize {} to file {}.'.format(A, markersize, file))
+        _draw_sparse_matrix_pattern(A, markersize=markersize)
+
+        # set power limits
+        if axis_labels:
+            formatter = plt.ScalarFormatter()
+            formatter.set_powerlimits((-3, 3))
+            fig.gca().xaxis.set_major_formatter(formatter)
+            fig.gca().yaxis.set_major_formatter(formatter)
+        # disable axis labels
+        else:
+            plt.axis('off')
 
         # save and close
         _save_and_close_fig_with_kwargs(fig, file, **kwargs)
@@ -617,7 +634,7 @@ def sparse_matrices_patterns_with_differences(file, A, B, markersize=1,
         patterns = (nonzero_pattern_A_only, nonzero_pattern_B_only, not_equal_nonzeros_pattern, equal_pattern)
         for pattern, color, label in zip(patterns, colors, labels):
             if pattern.nnz > 0:
-                _draw_sparse_matrices_pattern(pattern, markersize=markersize, color=color, label=label)
+                _draw_sparse_matrix_pattern(pattern, markersize=markersize, color=color, label=label)
 
         plt.legend()
         plt.axis('off')
