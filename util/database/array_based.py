@@ -34,6 +34,17 @@ class Database(util.database.general.Database):
         # set array file
         self.locked_file = util.io.filelock.np.LockedArray(array_file)
 
+    # *** lock, load and save *** #
+
+    def _lock_db(self, exclusive=True):
+        return self.locked_file.lock(exclusive=exclusive)
+
+    def _load_db(self):
+        return self.locked_file.load()
+
+    def _save_db(self, db_array):
+        self.locked_file.save(db_array)
+
     # *** lengths values *** #
 
     def key_length(self, n):
@@ -54,7 +65,7 @@ class Database(util.database.general.Database):
     def get_keys(self):
         util.logging.debug(f'{self}: Getting all keys.')
         try:
-            db_array = self.locked_file.load()
+            db_array = self._load_db()
         except FileNotFoundError:
             keys = ()
         else:
@@ -66,7 +77,7 @@ class Database(util.database.general.Database):
 
     @overrides.overrides
     def get_key_with_index(self, index):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super().get_key_with_index(index)
 
     @overrides.overrides
@@ -74,9 +85,9 @@ class Database(util.database.general.Database):
         util.logging.debug(f'{self}: Setting key at index {index} to {key} with overwrite {overwrite}.')
         key = np.asanyarray(key)
 
-        with self.locked_file.lock(exclusive=True):
+        with self._lock_db(exclusive=True):
             try:
-                db_array = self.locked_file.load()
+                db_array = self._load_db()
             except FileNotFoundError as e:
                 raise util.database.general.DatabaseIndexError(self, index) from e
             else:
@@ -85,35 +96,35 @@ class Database(util.database.general.Database):
                 elif overwrite:
                     key_length = self.key_length(db_array.shape[1])
                     db_array[index, :key_length] = key
-                    self.locked_file.save(db_array)
+                    self._save_db(db_array)
                 elif not np.all(self.get_key_with_index(index) == key):
                     raise util.database.general.DatabaseOverwriteIndexError(self, index)
 
     @overrides.overrides
     def contains_key(self, key, use_tolerances=True):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super().contains_key(key, use_tolerances=use_tolerances)
 
     # *** access to indices *** #
 
     @overrides.overrides
     def _get_closest_index_and_matches_with_key(self, key):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super()._get_closest_index_and_matches_with_key(key)
 
     @overrides.overrides
     def get_closest_index_with_key(self, key):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super().get_closest_index_with_key(key)
 
     @overrides.overrides
     def get_index_with_key(self, key, use_tolerances=True):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super().get_index_with_key(key, use_tolerances=use_tolerances)
 
     @overrides.overrides
     def contains_index(self, index):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super().contains_index(index)
 
     # *** get values *** #
@@ -122,7 +133,7 @@ class Database(util.database.general.Database):
     def get_values(self):
         util.logging.debug(f'{self}: Getting all values.')
         try:
-            db_array = self.locked_file.load()
+            db_array = self._load_db()
         except FileNotFoundError:
             values = ()
         else:
@@ -134,12 +145,12 @@ class Database(util.database.general.Database):
 
     @overrides.overrides
     def get_value_with_index(self, index):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super().get_value_with_index(index)
 
     @overrides.overrides
     def get_value_with_key(self, key, use_tolerances=True):
-        with self.locked_file.lock(exclusive=False):
+        with self._lock_db(exclusive=False):
             return super().get_value_with_key(key, use_tolerances=use_tolerances)
 
     # *** set values *** #
@@ -149,9 +160,9 @@ class Database(util.database.general.Database):
         util.logging.debug(f'{self}: Setting value at index {index} to {value} with overwrite {overwrite}.')
         value = np.asanyarray(value)
 
-        with self.locked_file.lock(exclusive=True):
+        with self._lock_db(exclusive=True):
             try:
-                db_array = self.locked_file.load()
+                db_array = self._load_db()
             except FileNotFoundError as e:
                 raise util.database.general.DatabaseIndexError(self, index) from e
             else:
@@ -160,18 +171,18 @@ class Database(util.database.general.Database):
                 elif overwrite:
                     key_length = self.key_length(db_array.shape[1])
                     db_array[index, key_length:] = value
-                    self.locked_file.save(db_array)
+                    self._save_db(db_array)
                 elif not np.all(self.get_value_with_index(index) == value):
                     raise util.database.general.DatabaseOverwriteIndexError(self, index)
 
     @overrides.overrides
     def set_value_with_key(self, key, value, use_tolerances=False, overwrite=False):
-        with self.locked_file.lock(exclusive=True):
+        with self._lock_db(exclusive=True):
             return super().set_value_with_key(key, value, use_tolerances=use_tolerances, overwrite=overwrite)
 
     @overrides.overrides
     def get_or_set_value(self, key, value, use_tolerances=True):
-        with self.locked_file.lock(exclusive=True):
+        with self._lock_db(exclusive=True):
             return super().get_or_set_value(key, value, use_tolerances=use_tolerances)
 
     @overrides.overrides
@@ -182,14 +193,14 @@ class Database(util.database.general.Database):
         value = np.asanyarray(value)
         item = np.concatenate([key.flat, value.flat])[np.newaxis]
 
-        with self.locked_file.lock(exclusive=True):
+        with self._lock_db(exclusive=True):
             try:
-                db_array = self.locked_file.load()
+                db_array = self._load_db()
             except FileNotFoundError:
                 db_array = item
             else:
                 db_array = np.concatenate([db_array, item])
-            self.locked_file.save(db_array)
+            self._save_db(db_array)
 
     # *** del values *** #
 
@@ -197,9 +208,9 @@ class Database(util.database.general.Database):
     def del_key_and_value_with_index(self, index):
         util.logging.debug(f'{self}: Deleting key and value at index {index}.')
 
-        with self.locked_file.lock(exclusive=True):
+        with self._lock_db(exclusive=True):
             try:
-                db_array = self.locked_file.load()
+                db_array = self._load_db()
             except FileNotFoundError as e:
                 raise util.database.general.DatabaseIndexError(self, index) from e
             else:
@@ -209,9 +220,9 @@ class Database(util.database.general.Database):
                     db_array = db_array[:index]
                 else:
                     db_array = np.concatenate([db_array[:index], db_array[index + 1:]])
-                self.locked_file.save(db_array)
+                self._save_db(db_array)
 
     @overrides.overrides
     def del_key_and_value_with_key(self, key, use_tolerances=True):
-        with self.locked_file.lock(exclusive=True):
+        with self._lock_db(exclusive=True):
             return super().del_value_with_key(key, use_tolerances=use_tolerances)
