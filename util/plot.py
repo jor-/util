@@ -5,12 +5,12 @@ import numpy as np
 import matplotlib
 matplotlib.use('cairo')
 import matplotlib.pyplot as plt
-import matplotlib.colorbar
 import matplotlib.colors
 import matplotlib.font_manager
 import matplotlib.text
 import matplotlib.ticker
-import mpl_toolkits.axes_grid1
+import mpl_toolkits.axes_grid1.axes_divider
+import mpl_toolkits.axes_grid1.colorbar
 
 import util.io.fs
 import util.logging
@@ -22,6 +22,21 @@ _DEFAULT_VALUES = {'transparent': True,
                    'overwrite': False,
                    'dpi': 800,
                    'font_size': 20}
+
+
+# *** util functions *** #
+
+def _add_colorbar(axes, axes_image, orientation='right', size='3%', pad='1.5%', colorbar=True, **kwargs):
+    # plot colorbar
+    if colorbar:
+        # make place for colorbar with same height as plot
+        axes_divider = mpl_toolkits.axes_grid1.axes_divider.make_axes_locatable(axes)
+        cax = axes_divider.append_axes(orientation, size=size, pad=pad)
+        # plot colorbar
+        cb = mpl_toolkits.axes_grid1.colorbar.colorbar(axes_image, cax=cax, **kwargs)
+        return cb
+    else:
+        return None
 
 
 # *** plot types *** #
@@ -139,10 +154,6 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 no_data_array[land_mask[t, :, :, z]] = (1 + 9 * land_brightness) / 10
                 no_data_array[land_mask[t, :, :, 0]] = land_brightness
 
-                # make figure
-                fig = plt.figure()
-                axes = fig.gca()
-
                 # chose norm
                 if use_log_scale:
                     norm = matplotlib.colors.LogNorm(vmin=v_min, vmax=v_max)
@@ -152,21 +163,28 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     else:
                         norm = None
 
+                # make figure
+                fig, axes = plt.subplots(1, 1)
+                if colorbar:
+                    plt.subplots_adjust(left=0, bottom=0, right=0.9, top=1, wspace=0, hspace=0)
+                else:
+                    plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+
                 # plot no data mask
                 colormap_no_data = plt.cm.gray
                 colormap_no_data.set_bad(color='w', alpha=0.0)
-                axes_image = plt.imshow(no_data_array.transpose(), origin='lower', aspect='equal', cmap=colormap_no_data, vmin=0, vmax=1)
+                axes_image = axes.imshow(no_data_array.transpose(), origin='lower', aspect='equal', cmap=colormap_no_data, vmin=0, vmax=1)
 
                 # plot data
                 current_data = data[t, :, :, z].transpose()
-                axes_image = plt.imshow(current_data, origin='lower', aspect='equal', cmap=colormap, vmin=v_min, vmax=v_max, norm=norm)
+                axes_image = axes.imshow(current_data, origin='lower', aspect='equal', cmap=colormap, vmin=v_min, vmax=v_max, norm=norm)
 
                 # disable axis labels
-                plt.axis('off')
+                axes.axis('off')
 
-                # chose tick locator
-                if colorbar or contours:
-                    # chose tick base
+                # choose tick locator
+                if use_log_scale and (colorbar or contours):
+                    # choose tick base
                     if colorbar:
                         v_max_tick = v_max
                     else:
@@ -187,24 +205,13 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     if v_max_tick / tick_base - v_min_tick / tick_base < 3:
                         tick_base = tick_base / 10
 
-                    # chose locator
-                    if use_log_scale:
-                        tick_locator = plt.LogLocator(base=tick_base, subs=tick_base / 10)
-                    else:
-                        tick_locator = plt.MultipleLocator(base=tick_base)
+                    # choose locator
+                    tick_locator = plt.LogLocator(base=tick_base, subs=tick_base / 10)
+                else:
+                    tick_locator = None
 
                 # plot colorbar
-                if colorbar:
-                    divider = mpl_toolkits.axes_grid1.make_axes_locatable(plt.gca())
-                    cax = divider.append_axes("right", size="3%", pad=0.1)
-
-                    cb = plt.colorbar(axes_image, cax=cax)
-                    cb.locator = tick_locator
-                    cb.update_ticks()
-
-                    if power_limit is not None and not use_log_scale:
-                        cb.formatter.set_powerlimits((-power_limit, power_limit))
-                        cb.update_ticks()
+                _add_colorbar(axes, axes_image, colorbar=colorbar, ticks=tick_locator)
 
                 # plot contours
                 if contours:
@@ -380,7 +387,7 @@ def scatter(file, x, y, z=None, point_size=20, plot_3d=False,
         assert z is None or z.ndim == 1
 
         # make figure
-        fig = plt.figure()
+        fig, axes = plt.subplots(1, 1)
 
         # plot
         if z is None:
@@ -390,8 +397,8 @@ def scatter(file, x, y, z=None, point_size=20, plot_3d=False,
                 ax = fig.add_subplot(111, projection='3d')
                 ax.scatter(x, y, z, s=point_size)
             else:
-                plt.scatter(x, y, c=z, s=point_size)
-                plt.colorbar()
+                axes_image = plt.scatter(x, y, c=z, s=point_size)
+                _add_colorbar(axes, axes_image)
 
         # save and close
         _save_and_close_fig_with_kwargs(fig, file, **kwargs)
@@ -453,14 +460,12 @@ def imshow_dataset_means(file, data, use_abs=False, colorbar=True, overwrite=Tru
             im_array[i, j] = a
 
         # make figure
-        fig = plt.figure()
+        fig, axes = plt.subplots(1, 1)
 
         # plot image data
-        plt.imshow(im_array, origin='lower', aspect='equal', interpolation='nearest')
+        axes_image = plt.imshow(im_array, origin='lower', aspect='equal', interpolation='nearest')
 
         # get axes
-        axes = plt.gca()
-
         def ticks_to_labels(ticks):
             def tick_to_label(f):
                 f = np.round(f, decimals=-(int(np.floor(np.log10(f))) - 4))
@@ -480,8 +485,7 @@ def imshow_dataset_means(file, data, use_abs=False, colorbar=True, overwrite=Tru
         axes.set_yticklabels(ticks_to_labels(ticks))
 
         # make colorbar
-        if colorbar:
-            plt.colorbar()
+        _add_colorbar(axes, axes_image, colorbar=colorbar)
 
         # save and close
         _save_and_close_fig_with_kwargs(fig, file, **kwargs)
@@ -532,7 +536,7 @@ def histogram(file, data,
         _save_and_close_fig_with_kwargs(fig, file, **kwargs)
 
 
-def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, overwrite=True, **kwargs):
+def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, colorbar=True, overwrite=True, **kwargs):
     # check if file should be saved
     if _check_file(file, overwrite=overwrite):
 
@@ -542,16 +546,18 @@ def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, overwrite=Tru
         font_size = kwargs['font_size']
 
         # make figure
-        fig = plt.figure()
+        fig, axes = plt.subplots(1, 1)
 
         # plot matrix values
         util.logging.debug('Plotting values for matrix {!r} to file {}.'.format(A, file))
         v_abs_max = np.abs(A).max()
         axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)
-        cb = fig.colorbar(axes_image)
+        # disable ticks
+        axes.set_xticks([])
+        axes.set_yticks([])
+        # make colorbar
+        cb = _add_colorbar(axes, axes_image, colorbar=colorbar)
         cb.ax.tick_params(labelsize=font_size)
-        fig.gca().set_xticks([])
-        fig.gca().set_yticks([])
 
         # set power limits
         if axis_labels:
@@ -559,7 +565,6 @@ def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, overwrite=Tru
             formatter.set_powerlimits((-3, 3))
             fig.gca().xaxis.set_major_formatter(formatter)
             fig.gca().yaxis.set_major_formatter(formatter)
-
         # disable axis labels
         else:
             plt.axis('off')
@@ -806,8 +811,7 @@ def save_and_close_fig(fig, file, transparent=_DEFAULT_VALUES['transparent'], ma
     if overwrite and file.exists():
         file.unlink()
     # plot
-    plt.tight_layout()
-    plt.savefig(file, bbox_inches='tight', pad_inches=0, transparent=transparent, dpi=dpi)
+    plt.savefig(file, transparent=transparent, dpi=dpi)
     plt.close(fig)
     # make read only
     if make_read_only:
