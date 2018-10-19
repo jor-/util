@@ -174,8 +174,11 @@ class Database(util.database.general.Database):
                     key_length = self.key_length(db_array.shape[1])
                     db_array[index, key_length:] = value
                     self._save_db(db_array)
-                elif not np.all(self.get_value_with_index(index) == value):
-                    raise util.database.general.DatabaseOverwriteIndexError(self, index)
+                else:
+                    tol = np.finfo(self.dtype).resolution * 10**2
+                    old_value = self.get_value_with_index(index)
+                    if not np.allclose(old_value, value, rtol=tol, atol=tol):
+                        raise util.database.general.DatabaseOverwriteIndexError(self, index)
 
     @overrides.overrides
     def set_value_with_key(self, key, value, use_tolerances=False, overwrite=False):
