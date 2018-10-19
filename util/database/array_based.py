@@ -17,6 +17,7 @@ class Database(util.database.general.Database):
         self._value_length = value_length
         if key_length is None and value_length is None:
             raise ValueError('key_length or value_length has to be specified but both are None.')
+        self.dtype = np.float64
 
     def __str__(self):
         return 'Array database {}'.format(self.locked_file.file)
@@ -43,6 +44,7 @@ class Database(util.database.general.Database):
         return self.locked_file.load()
 
     def _save_db(self, db_array):
+        db_array = db_array.astype(self.dtype, copy=False)
         self.locked_file.save(db_array)
 
     # *** lengths values *** #
