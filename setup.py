@@ -71,7 +71,7 @@ setuptools.setup(
         'overrides',
     ],
     extras_require={
-        'cache': ['cachetools'],
+        'cache': ['cachetools >=2, <3'],
         'hdf5': ['h5py'],
         'options': ['h5py'],
         'sorted_multi_dict': ['blist'],
