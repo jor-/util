@@ -62,12 +62,12 @@ setuptools.setup(
     # dependencies
     python_requires='>=3.6',
     setup_requires=[
-        'setuptools>=0.8',
-        'pip>=1.4',
+        'setuptools >=0.8',
+        'pip >=1.4',
 
     ],
     install_requires=[
-        'numpy>=1.15',
+        'numpy >=1.15',
         'overrides',
     ],
     extras_require={
@@ -81,8 +81,8 @@ setuptools.setup(
         'matlab': ['scipy'],
         'market': ['scipy'],
         'optimize': ['scipy'],
-        'interpolate': ['scipy>=0.17'],
-        'sparse': ['scipy>=0.19'],
+        'interpolate': ['scipy >=0.17'],
+        'sparse': ['scipy >=0.19'],
         'netcdf': ['scipy'],
         'plot': ['matplotlib', 'pycairo'],
         'scoop': ['scoop'],
