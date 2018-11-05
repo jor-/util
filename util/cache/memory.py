@@ -10,6 +10,7 @@ import util.cache.auxiliary
 
 _kwargs_mark = (object(),)
 
+
 def hash_key(*args, **kwargs):
     """Return a cache key for the specified hashable arguments."""
 
@@ -32,22 +33,23 @@ def typed_hash_key(*args, **kwargs):
 
 _dependency_mark = (object(),)
 
+
 def attribute_dependend_key(key_function, *dependencies):
     """Return a cache key for the specified hashable arguments with additional dependent arguments."""
 
     def dependend_key_function(self, *args, **kwargs):
         key = hash_key(*args, **kwargs)
-        
+
         if len(dependencies) > 0:
             dependecies_dict = {}
             for dependency in dependencies:
                 value = eval(dependency)
                 dependecies_dict[dependency] = value
-            
+
             key = key + cachetools.keys._HashedTuple(_dependency_mark + tuple(itertools.chain(sorted(dependecies_dict.items()))))
 
         return key
-    
+
     return dependend_key_function
 
 
@@ -65,7 +67,7 @@ def add_dependency_to_key(key=hash_key, dependency=None):
             dependency = (dependency,)
         key = attribute_dependend_key(key, *dependency)
     return key
-    
+
 
 # decorator
 
@@ -80,10 +82,10 @@ def method_decorator(maxsize=1, key=hash_key, lock=None, dependency=None, shared
         return decorator(maxsize=maxsize, key=key, lock=lock, dependency=dependency)
     else:
         key = add_dependency_to_key(key, dependency=dependency)
-        
+
         def decorate(method):
             method_name = method.__name__
-        
+
             def get_cache(self):
                 # cache dict
                 try:
@@ -99,10 +101,9 @@ def method_decorator(maxsize=1, key=hash_key, lock=None, dependency=None, shared
                     cache_dict[method_name] = cache
                 # return cache
                 return cache
-            
+
             wrapper = cachetools.cachedmethod(get_cache, key=key, lock=lock)(method)
             wrapper = util.cache.auxiliary.set_wrapper_attributes(wrapper, method)
             return wrapper
-        
-        return decorate
 
+        return decorate
