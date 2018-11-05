@@ -41,12 +41,12 @@ def attribute_dependend_key(key_function, *dependencies):
         key = hash_key(*args, **kwargs)
 
         if len(dependencies) > 0:
-            dependecies_dict = {}
+            dependencies_dict = {}
             for dependency in dependencies:
                 value = eval(dependency)
-                dependecies_dict[dependency] = value
+                dependencies_dict[dependency] = value
 
-            key = key + cachetools.keys._HashedTuple(_dependency_mark + tuple(itertools.chain(sorted(dependecies_dict.items()))))
+            key = key + cachetools.keys._HashedTuple(_dependency_mark + tuple(itertools.chain(sorted(dependencies_dict.items()))))
 
         return key
 
