@@ -151,7 +151,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 # make no_data with 1 where no data, 0.5 where water at surface, 0 where land and nan where data (1 is white, 0 is black)
                 no_data_array = no_data_array * np.nan
                 no_data_array[no_data_mask[t, :, :, z]] = 1
-                no_data_array[land_mask[t, :, :, z]] = (1 + 9 * land_brightness) / 10
+                no_data_array[land_mask[t, :, :, z]] = (1 - land_brightness) / 2
                 no_data_array[land_mask[t, :, :, 0]] = land_brightness
 
                 # chose norm
