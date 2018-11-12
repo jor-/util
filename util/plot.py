@@ -356,9 +356,9 @@ def line(file, x, y,
 
         # set axis limits
         if y_min is not None:
-            plt.ylim(ymin=y_min)
+            plt.ylim(bottom=y_min)
         if y_max is not None:
-            plt.ylim(ymax=y_max)
+            plt.ylim(top=y_max)
         plt.xlim(x_min, x_max)
 
         # legend
