@@ -206,7 +206,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                         tick_base = tick_base / 10
 
                     # choose locator
-                    tick_locator = plt.LogLocator(base=tick_base, subs=tick_base / 10)
+                    tick_locator = plt.LogLocator(base=tick_base, subs=(tick_base / 10,))
                 else:
                     tick_locator = None
 
