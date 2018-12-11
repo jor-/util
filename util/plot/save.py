@@ -69,15 +69,13 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     data[no_data_mask] = np.nan
 
     # get v_min and v_max
-    if v_min is None or v_max is None or contours:
+    if v_min is None or v_max is None:
         data_mask = np.logical_not(np.logical_or(no_data_mask, land_mask))
-        data_min = np.min(data[data_mask])
-        data_max = np.max(data[data_mask])
-
-    if v_min is None:
-        v_min = data_min
-    if v_max is None:
-        v_max = data_max
+        data_values_only = data[data_mask]
+        if v_min is None:
+            v_min = util.plot.auxiliary.v_min(data_values_only)
+        if v_max is None:
+            v_max = util.plot.auxiliary.v_max(data_values_only)
 
     if use_log_scale:
         if v_min <= 1:
