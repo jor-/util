@@ -47,6 +47,12 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     elif original_dim == 3:
         data = data.reshape((1,) + original_shape)
 
+    # shape of data
+    t_len = data.shape[0]
+    t_len_str = str(t_len)
+    z_len = data.shape[3]
+    z_len_str = str(z_len)
+
     # get masks
     (land_mask, no_data_mask) = get_masks(data, land_value=land_value, no_data_value=no_data_value)
     del land_value
@@ -86,11 +92,6 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
     # prepare no_data_array
     no_data_array = np.empty_like(data[0, :, :, 0])
-
-    t_len = data.shape[0]
-    t_len_str = str(t_len)
-    z_len = data.shape[3]
-    z_len_str = str(z_len)
 
     # set colormap
     if colormap is None:
