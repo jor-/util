@@ -37,7 +37,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
         return (land_mask, no_data_mask)
 
-    util.logging.debug('Plotting data.')
+    util.logging.debug(f'Plotting data with v_min {v_min}, v_max {v_max}, use_log_scale {use_log_scale}, colorbar {colorbar}, contours {contours}.')
 
     # reshape data
     original_shape = data.shape
@@ -67,21 +67,6 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     # set land and no data with specific values
     data[land_mask] = np.nan
     data[no_data_mask] = np.nan
-
-    # get v_min and v_max
-    if v_min is None or v_max is None:
-        data_mask = np.logical_not(np.logical_or(no_data_mask, land_mask))
-        data_values_only = data[data_mask]
-        if v_min is None:
-            v_min = util.plot.auxiliary.v_min(data_values_only)
-        if v_max is None:
-            v_max = util.plot.auxiliary.v_max(data_values_only)
-
-    if use_log_scale:
-        if v_min <= 1:
-            v_min = 1
-
-    util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
     # prepare filename
     file = pathlib.PurePath(file)
@@ -127,21 +112,18 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
             # check if file should be saved
             def plot_function(fig):
+                util.logging.debug(f'Plotting file {current_file}.')
+
+                data_i = data[t, :, :, z]
+
                 # make no_data with 1 where no data, 0.5 where water at surface, 0 where land and nan where data (1 is white, 0 is black)
                 nonlocal no_data_array
+                no_data_mask_i = no_data_mask[t, :, :, z]
+                land_mask_i = land_mask[t, :, :, z]
                 no_data_array = no_data_array * np.nan
-                no_data_array[no_data_mask[t, :, :, z]] = 1
-                no_data_array[land_mask[t, :, :, z]] = (1 - land_brightness) / 2
+                no_data_array[no_data_mask_i] = 1
+                no_data_array[land_mask_i] = (1 - land_brightness) / 2
                 no_data_array[land_mask[t, :, :, 0]] = land_brightness
-
-                # chose norm
-                if use_log_scale:
-                    norm = matplotlib.colors.LogNorm(vmin=v_min, vmax=v_max)
-                else:
-                    if issubclass(data.dtype.type, np.integer):
-                        norm = matplotlib.colors.BoundaryNorm(np.arange(v_min, v_max + 1), colormap.N)
-                    else:
-                        norm = None
 
                 # make figure
                 axes = plt.gca()
@@ -151,49 +133,74 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 colormap_no_data.set_bad(color='w', alpha=0.0)
                 axes_image = plt.imshow(no_data_array.transpose(), origin='lower', aspect='equal', cmap=colormap_no_data, vmin=0, vmax=1)
 
+                # choose v_min and v_max
+                if v_min is None or v_max is None:
+                    data_mask_i = np.logical_not(np.logical_or(no_data_mask_i, land_mask_i))
+                    data_values_only_i = data_i[data_mask_i]
+                if v_min is None:
+                    v_min_i = util.plot.auxiliary.v_min(data_values_only_i)
+                else:
+                    v_min_i = v_min
+                if v_max is None:
+                    v_max_i = util.plot.auxiliary.v_max(data_values_only_i)
+                else:
+                    v_max_i = v_max
+                if use_log_scale:
+                    if v_min_i <= 1:
+                        v_min_i = 1
+
+                util.logging.debug(f'Using v_min {v_min_i} and v_max {v_max_i}.')
+
+                # choose norm
+                if use_log_scale:
+                    norm = matplotlib.colors.LogNorm(vmin=v_min_i, vmax=v_max_i)
+                else:
+                    if issubclass(data.dtype.type, np.integer):
+                        norm = matplotlib.colors.BoundaryNorm(np.arange(v_min_i, v_max_i + 1), colormap.N)
+                    else:
+                        norm = None
+
                 # plot data
-                current_data = data[t, :, :, z].transpose()
-                axes_image = plt.imshow(current_data, origin='lower', aspect='equal', cmap=colormap, vmin=v_min, vmax=v_max, norm=norm)
+                axes_image = plt.imshow(data_i.transpose(), origin='lower', aspect='equal', cmap=colormap, vmin=v_min_i, vmax=v_max_i, norm=norm)
 
                 # disable axis labels
                 axes.axis('off')
-
-                # choose tick locator
-                if use_log_scale and contours:
-                    # choose tick base
-                    if colorbar:
-                        v_max_tick = v_max
-                    else:
-                        current_data_max = np.nanmax(current_data)
-                        v_max_tick = min([v_max, current_data_max])
-                        if current_data_max == 0:
-                            v_max_tick = 1
-                    v_min_tick = v_min
-                    tick_base_exp = int(np.ceil(np.log10(v_max_tick))) - 1
-                    tick_base = 10 ** tick_base_exp
-
-                    # decrease tick if too few data above tick
-                    if (current_data[np.logical_not(np.isnan(current_data))] > tick_base).sum() < (np.logical_not(np.isnan(current_data))).sum() / 100:
-                        tick_base = tick_base / 10
-
-                    # decrease tick if too few ticks
-                    if v_max_tick / tick_base - v_min_tick / tick_base < 3:
-                        tick_base = tick_base / 10
-
-                    # choose locator
-                    tick_locator = plt.LogLocator(base=tick_base, subs=(tick_base / 10,))
-                else:
-                    tick_locator = None
 
                 # plot add_colorbar
                 util.plot.auxiliary.add_colorbar(axes_image, colorbar=colorbar)
 
                 # plot contours
                 if contours:
-                    current_data_min = np.nanmin(current_data)
-                    current_data_max = np.nanmax(current_data)
-                    if current_data_min < current_data_max:
-                        contour_plot = plt.contour(current_data, locator=tick_locator, colors='k', linestyles=['dashed', 'solid'], linewidths=0.5, norm=norm)
+                    if use_log_scale:
+                        # choose tick base
+                        if colorbar:
+                            v_max_tick = v_max_i
+                        else:
+                            data_max_i = np.nanmax(data_i)
+                            v_max_tick = min([v_max_i, data_max_i])
+                            if data_max_i == 0:
+                                v_max_tick = 1
+                        v_min_tick = v_min_i
+                        tick_base_exp = int(np.ceil(np.log10(v_max_tick))) - 1
+                        tick_base = 10 ** tick_base_exp
+
+                        # decrease tick if too few data above tick
+                        if (data_i[np.logical_not(np.isnan(data_i))] > tick_base).sum() < (np.logical_not(np.isnan(data_i))).sum() / 100:
+                            tick_base = tick_base / 10
+
+                        # decrease tick if too few ticks
+                        if v_max_tick / tick_base - v_min_tick / tick_base < 3:
+                            tick_base = tick_base / 10
+
+                        # choose locator
+                        tick_locator = plt.LogLocator(base=tick_base, subs=(tick_base / 10,))
+                    else:
+                        tick_locator = None
+
+                    data_min_i = np.nanmin(data_i)
+                    data_max_i = np.nanmax(data_i)
+                    if data_min_i < data_max_i:
+                        contour_plot = plt.contour(data_i, locator=tick_locator, colors='k', linestyles=['dashed', 'solid'], linewidths=0.5, norm=norm)
                         if np.abs(tick_base_exp) >= contour_power_limit:
                             label_fmt = '%.0e'
                         elif tick_base_exp < 0:
