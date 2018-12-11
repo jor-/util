@@ -85,10 +85,19 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
     util.logging.debug('Using {} as v_min and {} as v_max.'.format(v_min, v_max))
 
-    # splite filename
+    # prepare filename
     file = pathlib.PurePath(file)
     file_extension = file.suffix
     file_root = str(file.with_suffix(''))
+    file_add_depth_info = '{depth}' in file_root
+    if z_len > 1 and not file_add_depth_info:
+        file_root += '_layer_{depth}'
+        file_add_depth_info = True
+    file_add_time_info = '{time}' in file_root
+    if t_len > 1 and not file_add_time_info:
+        file_root += '_time_{time}'
+        file_add_time_info = True
+    file = file_root + file_extension
 
     # prepare no_data_array
     no_data_array = np.empty_like(data[0, :, :, 0])
@@ -98,22 +107,25 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         colormap = plt.cm.jet
     colormap.set_bad(color='w', alpha=0.0)
 
-    # plot each layer
+    # plot each depth
     for z in range(z_len):
-        current_file_with_z = file_root
-
         # append depth to filename
-        if z_len > 1:
-            current_file_with_z += '_layer_' + z_len_str + '_' + str(z + 1).zfill(len(z_len_str))
+        if file_add_depth_info:
+            depth_str = z_len_str + '_' + str(z + 1).zfill(len(z_len_str))
+            if file_add_time_info:
+                current_file_with_z = file.format(depth=depth_str, time='{time}')
+            else:
+                current_file_with_z = file.format(depth=depth_str)
+        else:
+            current_file_with_z = file
 
         for t in range(t_len):
-            current_file = current_file_with_z
-
             # append time to filename
-            if t_len > 1:
-                current_file += '_time_' + t_len_str + '_' + str(t + 1).zfill(len(t_len_str))
-
-            current_file += file_extension
+            if file_add_time_info:
+                time_str = t_len_str + '_' + str(t + 1).zfill(len(t_len_str))
+                current_file = current_file_with_z.format(time=time_str)
+            else:
+                current_file = current_file_with_z
 
             # check if file should be saved
             def plot_function(fig):
