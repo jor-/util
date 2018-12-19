@@ -655,6 +655,9 @@ BATCH_SYSTEM = BatchSystem({}, ())
 
 class Job():
 
+    ERROR_KEYWORDS = ('error', 'warning', 'fatal', 'permission denied')
+    IGNORE_ERROR_KEYWORDS = ()
+
     def __init__(self, output_dir=None, batch_system=None, force_load=False, max_job_name_len=80, exceeded_walltime_error_message=None, remove_output_dir_on_close=False):
         # remove_output_dir_on_close
         self.remove_output_dir_on_close = remove_output_dir_on_close
@@ -1050,6 +1053,27 @@ class Job():
 
     # check integrity
 
+    def check_output_file(self, error_keywords=None, ignore_error_keywords=None):
+        # prepare keyword lists
+        if error_keywords is None:
+            error_keywords = self.ERROR_KEYWORDS
+        error_keywords = tuple(error_keyword.lower() for error_keyword in error_keywords)
+        if ignore_error_keywords is None:
+            ignore_error_keywords = self.IGNORE_ERROR_KEYWORDS
+        ignore_error_keywords = tuple(ignore_error_keyword.lower() for ignore_error_keyword in ignore_error_keywords)
+
+        # check each line in output
+        for line in self.output.splitlines():
+            line = line.lower()
+            for error_keyword in error_keywords:
+                if error_keyword in line:
+                    ignore = False
+                    for ignore_error_keyword in ignore_error_keywords:
+                        if ignore_error_keyword in line:
+                            ignore = True
+                    if not ignore:
+                        raise util.batch.universal.system.JobError(self, f'There was a line in the job output machting keyword {error_keyword}: {line}', include_output=True)
+
     def check_integrity(self, force_to_be_started=False, force_to_be_readonly=False):
         # check if options entires exist
         self.option_file
@@ -1098,11 +1122,7 @@ class Job():
 
         # check errors in output file
         if is_started and os.path.exists(self.output_file) or is_finished:
-            output = self.output
-            for line in output.splitlines():
-                line_lower = line.lower()
-                if ('error' in line_lower and 'error_path' not in line_lower) or 'warning' in line_lower or 'fatal' in line_lower or 'permission denied' in line_lower:
-                    raise JobError(self, 'There are errors in the job output file: {}!'.format(line))
+            self.check_output_file()
 
         # check read only
         if force_to_be_readonly and not self.options.is_read_only():
