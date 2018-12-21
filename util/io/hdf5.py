@@ -1,8 +1,10 @@
 import h5py
 
+
 def load(file, name):
     with h5py.File(file, mode='r') as file:
-        return file[name].value
+        return file[name][()]
+
 
 def save(file, name, value):
     with h5py.File(file, mode='r+') as file:
@@ -15,6 +17,6 @@ def load_all_datasets(file, groupname):
     with h5py.File(file, mode='r') as file:
         group = file[groupname]
         for dataset in group.keys():
-            results.append(group[dataset].value)
+            results.append(group[dataset][()])
 
     return results

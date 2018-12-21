@@ -99,7 +99,7 @@ class OptionsFile():
             item = self.__hdf5_file[name]
         except KeyError as e:
             raise KeyError('The key {} is not in the option file {}.'.format(name, self.filename)) from e
-        value = item.value
+        value = item[()]
         # handle None value
         if value is self.none_value:
             value = None
@@ -228,7 +228,7 @@ class OptionsFile():
         def print_option(name, object):
             # check if dataset
             try:
-                value = object.value
+                value = object[()]
             except AttributeError:
                 value = None
 
@@ -246,7 +246,7 @@ class OptionsFile():
         def append_if_string_option(name, object):
             # check if dataset
             try:
-                value = object.value
+                value = object[()]
             except AttributeError:
                 pass
             # check type
@@ -263,7 +263,7 @@ class OptionsFile():
         def replace_string_in_option(option, object):
             # check if dataset
             try:
-                value = object.value
+                value = object[()]
             except AttributeError:
                 pass
             # check type
@@ -305,6 +305,7 @@ class ClosedOptionsFileError(OptionsFileError):
     def __init__(self, option_object):
         message = 'Options file is closed.'
         super().__init__(option_object, message)
+
 
 class OptionError(OptionsFileError):
 
