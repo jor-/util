@@ -22,7 +22,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     # prepare data
     data = np.asanyarray(data)
 
-    def get_masks(data, land_value=np.nan, no_data_value=0):
+    def get_masks(data, land_value, no_data_value):
         def get_value_mask(array, value):
             if value is None:
                 mask = np.zeros_like(array).astype('bool')
@@ -37,7 +37,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
         return (land_mask, no_data_mask)
 
-    util.logging.debug(f'Plotting data with v_min {v_min}, v_max {v_max}, use_log_scale {use_log_scale}, colorbar {colorbar}, contours {contours}.')
+    util.logging.debug(f'Plotting data with v_min {v_min}, v_max {v_max}, use_log_scale {use_log_scale}, colorbar {colorbar}, contours {contours}, land_value {land_value}, no_data_value {no_data_value}.')
 
     # reshape data
     original_shape = data.shape
@@ -55,14 +55,17 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
     # get masks
     (land_mask, no_data_mask) = get_masks(data, land_value=land_value, no_data_value=no_data_value)
-    del land_value
-    del no_data_value
 
     # convert data to float if int
     if data.dtype == np.float128 or np.issubdtype(data.dtype, np.integer):
         data = data.astype(np.float64, copy=True)
     else:
         data = data.copy()
+
+    # asserts
+    assert (np.isnan(land_value) and np.all(np.isnan(data[land_mask]))) or np.all(data[land_mask] == land_value)
+    assert (np.isnan(no_data_value) and np.all(np.isnan(data[no_data_mask]))) or np.all(data[no_data_mask] == no_data_value)
+    del land_value, no_data_value
 
     # set land and no data with specific values
     data[land_mask] = np.nan
@@ -146,10 +149,13 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 else:
                     v_max_i = v_max
                 if use_log_scale:
-                    if v_min_i <= 1:
+                    if v_min_i < 1:
                         v_min_i = 1
 
                 util.logging.debug(f'Using v_min {v_min_i} and v_max {v_max_i}.')
+                assert np.isfinite(v_min_i)
+                assert np.isfinite(v_max_i)
+                assert v_min_i <= v_max_i
 
                 # choose norm
                 if use_log_scale:
