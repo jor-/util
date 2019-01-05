@@ -87,6 +87,10 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
 
             # if cache file not defined, calculate value without cache
             else:
+                if load_function is None:
+                    util.logging.debug('Cache is not used because load function is None.')
+                elif cache_file is None:
+                    util.logging.debug('Cache is not used because cache file is None.')
                 value = function(*args, **kargs)
 
             return value
