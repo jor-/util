@@ -184,13 +184,13 @@ def add_colorbar(axes_image, orientation='right', size='3%', pad='1.5%', colorba
 
 def _v_min_max(data, percentile, significant_digits=2):
     data = data[~np.isnan(data)]
-    assert np.all(np.isfinite(data))
-    v_max = np.percentile(data, percentile)
+    v = np.percentile(data, percentile)
+    assert np.isfinite(v)
     if significant_digits is not None:
-        exp = np.log10(v_max)
+        exp = np.log10(v)
         exp = - np.sign(exp) * np.round(np.abs(exp)) + significant_digits
-        v_max = np.round(v_max * 10**exp) * 10**-exp
-    return v_max
+        v = np.round(v * 10**exp) * 10**-exp
+    return v
 
 
 def v_min(data, percentile=1, significant_digits=2):
