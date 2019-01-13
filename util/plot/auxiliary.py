@@ -186,10 +186,11 @@ def _v_min_max(data, percentile, significant_digits=2):
     data = data[~np.isnan(data)]
     v = np.percentile(data, percentile)
     assert np.isfinite(v)
-    if significant_digits is not None:
-        exp = np.log10(v)
+    if significant_digits is not None and v != 0:
+        exp = np.log10(np.abs(v))
         exp = - np.sign(exp) * np.round(np.abs(exp)) + significant_digits
         v = np.round(v * 10**exp) * 10**-exp
+    assert np.isfinite(v)
     return v
 
 
