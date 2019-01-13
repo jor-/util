@@ -97,7 +97,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     for z in range(z_len):
         # append depth to filename
         if file_add_depth_info:
-            depth_str = str(z + 1).zfill(len(z_len_str)) + '_of_' + z_len_str
+            depth_str = z_len_str + '_' + str(z + 1).zfill(len(z_len_str))
             if file_add_time_info:
                 current_file_with_z = file.format(depth=depth_str, time='{time}')
             else:
@@ -108,7 +108,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         for t in range(t_len):
             # append time to filename
             if file_add_time_info:
-                time_str = str(t + 1).zfill(len(t_len_str)) + '_of_' + t_len_str
+                time_str = t_len_str + '_' + str(t + 1).zfill(len(t_len_str))
                 current_file = current_file_with_z.format(time=time_str)
             else:
                 current_file = current_file_with_z
