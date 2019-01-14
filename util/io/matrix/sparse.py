@@ -1,10 +1,8 @@
-import numpy as np
-
 import util.io.fs
 
 
 FILE_EXT = '.{matrix_format}.npz'
-SPARSE_FORMATS= ('csc', 'csr', 'bsr')
+SPARSE_FORMATS = ('csc', 'csr', 'bsr')
 
 
 def is_spmatrix(obj):
@@ -15,8 +13,10 @@ def is_spmatrix(obj):
     else:
         return scipy.sparse.isspmatrix(obj)
 
+
 def is_file(file):
-    return np.any([util.io.fs.has_file_ext(file, FILE_EXT.format(matrix_format=matrix_format)) for matrix_format in SPARSE_FORMATS])
+    return any([util.io.fs.has_file_ext(file, FILE_EXT.format(matrix_format=matrix_format)) for matrix_format in SPARSE_FORMATS])
+
 
 def add_file_ext(file, sparse_format):
     file_ext = FILE_EXT.format(matrix_format=sparse_format)
@@ -28,7 +28,7 @@ def save(file, matrix):
     file = add_file_ext(file, sparse_format=matrix.format)
     scipy.sparse.save_npz(file, matrix)
 
+
 def load(file):
     import scipy.sparse
     return scipy.sparse.load_npz(file)
-
