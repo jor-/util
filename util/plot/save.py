@@ -86,7 +86,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     file = file_root + file_extension
 
     # prepare no_data_array
-    no_data_array = np.empty_like(data[0, :, :, 0])
+    no_data_array = np.full_like(data[0, :, :, 0], np.nan)
 
     # set colormap
     if colormap is None:
@@ -123,7 +123,6 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 nonlocal no_data_array
                 no_data_mask_i = no_data_mask[t, :, :, z]
                 land_mask_i = land_mask[t, :, :, z]
-                no_data_array = no_data_array * np.nan
                 no_data_array[no_data_mask_i] = 1
                 no_data_array[land_mask_i] = (1 - land_brightness) / 2
                 no_data_array[land_mask[t, :, :, 0]] = land_brightness
