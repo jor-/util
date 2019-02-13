@@ -16,10 +16,13 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             tick_power_limit_fix=None, tick_power_limit_fix_x=None, tick_power_limit_fix_y=None,
             tick_number=None, tick_number_x=None, tick_number_y=None,
             x_min=None, x_max=None, y_min=None, y_max=None,
-            overwrite=True, make_read_only=True, dpi=800):
+            overwrite=True, make_read_only=True, dpi=800, backend=None):
 
     # check if file should be saved
     if check_file(file, overwrite=overwrite):
+        # use backend
+        if backend is not None:
+            plt.switch_backend(backend)
 
         # font size
         set_global_font_size(font_size=font_size)
