@@ -391,7 +391,7 @@ def histogram(file, data,
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
-def _get_positions_and_dataset_means_from_data(data, use_abs=False):
+def _get_positions_and_dataset_value_from_data(data, value_function, use_abs=False):
     if data.ndim != 2:
         raise ValueError(f'The parameter data has to be a two dimensional array but its shape is {data.shape}.')
     if data.shape[1] not in (2, 3):
@@ -405,24 +405,24 @@ def _get_positions_and_dataset_means_from_data(data, use_abs=False):
     else:
         def abs_function(x):
             return x
-    dataset = np.array(tuple(np.mean(abs_function(y[np.all(x == p, axis=1)])) for p in positions))
+    dataset = np.array(tuple(value_function(abs_function(y[np.all(x == p, axis=1)])) for p in positions))
 
     return positions, dataset
 
 
-def scatter_dataset_means(file, data, use_abs=False, **kwargs):
+def scatter_dataset_values(file, data, value_function, use_abs=False, **kwargs):
     def plot_function(fig):
-        util.logging.debug(f'Plotting scatter dataset means to file {file}.')
+        util.logging.debug(f'Plotting scatter dataset values to file {file}.')
 
-        positions, dataset = _get_positions_and_dataset_means_from_data(data, use_abs=use_abs)
+        positions, dataset = _get_positions_and_dataset_value_from_data(data, value_function, use_abs=use_abs)
         scatter(file, *positions.T, dataset, **kwargs)
 
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
-def imshow_dataset_means(file, data, use_abs=False, colorbar=True, **kwargs):
+def imshow_dataset_values(file, data, value_function, use_abs=False, colorbar=True, **kwargs):
     def plot_function(fig):
-        util.logging.debug(f'Plotting dataset means to file {file}.')
+        util.logging.debug(f'Plotting dataset values to file {file}.')
 
         # check input
         if data.ndim != 2:
@@ -431,7 +431,7 @@ def imshow_dataset_means(file, data, use_abs=False, colorbar=True, **kwargs):
             raise ValueError(f'The second dimension of the parameter data has to be three but its shape is {data.shape}.')
 
         # generate positions and dataset means
-        positions, dataset = _get_positions_and_dataset_means_from_data(data, use_abs=use_abs)
+        positions, dataset = _get_positions_and_dataset_value_from_data(data, value_function, use_abs=use_abs)
 
         # make image array with nan where no data
         positions_x, positions_x_indices = np.unique(positions[:, 0], return_inverse=True)
