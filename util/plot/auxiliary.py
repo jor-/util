@@ -15,6 +15,7 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             tick_power_limit_scientific=None, tick_power_limit_scientific_x=None, tick_power_limit_scientific_y=None,
             tick_power_limit_fix=None, tick_power_limit_fix_x=None, tick_power_limit_fix_y=None,
             tick_number=None, tick_number_x=None, tick_number_y=None,
+            x_min=None, x_max=None, y_min=None, y_max=None,
             overwrite=True, make_read_only=True, dpi=800):
 
     # check if file should be saved
@@ -51,6 +52,9 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             legend = plt.legend(loc='best')
             if legend is not None:
                 legend.get_frame().set_alpha(float(not transparent))
+
+        # set axis limits
+        set_axis_limits(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
 
         # save and close
         save_and_close_fig(fig, file, transparent=transparent, make_read_only=make_read_only, overwrite=overwrite, dpi=dpi)
@@ -159,6 +163,17 @@ def set_number_of_ticks(number, axis='both', axes=None):
         # apply tick number
         for axes_i in axes:
             axes_i.locator_params(tight=True, axis=axis, nbins=number)
+
+
+def set_axis_limits(x_min=None, x_max=None, y_min=None, y_max=None):
+    if x_min is not None:
+        plt.xlim(left=x_min)
+    if x_max is not None:
+        plt.xlim(right=x_max)
+    if y_min is not None:
+        plt.ylim(bottom=y_min)
+    if y_max is not None:
+        plt.ylim(top=y_max)
 
 
 def get_colors(n, colormap_name='gist_rainbow'):
