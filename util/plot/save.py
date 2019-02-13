@@ -416,7 +416,7 @@ def scatter_dataset_values(file, data, value_function, use_abs=False, **kwargs):
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
-def imshow_dataset_values(file, data, value_function, use_abs=False, colorbar=True, **kwargs):
+def imshow_dataset_values(file, data, value_function, use_abs=False, colorbar=True, v_min=None, v_max=None, **kwargs):
     def plot_function(fig):
         util.logging.debug(f'Plotting dataset values to file {file}.')
 
@@ -441,7 +441,7 @@ def imshow_dataset_values(file, data, value_function, use_abs=False, colorbar=Tr
             im_array[i, j] = a
 
         # plot image data
-        axes_image = plt.imshow(im_array, origin='lower', aspect='equal', interpolation='nearest')
+        axes_image = plt.imshow(im_array, origin='lower', aspect='equal', interpolation='nearest', vmin=v_min, vmax=v_max)
 
         # get axes
         axes = plt.gca()
