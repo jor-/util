@@ -220,7 +220,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
 
 def line(file, x, y,
-         x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', y_min=None, y_max=None, xticks=None, use_log_scale=False, x_label=None, y_label=None,
+         x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', xticks=None, use_log_scale=False, x_label=None, y_label=None,
          **kwargs):
 
     # check if file should be saved
@@ -332,10 +332,6 @@ def line(file, x, y,
             plt.yscale('log')
 
         # set axis limits
-        if y_min is not None:
-            plt.ylim(bottom=y_min)
-        if y_max is not None:
-            plt.ylim(top=y_max)
         plt.xlim(x_min, x_max)
 
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
