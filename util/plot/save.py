@@ -404,12 +404,12 @@ def _get_positions_and_dataset_value_from_data(data, value_function, use_abs=Fal
     return positions, dataset
 
 
-def scatter_dataset_values(file, data, value_function, use_abs=False, **kwargs):
+def scatter_dataset_values(file, data, value_function, use_abs=False, point_size=20, **kwargs):
     def plot_function(fig):
         util.logging.debug(f'Plotting scatter dataset values to file {file}.')
 
         positions, dataset = _get_positions_and_dataset_value_from_data(data, value_function, use_abs=use_abs)
-        scatter(file, *positions.T, dataset, **kwargs)
+        plt.scatter(positions.T[0], dataset, s=point_size)
 
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
