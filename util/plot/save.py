@@ -4,6 +4,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.colors
+import matplotlib.patches
 import matplotlib.ticker
 
 import util.plot.auxiliary
@@ -496,8 +497,8 @@ def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, colorbar=True
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
-def _draw_sparse_matrix_pattern(A, markersize=1, **kwargs):
-    plt.spy(A, markersize=markersize, marker=',', markerfacecolor='k', markeredgecolor='k', markeredgewidth=0, precision='present', **kwargs)
+def _draw_sparse_matrix_pattern(A, markersize=1, color='k', **kwargs):
+    return plt.spy(A, markersize=markersize, marker=',', color=color, markerfacecolor=color, markeredgecolor=color, markeredgewidth=0, precision='present', **kwargs)
 
 
 def sparse_matrix_pattern(file, A, markersize=1, axis_labels=False, **kwargs):
@@ -520,36 +521,51 @@ def sparse_matrix_pattern(file, A, markersize=1, axis_labels=False, **kwargs):
 def sparse_matrices_patterns_with_differences(file, A, B, markersize=1,
                                               colors=((1, 0, 0), (0, 0, 1), (0.5, 0, 0.5), (1, 0, 1)),
                                               labels=('A only nonzero', 'B only nonzero', 'A and B nonzero and unequal', 'A and B nonzero and equal'),
-                                              **kwarg):
-    def plot_function(fig):
+                                              **kwargs):
+    def plot_function(fig, use_legend=True):
+        nonlocal A, B
         util.logging.debug(f'Plotting sparsity pattern differences for matrix {A!r} and {B!r} with markersize {markersize} to file {file}.')
 
         # calculate sparsity patterns
-        not_equal_pattern = A != B
-        nonzero_pattern_A = A != 0
-        nonzero_pattern_B = B != 0
+        pattern_not_equal = A != B
+        pattern_A_nonzero = A != 0
+        pattern_B_nonzero = B != 0
         del A
         del B
-        nonzero_pattern_A_or_B = nonzero_pattern_A - nonzero_pattern_B
-        nonzero_pattern_A_only = nonzero_pattern_A.multiply(nonzero_pattern_A_or_B)
-        nonzero_pattern_B_only = nonzero_pattern_B.multiply(nonzero_pattern_A_or_B)
-        del nonzero_pattern_A_or_B
-        not_equal_nonzeros_pattern = (not_equal_pattern).multiply(nonzero_pattern_A).multiply(nonzero_pattern_B)
-        del nonzero_pattern_B
-        equal_pattern = nonzero_pattern_A - (nonzero_pattern_A).multiply(not_equal_pattern)
-        del not_equal_pattern, nonzero_pattern_A
+        pattern_A_xor_B_nonzero = pattern_A_nonzero - pattern_B_nonzero
+        pattern_only_A_nonzero = pattern_A_nonzero.multiply(pattern_A_xor_B_nonzero)
+        assert pattern_only_A_nonzero.nnz <= pattern_A_xor_B_nonzero.nnz
+        pattern_only_B_nonzero = pattern_B_nonzero.multiply(pattern_A_xor_B_nonzero)
+        assert pattern_only_B_nonzero.nnz <= pattern_A_xor_B_nonzero.nnz
+        del pattern_A_xor_B_nonzero
+        pattern_not_equal_both_nonzero = (pattern_not_equal).multiply(pattern_A_nonzero).multiply(pattern_B_nonzero)
+        assert pattern_not_equal_both_nonzero.nnz <= pattern_not_equal.nnz
+        assert pattern_not_equal_both_nonzero.nnz <= pattern_A_nonzero.nnz
+        assert pattern_not_equal_both_nonzero.nnz <= pattern_B_nonzero.nnz
+        del pattern_not_equal, pattern_B_nonzero
+        pattern_equal_both_nonzero = pattern_A_nonzero - pattern_not_equal_both_nonzero
+        del pattern_A_nonzero
 
         # plot sparsity_pattern
-        patterns = (nonzero_pattern_A_only, nonzero_pattern_B_only, not_equal_nonzeros_pattern, equal_pattern)
+        patterns = (pattern_only_A_nonzero, pattern_only_B_nonzero, pattern_not_equal_both_nonzero, pattern_equal_both_nonzero)
+        legend_handles = []
         for pattern, color, label in zip(patterns, colors, labels):
             if pattern.nnz > 0:
                 _draw_sparse_matrix_pattern(pattern, markersize=markersize, color=color, label=label)
+                legend_handles.append(matplotlib.patches.Patch(color=color, label=label))
 
         plt.axis('off')
 
-    if 'legend' not in kwargs:
-        kwargs['legend'] = True
-    util.plot.auxiliary.generic(file, plot_function, **kwargs)
+        if len(legend_handles) > 0:
+            util.plot.auxiliary.add_legend(handles=legend_handles, use_legend=use_legend, transparent=True)
+
+    try:
+        use_legend = kwargs['use_legend']
+    except KeyError:
+        use_legend = True
+    else:
+        del kwargs['use_legend']
+    util.plot.auxiliary.generic(file, lambda fig: plot_function(fig, use_legend=use_legend), **kwargs)
 
 
 def intervals(file, intervals, use_percent_ticks=False, **kwargs):
