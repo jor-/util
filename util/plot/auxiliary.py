@@ -51,10 +51,7 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             plt.xlabel(caption, fontsize=font_size, fontweight='bold')
 
         # legend
-        if use_legend:
-            legend = plt.legend(loc='best')
-            if legend is not None:
-                legend.get_frame().set_alpha(float(not transparent))
+        add_legend(use_legend=use_legend, transparent=transparent)
 
         # set axis limits
         set_axis_limits(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
@@ -198,6 +195,13 @@ def add_colorbar(axes_image, orientation='right', size='3%', pad='1.5%', colorba
         return cb
     else:
         return None
+
+
+def add_legend(labels=None, handles=None, use_legend=True, transparent=True):
+    if use_legend:
+        legend = plt.legend(labels=labels, handles=handles, loc='best')
+        if legend is not None:
+            legend.get_frame().set_alpha(float(not transparent))
 
 
 def _v_min_max(data, percentile, significant_digits=2):
