@@ -179,7 +179,7 @@ class MultiDict():
         value_list[:] = [v for v in value_list if not np.all(np.isclose(v, value))]
         if len(value_list) == n:
             raise KeyError('Value {} was not deposited for key {}.'.format(value, key))
-        #TODO remove dict entries if list is empty
+        # TODO remove dict entries if list is empty
 
     def remove_values(self, multi_dict):
         util.logging.debug('Removing {} values.'.format(len(multi_dict)))
@@ -444,12 +444,12 @@ class MultiDict():
     def set_min_value(self, min_value):
         util.logging.debug('Applying min value {} to values.'.format(min_value))
         transform_function = lambda key, value: max([value, min_value])
-        self.transform_value(transform_function)
+        self.transform_values(transform_function)
 
     def log_values(self):
         util.logging.debug('Applying logarithm to values.')
         transform_function = lambda key, value: np.log(value)
-        self.transform_value(transform_function)
+        self.transform_values(transform_function)
 
     # *** filter *** #
 
@@ -572,12 +572,12 @@ class MultiDict():
 
         test_values = self.iterate_values(lambda x: scipy.stats.normaltest(x)[1], min_number_of_values, return_type=return_type)
 
-        if alpha is not None:
+        if len(test_values) > 0 and alpha is not None:
             if return_type == 'array':
                 test_values[:, -1] = (test_values[:, -1] >= alpha).astype(np.float)
             else:
                 transform_function = lambda key, value: (value >= alpha).astype(np.float)
-                self.transform_value(transform_function)
+                self.transform_values(transform_function)
 
         return test_values
 
@@ -587,12 +587,12 @@ class MultiDict():
 
         test_values = self.iterate_values(lambda x: scipy.stats.shapiro(x)[1], min_number_of_values, return_type=return_type)
 
-        if alpha is not None:
+        if len(test_values) > 0 and alpha is not None:
             if return_type == 'array':
                 test_values[:, -1] = (test_values[:, -1] >= alpha).astype(np.float)
             else:
                 transform_function = lambda key, value: (value >= alpha).astype(np.float)
-                self.transform_value(transform_function)
+                self.transform_values(transform_function)
 
         return test_values
 
@@ -617,7 +617,7 @@ class MultiDict():
             # check if test passed
             return test_value <= bound
 
-        test_values = self.iterate_values(lambda x:test(x, alpha), min_number_of_values, return_type=return_type)
+        test_values = self.iterate_values(lambda x: test(x, alpha), min_number_of_values, return_type=return_type)
         return test_values
 
 
