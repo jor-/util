@@ -213,7 +213,6 @@ def line(file, x, y,
          x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', xticks=None, use_log_scale=False, x_label=None, y_label=None,
          **kwargs):
 
-    # check if file should be saved
     def plot_function(fig):
         nonlocal x, y
         util.logging.debug(f'Plotting line to file {file}.')
@@ -323,6 +322,15 @@ def line(file, x, y,
 
         # set axis limits
         plt.xlim(x_min, x_max)
+
+    util.plot.auxiliary.generic(file, plot_function, **kwargs)
+
+
+def fill_between(file, x, y1, y2=0, color='b', xticks=None, **kwargs):
+    def plot_function(fig):
+        plt.fill_between(x, y1, y2, color=color)
+        if xticks is not None:
+            plt.xticks(xticks)
 
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
