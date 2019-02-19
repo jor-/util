@@ -66,9 +66,8 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
     assert (np.isnan(no_data_value) and np.all(np.isnan(data[no_data_mask]))) or np.all(data[no_data_mask] == no_data_value)
     del land_value, no_data_value
 
-    # set land and no data with specific values
-    data[land_mask] = np.nan
-    data[no_data_mask] = np.nan
+    # make data as masked array
+    data = np.ma.masked_where(np.logical_or(land_mask, no_data_mask), data)
 
     # prepare filename
     file = pathlib.PurePath(file)
@@ -83,9 +82,6 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         file_root += '_time_{time}'
         file_add_time_info = True
     file = file_root + file_extension
-
-    # prepare no_data_array
-    no_data_array = np.full_like(data[0, :, :, 0], np.nan)
 
     # set colormap
     if colormap is None:
@@ -119,11 +115,9 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 data_i = data[t, :, :, z]
 
                 # make no_data with 1 where no data, 0.5 where water at surface, 0 where land and nan where data (1 is white, 0 is black)
-                nonlocal no_data_array
-                no_data_mask_i = no_data_mask[t, :, :, z]
-                land_mask_i = land_mask[t, :, :, z]
-                no_data_array[no_data_mask_i] = 1
-                no_data_array[land_mask_i] = (1 - land_brightness) / 2
+                no_data_array = np.ma.masked_all(data_i.shape, np.float32)
+                no_data_array[no_data_mask[t, :, :, z]] = 1
+                no_data_array[land_mask[t, :, :, z]] = (1 - land_brightness) / 2
                 no_data_array[land_mask[t, :, :, 0]] = land_brightness
 
                 # make figure
@@ -135,15 +129,12 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 axes_image = plt.imshow(no_data_array.transpose(), origin='lower', aspect='equal', cmap=colormap_no_data, vmin=0, vmax=1)
 
                 # choose v_min and v_max
-                if v_min is None or v_max is None:
-                    data_mask_i = np.logical_not(np.logical_or(no_data_mask_i, land_mask_i))
-                    data_values_only_i = data_i[data_mask_i]
                 if v_min is None:
-                    v_min_i = util.plot.auxiliary.v_min(data_values_only_i)
+                    v_min_i = util.plot.auxiliary.v_min(data_i)
                 else:
                     v_min_i = v_min
                 if v_max is None:
-                    v_max_i = util.plot.auxiliary.v_max(data_values_only_i)
+                    v_max_i = util.plot.auxiliary.v_max(data_i)
                 else:
                     v_max_i = v_max
                 if use_log_scale:
