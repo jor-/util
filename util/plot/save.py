@@ -320,12 +320,27 @@ def line(file, x, y,
             plt.yscale('log')
 
         # set axis limits
-        plt.xlim(x_min, x_max)
+        if calculate_x_min:
+            util.plot.auxiliary.set_axis_limits(x_min=x_min)
+        if calculate_x_max:
+            util.plot.auxiliary.set_axis_limits(x_max=x_max)
 
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
 def fill_between(file, x, y1, y2=0, color='b', xticks=None, **kwargs):
+    # set x_min and x_max
+    x = np.asanyarray(x)
+    try:
+        kwargs['x_min']
+    except KeyError:
+        kwargs['x_min'] = x.min()
+    try:
+        kwargs['x_max']
+    except KeyError:
+        kwargs['x_max'] = x.max()
+
+    # plot
     def plot_function(fig):
         plt.fill_between(x, y1, y2, color=color)
         if xticks is not None:
