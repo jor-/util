@@ -120,7 +120,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 no_data_array[land_mask[t, :, :, z]] = (1 - land_brightness) / 2
                 no_data_array[land_mask[t, :, :, 0]] = land_brightness
 
-                # make figure
+                # make axes
                 axes = plt.gca()
 
                 # plot no data mask
@@ -228,7 +228,7 @@ def line(file, x, y,
         # check input and prepare
         if len(x) != len(y):
             if not is_multi_line:
-                    ValueError('For single line plot, x and y must have same length but length x is {} and length y is {}.'.format(len(x), len(y)))
+                ValueError('For single line plot, x and y must have same length but length x is {} and length y is {}.'.format(len(x), len(y)))
             else:
                 x = np.asarray(x)
                 y = np.asarray(y)
@@ -272,8 +272,7 @@ def line(file, x, y,
         else:
             number_of_lines = 0
 
-        # make figure
-        fig = plt.figure()
+        # init x_min and x_max
         x_min = np.inf
         x_max = -np.inf
 
