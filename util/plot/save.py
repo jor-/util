@@ -212,6 +212,18 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 def line(file, x, y,
          x_order=0, line_label=None, line_width=1, line_style='-', line_color='r', xticks=None, use_log_scale=False, x_label=None, y_label=None,
          **kwargs):
+    try:
+        kwargs['x_min']
+    except KeyError:
+        calculate_x_min = True
+    else:
+        calculate_x_min = False
+    try:
+        kwargs['x_max']
+    except KeyError:
+        calculate_x_max = True
+    else:
+        calculate_x_max = False
 
     def plot_function(fig):
         nonlocal x, y
@@ -273,8 +285,10 @@ def line(file, x, y,
             number_of_lines = 0
 
         # init x_min and x_max
-        x_min = np.inf
-        x_max = -np.inf
+        if calculate_x_min:
+            x_min = np.inf
+        if calculate_x_max:
+            x_max = -np.inf
 
         # plot each line
         for i in range(number_of_lines):
@@ -298,9 +312,11 @@ def line(file, x, y,
                     x = x[sorted_indices]
                     y = y[sorted_indices]
 
-                # update x_min x_max
-                x_min = min([x_min, x_i[0]])
-                x_max = max([x_max, x_i[-1]])
+                # update x_min and x_max
+                if calculate_x_min:
+                    x_min = min([x_min, x_i[0]])
+                if calculate_x_max:
+                    x_max = max([x_max, x_i[-1]])
 
                 # plot line
                 plt.plot(x_i, y_i, line_style_i, color=line_color_i, linewidth=line_width_i, markersize=line_width_i * 3, label=line_label_i)
