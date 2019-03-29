@@ -75,7 +75,7 @@ def save_and_close_fig(fig, file, transparent=True, make_read_only=True, overwri
     if overwrite and file.exists():
         file.unlink()
     # plot
-    plt.savefig(file, transparent=transparent, dpi=dpi, bbox_inches='tight')
+    fig.savefig(file, transparent=transparent, dpi=dpi, bbox_inches='tight')
     plt.close(fig)
     # make read only
     if make_read_only:
