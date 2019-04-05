@@ -37,7 +37,7 @@ setuptools.setup(
     url='https://github.com/jor-/util',
     author='Joscha Reimer',
     author_email='jor@informatik.uni-kiel.de',
-    license='AGPLv3+',
+    license='AGPL',
 
     classifiers=[
         # Development Status
