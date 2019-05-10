@@ -392,9 +392,14 @@ def scatter(file, x, y, z=None, point_size=20, plot_3d=False,
 def histogram(file, data,
               bins=None, step_size=None, x_min=None, x_max=None, weights=None,
               use_log_scale=False, histtype='bar',
+              density=False, add_kde=False,
               **kwargs):
+
+    if add_kde and not density:
+        raise ValueError('Adding the kernel density estimation (add_kde is true) only makes sense if the density is plotted (density is true)')
+
     def plot_function(fig):
-        nonlocal bins, step_size, x_min, x_max
+        nonlocal bins, step_size, x_min, x_max, density, add_kde
         util.logging.debug(f'Plotting histogram to file {file}.')
 
         # make bins
@@ -408,9 +413,23 @@ def histogram(file, data,
                 x_max = np.ceil(np.max(data) / step_size) * step_size
             bins = np.arange(x_min, x_max + step_size, step_size)
 
-        # plot
-        (n, bins, patches) = plt.hist(data, bins=bins, weights=weights, log=use_log_scale, histtype=histtype)
-        plt.xlim(bins[0], bins[-1])
+        # plot histogram
+        (ys, bins, patches) = plt.hist(data, bins=bins, weights=weights, log=use_log_scale, histtype=histtype, density=density)
+
+        # plot kernel density estimation
+        if add_kde:
+            import scipy.stats
+            density_function = scipy.stats.gaussian_kde(data)
+            xs = np.linspace(x_min, x_max, 200)
+            ys = density_function(xs)
+            plt.plot(xs, ys, linewidth=3)
+
+        # set plot limits
+        plt.xlim(x_min, x_max)
+
+        # disable y axis on density plot
+        if density:
+            plt.gca().axes.get_yaxis().set_visible(False)
 
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
