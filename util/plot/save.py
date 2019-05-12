@@ -392,7 +392,7 @@ def scatter(file, x, y, z=None, point_size=20, plot_3d=False,
 def histogram(file, data,
               bins=None, step_size=None, x_min=None, x_max=None, weights=None,
               use_log_scale=False, histtype='bar',
-              density=False, add_kde=False,
+              density=False, add_kde=False, kde_linewidth=3,
               **kwargs):
 
     if add_kde and not density:
@@ -422,7 +422,7 @@ def histogram(file, data,
             density_function = scipy.stats.gaussian_kde(data)
             xs = np.linspace(x_min, x_max, 200)
             ys = density_function(xs)
-            plt.plot(xs, ys, linewidth=3)
+            plt.plot(xs, ys, linewidth=kde_linewidth)
 
         # set plot limits
         plt.xlim(x_min, x_max)
