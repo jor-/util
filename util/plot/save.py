@@ -423,6 +423,9 @@ def histogram(file, data,
         if add_kde:
             import scipy.stats
             density_function = scipy.stats.gaussian_kde(data)
+            step_size = bins[1] - bins[0]
+            x_min -= step_size
+            x_max += step_size
             xs = np.linspace(x_min, x_max, 200)
             ys = density_function(xs)
             plt.plot(xs, ys, linewidth=kde_linewidth)
