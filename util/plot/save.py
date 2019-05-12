@@ -404,17 +404,20 @@ def histogram(file, data,
 
         # make bins
         if bins is None:
-            if step_size is None:
-                step_size = (np.percentile(data, 95) - np.percentile(data, 5)) / 10
-                step_size = np.round(step_size, decimals=int(-np.floor(np.log10(step_size))))
-            if x_min is None:
-                x_min = np.floor(np.min(data) / step_size) * step_size
-            if x_max is None:
-                x_max = np.ceil(np.max(data) / step_size) * step_size
-            bins = np.arange(x_min, x_max + step_size, step_size)
+            if step_size is None or step_size in ('variable', 'FreedmanDiaconis1992'):
+                bins = 'fd'  # choose Freedman and Diaconis (1981) rule
+            else:
+                assert step_size > 0
+                if x_min is None:
+                    x_min = np.floor(np.min(data) / step_size) * step_size
+                if x_max is None:
+                    x_max = np.ceil(np.max(data) / step_size) * step_size
+                bins = np.arange(x_min, x_max + step_size, step_size)
 
         # plot histogram
         (ys, bins, patches) = plt.hist(data, bins=bins, weights=weights, log=use_log_scale, histtype=histtype, density=density)
+        x_min = bins[0]
+        x_max = bins[-1]
 
         # plot kernel density estimation
         if add_kde:
