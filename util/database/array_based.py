@@ -175,7 +175,7 @@ class Database(util.database.general.Database):
                     db_array[index, key_length:] = value
                     self._save_db(db_array)
                 else:
-                    tol = np.finfo(self.dtype).resolution * 10**2
+                    tol = np.finfo(self.dtype).resolution**(2 / 3)
                     old_value = self.get_value_with_index(index)
                     if not np.allclose(old_value, value, rtol=tol, atol=tol):
                         raise util.database.general.DatabaseOverwriteIndexError(self, index, old_value=old_value, new_value=value)
