@@ -284,14 +284,14 @@ class DatabaseOverwriteError(DatabaseError):
 
 
 class DatabaseOverwriteKeyError(DatabaseError):
-    def __init__(self, database, key):
-        message = f'Database has value at key {key}. Overwrite is not permitted.'
+    def __init__(self, database, key, old_value=None, new_value=None):
+        message = f'Database has value {old_value if old_value is not None else ""} at key {key}. Overwrite {f"with {new_value} " if new_value is not None else ""} is not permitted.'
         super().__init__(database, message)
 
 
 class DatabaseOverwriteIndexError(DatabaseError):
-    def __init__(self, database, index):
-        message = f'Database has value at index {index}. Overwrite is not permitted.'
+    def __init__(self, database, index, old_value=None, new_value=None):
+        message = f'Database has value {old_value if old_value is not None else ""} at index {index}. Overwrite {f"with {new_value} " if new_value is not None else ""} is not permitted.'
         super().__init__(database, message)
 
 

@@ -178,7 +178,7 @@ class Database(util.database.general.Database):
                     tol = np.finfo(self.dtype).resolution * 10**2
                     old_value = self.get_value_with_index(index)
                     if not np.allclose(old_value, value, rtol=tol, atol=tol):
-                        raise util.database.general.DatabaseOverwriteIndexError(self, index)
+                        raise util.database.general.DatabaseOverwriteIndexError(self, index, old_value=old_value, new_value=value)
 
     @overrides.overrides
     def set_value_with_key(self, key, value, use_tolerances=False, overwrite=False):
