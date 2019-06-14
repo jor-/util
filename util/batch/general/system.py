@@ -225,7 +225,9 @@ class NodeSetup:
     @property
     def node_kind(self):
         self.update_with_best_configuration(self['check_for_better'])
-        return self.configuration_value('node_kind', test=lambda v: isinstance(v, str))
+        value = self.configuration_value('node_kind', test=lambda v: isinstance(v, str))
+        assert value is not None
+        return value
 
     @node_kind.setter
     def node_kind(self, value):
@@ -235,7 +237,9 @@ class NodeSetup:
     @property
     def nodes(self):
         self.update_with_best_configuration(self['check_for_better'])
-        return self.configuration_value('nodes')
+        value = self.configuration_value('nodes')
+        assert value is not None
+        return value
 
     @nodes.setter
     def nodes(self, value):
@@ -245,7 +249,9 @@ class NodeSetup:
     @property
     def cpus(self):
         self.update_with_best_configuration(self['check_for_better'])
-        return self.configuration_value('cpus')
+        value = self.configuration_value('cpus')
+        assert value is not None
+        return value
 
     @cpus.setter
     def cpus(self, value):
