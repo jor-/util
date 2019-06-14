@@ -440,6 +440,51 @@ def histogram(file, data,
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
+def bar(file, data, x_values=None, data_labels=None, x_labels=None, width=None, use_log_scale=False, color=None, **kwargs):
+    assert data.ndim <= 2
+    assert data_labels is None or len(data_labels) == len(data)
+
+    def plot_function(fig, data, x_values, width):
+        if data.ndim < 2:
+            data = data.reshape(1, -1)
+        n, m = data.shape
+        if x_values is None:
+            x_values = np.arange(m)
+        if width is None:
+            width = 1 / (n + 1)
+        assert width <= 1 / n
+        ax = plt.gca()
+
+        for i, data_i in enumerate(data):
+            # choose color
+            if color is not None:
+                color_i = color[i]
+            else:
+                color_i = None
+            # choose x values and parameters
+            x = x_values + ((i - n / 2) * width)
+            tick_label = None
+            if n % 2 == 0:
+                align = 'edge'
+                if i == n / 2:
+                    tick_label = x_labels
+            else:
+                x += 0.5 * width
+                align = 'center'
+                if i == (n - 1) / 2:
+                    tick_label = x_labels
+            # choose data label
+            if data_labels is not None:
+                data_label = data_labels[i]
+            else:
+                data_label = None
+            # make bar plot
+            ax.bar(x, data_i, width=width, align=align, label=data_label, tick_label=tick_label, log=use_log_scale, color=color_i)
+
+    use_legend = data_labels is not None
+    util.plot.auxiliary.generic(file, lambda fig: plot_function(fig, data, x_values, width), use_legend=use_legend, **kwargs)
+
+
 def _get_positions_and_dataset_value_from_data(data, value_function, use_abs=False):
     if data.ndim != 2:
         raise ValueError(f'The parameter data has to be a two dimensional array but its shape is {data.shape}.')
