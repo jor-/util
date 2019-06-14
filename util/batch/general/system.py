@@ -212,7 +212,10 @@ class NodeSetup:
 
     @property
     def memory(self):
-        return self.setup['memory']
+        value = self.setup['memory']
+        if value is None:
+            raise AttributeError('"memory" is not set.')
+        return value
 
     @memory.setter
     def memory(self, value):
