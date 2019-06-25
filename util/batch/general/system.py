@@ -1030,7 +1030,7 @@ class Job():
             if self.remove_output_dir_on_close:
                 try:
                     is_finished = self.is_finished(check_exit_code=True)
-                except JobExitCodeError as e:
+                except JobError as e:
                     util.logging.warning('{} stopped with an error {} and thus is not removed.'.format(self, e))
                 else:
                     if is_finished:
