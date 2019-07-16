@@ -804,7 +804,7 @@ class Job():
     def exit_code(self):
         # check if finished file exists
         if not os.path.exists(self.finished_file):
-            ValueError('Finished file {} does not exist. The job is not finished'.format(self.finished_file))
+            JobError(self, f'Finished file {self.finished_file} does not exist. The job is not finished.')
         # read exit code
         with open(self.finished_file, mode='r') as finished_file:
             exit_code = finished_file.read()
@@ -814,9 +814,9 @@ class Job():
                 exit_code = int(exit_code)
                 return exit_code
             except ValueError:
-                raise ValueError('Finished file {} does not contain an exit code but rather {}.'.format(self.finished_file, exit_code))
+                raise JobError(self, f'Finished file {self.finished_file} does not contain an exit code but rather {exit_code}.')
         else:
-            raise ValueError('Finished file {} is empty.'.format(self.finished_file))
+            raise JobError(self, f'Finished file {self.finished_file} is empty.')
 
     @property
     def cpu_kind(self):
