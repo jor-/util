@@ -138,13 +138,11 @@ def map_parallel_with_args(function, indices, *args, number_of_processes=None, c
 
     # execute in parallel
     if share_args:
-#         args = share_all_arrays(args, lock=False)
-#         values = util.parallel.universal.args_generator_with_indices(indices, (function,))
         with GlobalArgs(function, *args):
-            results = map_parallel(eval_with_global_args, indices)
+            results = map_parallel(eval_with_global_args, indices, chunksize=chunksize)
     else:
         values = util.parallel.universal.args_generator_with_indices(indices, args)
-        results = starmap_parallel(function, values)
+        results = starmap_parallel(function, values, chunksize=chunksize)
 
     util.logging.debug('Parallel multiprocessing calculation with {} results completed.'.format(len(results)))
 
