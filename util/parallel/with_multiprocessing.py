@@ -145,6 +145,14 @@ def map_parallel_with_args(function, indices, *args, number_of_processes=None, c
     return results
 
 
+def create_array_with_args(shape, function, *args, number_of_processes=None, chunksize=1, share_args=True):
+    util.logging.debug(f'Creating array with shape {shape} with multiprocessing pool with {number_of_processes} processes and chunksize {chunksize}')
+    results = map_parallel_with_args(function, np.ndindex(*shape), *args, number_of_processes=number_of_processes, chunksize=chunksize, share_args=share_args)
+    array = np.array(tuple(results))
+    array = array.reshape(shape)
+    return array
+
+
 # global args
 
 class MultipleUseError(Exception):
