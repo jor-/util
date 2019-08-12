@@ -1,10 +1,9 @@
 import numpy as np
 
 
-
-def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps=None, use_always_typical_x=True):
+def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps=None, use_always_typical_x=True):
     x = np.asanyarray(x)
-    
+
     # init unpassed values
     if typical_x is None:
         typical_x = np.ones_like(x)
@@ -19,17 +18,17 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
     if accuracy_order == 1:
         h_factors = (1,)
         if eps is None:
-            eps = np.spacing(1)**(1/2)
+            eps = np.spacing(1)**(0.5)
     elif accuracy_order == 2:
         h_factors = (1, -1)
         if eps is None:
-            eps = np.spacing(1)**(1/3)
+            eps = np.spacing(1)**(1 / 3)
     else:
         raise ValueError('Accuracy order {} not supported.'.format(accuracy_order))
-    
+
     # calculate f(x) if needed
     if f_x is None and accuracy_order == 1:
-        f_x =  f(x)
+        f_x = f(x)
 
     # init values
     n = len(x)
@@ -39,7 +38,7 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
     # for each x dim
     for i in range(n):
         h = np.empty(m, dtype=np.float64)
-        
+
         # for each h factor
         for j in range(m):
             # calculate h
@@ -69,7 +68,7 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
                         x_h[i] = lower_bound
                     else:
                         x_h[i] = upper_bound
-            
+
             # recalculate h   (improvement of accuracy of h)
             h[j] = x_h[i] - x[i]
 
@@ -80,7 +79,7 @@ def calculate(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps
             if df is None:
                 df_shape = (n,) + f_x_h.shape
                 df = np.zeros(df_shape)
-            
+
             df[i] += (-1)**j * f_x_h
 
         # calculate df_i
