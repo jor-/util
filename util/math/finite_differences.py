@@ -1,92 +1,106 @@
 import numpy as np
 
 
-def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, accuracy_order=2, eps=None, use_always_typical_x=True):
-    x = np.asanyarray(x)
-
-    # init unpassed values
+def _step_sizes(x, typical_x=None, use_always_typical_x=True, bounds=None, eps=None, both_directions=True, dtype=np.float64):
+    # init values
     if typical_x is None:
         typical_x = np.ones_like(x)
     elif not len(x) == len(typical_x):
-        raise ValueError('x and typical_x must have the same length but their length are {} and {}.'.format(len(x), len(typical_x)))
+        raise ValueError(f'x and typical_x must have the same length but their length are {len(x)} and {len(typical_x)}.')
+    n = len(x)
     if bounds is None:
         bounds = ((-np.inf, np.inf),) * len(x)
     else:
         bounds = np.asanyarray(bounds)
-
-    # set h factors according to accuracy
-    if accuracy_order == 1:
-        h_factors = (1,)
-        if eps is None:
-            eps = np.spacing(1)**(0.5)
-    elif accuracy_order == 2:
-        h_factors = (1, -1)
+    if both_directions:
+        h = np.empty((n, 2), dtype=dtype)
+        x_h = np.empty((n, 2), dtype=x.dtype)
+        x_h[:, 0] = x
+        x_h[:, 1] = x
         if eps is None:
             eps = np.spacing(1)**(1 / 3)
     else:
-        raise ValueError('Accuracy order {} not supported.'.format(accuracy_order))
+        h = np.empty((n, 1), dtype=dtype)
+        x_h = x.copy()
+        if eps is None:
+            eps = np.spacing(1)**(0.5)
 
-    # calculate f(x) if needed
-    if f_x is None and accuracy_order == 1:
-        f_x = f(x)
+    # calculate f for changes in a single component
+    for i in range(n):
+        # calculate h
+        if use_always_typical_x:
+            typical_x_i = np.abs(typical_x[i])
+        else:
+            typical_x_i = np.max([np.abs(typical_x[i]), np.abs(x[i])])
+        h_i = eps * typical_x_i
+        if not both_directions and x[i] < 0:  # h_i and x[i] should have same np.sign
+            h_i *= -1
+
+        # calculate x_h
+        if both_directions:
+            x_h[i, 0] += h_i
+            x_h[i, 1] -= h_i
+        else:
+            x_h[i] += h_i
+
+        # consider bounds
+        lower_bound = bounds[i][0]
+        upper_bound = bounds[i][1]
+        if both_directions:
+            for j, x_h_i_j in enumerate(x_h[i]):
+                x_h[i, j] = min(max(x_h_i_j, lower_bound), upper_bound)
+        elif (x_h[i] < lower_bound or x_h[i] > upper_bound):
+            h_i *= -1
+            x_h[i] = x[i] + h_i
+
+        # recalculate h to improvement of accuracy of h
+        if both_directions:
+            for j, x_h_i_j in enumerate(x_h[i]):
+                h[i, j] = x_h[i, j] - x[i]
+        else:
+            h[i] = x_h[i] - x[i]
+
+    # return
+    return h
+
+
+def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_always_typical_x=True, accuracy_order=2):
+    assert accuracy_order in (1, 2)
+
+    # convert x
+    x = np.asanyarray(x)
+
+    # calculate step size
+    dtype = np.float64
+    if eps is None:
+        if accuracy_order == 1:
+            eps = np.spacing(1)**(1 / 2)
+        elif accuracy_order == 2:
+            eps = np.spacing(1)**(1 / 3)
+    h = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=eps, both_directions=accuracy_order >= 2, dtype=dtype)
 
     # init values
     n = len(x)
-    m = len(h_factors)
     df = None
 
-    # for each x dim
+    # calculate df
     for i in range(n):
-        h = np.empty(m, dtype=np.float64)
-
-        # for each h factor
-        for j in range(m):
-            # calculate h
-            if use_always_typical_x:
-                typical_x_i = np.abs(typical_x[i])
-            else:
-                typical_x_i = np.max([np.abs(typical_x[i]), np.abs(x[i])])
-            h[j] = h_factors[j] * eps * typical_x_i
-            if accuracy_order == 1 and x[i] < 0:
-                h[j] = - h[j]
-            x_h = np.array(x, dtype=np.float64, copy=True)
-            x_h[i] += h[j]
-
-            # consider bounds
-            lower_bound = bounds[i][0]
-            upper_bound = bounds[i][1]
-            violates_lower_bound = x_h[i] < lower_bound
-            violates_upper_bound = x_h[i] > upper_bound
-
-            if accuracy_order == 1:
-                if violates_lower_bound or violates_upper_bound:
-                    h[j] *= -1
-                    x_h[i] = x[i] + h[j]
-            else:
-                if violates_lower_bound or violates_upper_bound:
-                    if violates_lower_bound:
-                        x_h[i] = lower_bound
-                    else:
-                        x_h[i] = upper_bound
-
-            # recalculate h   (improvement of accuracy of h)
-            h[j] = x_h[i] - x[i]
-
-            # eval f and add to df
-            f_x_h = f(x_h)
-            f_x_h = np.asanyarray(f_x_h)
-
+        h_i = h[i]
+        for h_i_j in h_i:
+            x_h = x.copy()
+            x_h[i] += h_i_j
+            f_x_h = np.asanyarray(f(x_h))
             if df is None:
                 df_shape = (n,) + f_x_h.shape
                 df = np.zeros(df_shape)
+            df[i] += np.sign(h_i_j) * f_x_h
 
-            df[i] += (-1)**j * f_x_h
-
-        # calculate df_i
         if accuracy_order == 1:
+            if f_x is None:
+                f_x = f(x)
             df[i] -= f_x
-            df[i] /= h
+            df[i] /= h_i
         else:
-            df[i] /= np.sum(np.abs(h))
+            df[i] /= np.sum(np.abs(h_i))
 
     return df
