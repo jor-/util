@@ -688,16 +688,14 @@ class Job():
         if output_dir is None:
             raise ValueError('The output dir is not allowed to be None.')
         output_dir_expanded = os.path.expandvars(output_dir)
-
-        # get option file
-        try:
-            option_file_expanded = os.path.join(output_dir_expanded, 'job_options.hdf5')
-        except Exception as e:
-            raise ValueError('The output dir {} is not allowed.'.format(output_dir)) from e
+        option_file_expanded = os.path.join(output_dir_expanded, 'job_options.hdf5')
 
         # load option file if existing or forced
         if force_load or os.path.exists(option_file_expanded):
-            self.__options = util.options.OptionsFile(option_file_expanded, mode='r+', replace_environment_vars_at_get=True)
+            try:
+                self.__options = util.options.OptionsFile(option_file_expanded, mode='r+', replace_environment_vars_at_get=True)
+            except OSError as e:
+                raise JobOptionFileError(option_file_expanded) from e
             util.logging.debug('Job {} loaded.'.format(option_file_expanded))
 
         # make new job options file otherwise
@@ -1162,52 +1160,62 @@ class Job():
 
 
 class JobError(Exception):
-    def __init__(self, job, error_message, include_output=False):
-        # store job
-        self.job = job
+    def __init__(self, job=None, error_message=None, include_output=False):
+        if job is not None:
+            # store job
+            self.job = job
 
-        # construct error message
-        output_dir = job.output_dir
-        if job.is_started():
-            job_id = job.id
-            error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_dir, error_message)
-        else:
-            error_message = 'An error accured in job stored at {}: {}'.format(output_dir, error_message)
-
-        # add output
-        if include_output:
-            try:
-                output = job.output
-            except OSError:
-                pass
+            # construct error message
+            output_dir = job.output_dir
+            if job.is_started():
+                job_id = job.id
+                error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_dir, error_message)
             else:
-                error_message = error_message + '\nThe job output was:\n{}'.format(output)
+                error_message = 'An error accured in job stored at {}: {}'.format(output_dir, error_message)
 
-        # super call
-        super().__init__(error_message)
+            # add output
+            if include_output:
+                try:
+                    output = job.output
+                except OSError:
+                    pass
+                else:
+                    error_message = error_message + '\nThe job output was:\n{}'.format(output)
+
+        # call super init
+        if error_message is not None:
+            super().__init__(error_message)
+        else:
+            super().__init__()
 
 
 class JobNotStartedError(JobError):
     def __init__(self, job):
         error_message = 'The job is not started!'
-        super().__init__(job, error_message)
+        super().__init__(error_message=error_message, job=job)
 
 
 class JobExitCodeError(JobError):
     def __init__(self, job):
         self.exit_code = job.exit_code
-        error_message = 'The command of the job exited with code {}.'.format(self.exit_code)
-        super().__init__(job, error_message, include_output=True)
+        error_message = f'The command of the job exited with code {self.exit_code}.'
+        super().__init__(error_message=error_message, job=job, include_output=True)
 
 
 class JobExceededWalltimeError(JobError):
     def __init__(self, job):
         self.walltime = job.walltime_hours
-        error_message = 'The job exceeded walltime {}.'.format(self.walltime)
-        super().__init__(job, error_message)
+        error_message = f'The job exceeded walltime {self.walltime}.'
+        super().__init__(error_message=error_message, job=job)
 
 
 class JobMissingOptionError(JobError):
     def __init__(self, job, option):
-        error_message = 'Job option {} is missing!'.format(option)
-        super().__init__(job, error_message)
+        error_message = f'Job option {option} is missing!'
+        super().__init__(error_message=error_message, job=job)
+
+
+class JobOptionFileError(JobError):
+    def __init__(self, option_file):
+        error_message = f'Job option file {option_file} can not be red!'
+        super().__init__(error_message=error_message)
