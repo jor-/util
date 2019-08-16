@@ -930,22 +930,23 @@ class Job():
             return True
 
     def is_finished(self, check_exit_code=True):
+        finished_file = pathlib.Path(self.finished_file)
+        output_file = pathlib.Path(self.output_file)
+
         # if finished file exists, check exit code and output file
-        if os.path.exists(self.finished_file):
+        if finished_file.exists():
             # check exit code
             if check_exit_code:
                 exit_code = self.exit_code
                 if exit_code != 0:
                     raise JobExitCodeError(self)
             # check if output file exists
-            output_file = pathlib.Path(self.output_file)
             if output_file.exists():
                 return True
             else:
-                finished_file = pathlib.Path(self.finished_file)
                 finished_file_time_since_creation_in_seconds = time.time() - finished_file.stat().st_mtime
                 if finished_file_time_since_creation_in_seconds > util.batch.general.constants.MAX_WAIT_FOR_OUTPUT_FILE_SECONDS:
-                    raise JobError(self, 'Output file is missing!')
+                    raise JobError(self, f'Output file {output_file} is missing!')
                 else:
                     return False
 
@@ -955,18 +956,20 @@ class Job():
                 running = self.batch_system.is_job_running(self.id)
             except CommandError as e:
                 util.logging.exception(e.message)
-                util.logging.warn('Could determine whether job is running using batch system. Assuming job {} in {} is running.'.format(self.id, self.output_dir))
+                util.logging.warn(f'Could not determine whether job is running by using batch system. Assuming job {self.id} in {self.output_dir} is running.')
             else:
                 if not running:
                     time.sleep(60)
-                    if os.path.exists(self.finished_file):
+                    if finished_file.exists():
                         return self.is_finished(check_exit_code=check_exit_code)
-                    else:
+                    elif output_file.exists():
                         output = self.output
                         if self.exceeded_walltime_error_message is not None and self.exceeded_walltime_error_message in output:
                             raise JobExceededWalltimeError(self)
                         else:
-                            raise JobError(self, 'The job is not finished but it is not running! The finished file {} is missing'.format(self.finished_file), output)
+                            raise JobError(self, f'The job is not finished but it is not running! The finished file {finished_file} is missing', output)
+                    else:
+                        raise JobError(self, f'The job is not finished but it is not running! The finished file {finished_file} and the output file {output_file} are missing')
 
         # if not not started or running, return false
         return False
