@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def _step_sizes(x, typical_x=None, use_always_typical_x=True, bounds=None, eps=None, both_directions=True, dtype=np.float64):
+def _step_sizes(x, eps, typical_x=None, use_always_typical_x=True, bounds=None, both_directions=True, dtype=np.float64):
     # init values
     if typical_x is None:
         typical_x = np.ones_like(x)
@@ -17,13 +17,9 @@ def _step_sizes(x, typical_x=None, use_always_typical_x=True, bounds=None, eps=N
         x_h = np.empty((n, 2), dtype=x.dtype)
         x_h[:, 0] = x
         x_h[:, 1] = x
-        if eps is None:
-            eps = np.spacing(1)**(1 / 3)
     else:
         h = np.empty((n, 1), dtype=dtype)
         x_h = x.copy()
-        if eps is None:
-            eps = np.spacing(1)**(0.5)
 
     # calculate f for changes in a single component
     for i in range(n):
@@ -64,6 +60,18 @@ def _step_sizes(x, typical_x=None, use_always_typical_x=True, bounds=None, eps=N
     return h
 
 
+def _f_x_h(f, x, h, *h_indices):
+    # calculate x
+    x_h = x.copy()
+    for h_index in h_indices:
+        x_h[h_index[0]] += h[h_index]
+    # eval f
+    f_x_h = f(x_h)
+    f_x_h = np.asanyarray(f_x_h)
+    # return
+    return f_x_h
+
+
 def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_always_typical_x=True, accuracy_order=2):
     assert accuracy_order in (1, 2)
 
@@ -77,31 +85,35 @@ def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_
             eps = np.spacing(1)**(1 / 2)
         elif accuracy_order == 2:
             eps = np.spacing(1)**(1 / 3)
-    h = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=eps, both_directions=accuracy_order >= 2, dtype=dtype)
+    h = _step_sizes(x, eps, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, both_directions=accuracy_order >= 2, dtype=dtype)
+
+    # define function for evaluation
+    def f_x_h(*h_indices):
+        return _f_x_h(f, x, h, *h_indices)
 
     # init values
     n = len(x)
     df = None
 
+    # calculate f(x)
+    if f_x is None and accuracy_order == 1:
+        f_x = f(x)
+    if f_x is not None:
+        f_x = np.asanyarray(f_x)
+
     # calculate df
     for i in range(n):
-        h_i = h[i]
-        for h_i_j in h_i:
-            x_h = x.copy()
-            x_h[i] += h_i_j
-            f_x_h = np.asanyarray(f(x_h))
-            if df is None:
-                df_shape = (n,) + f_x_h.shape
-                df = np.zeros(df_shape)
-            df[i] += np.sign(h_i_j) * f_x_h
-
         if accuracy_order == 1:
-            if f_x is None:
-                f_x = f(x)
-            df[i] -= f_x
-            df[i] /= h_i
+            df_i = f_x_h((i,)) - f_x
+            df_i /= np.sign(h[i]) * h_i
+        elif accuracy_order == 2:
+            df_i = f_x_h((i, 0)) - f_x_h((i, 1))
+            df_i /= np.sum(np.abs(h[i]))
         else:
-            df[i] /= np.sum(np.abs(h_i))
+            assert False
+        if df is None:
+            df = np.zeros((n,) + df_i.shape, dtype=dtype)
+        df[i] = df[i]
 
     return df
 
@@ -121,9 +133,15 @@ def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use
             eps = np.spacing(1)**(1 / 4)
         elif accuracy_order == 4:
             eps = np.spacing(1)**(1 / 6)
-    h = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=eps, both_directions=accuracy_order >= 2, dtype=dtype)
+        else:
+            assert False
+    h = _step_sizes(x, eps, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, both_directions=accuracy_order >= 2, dtype=dtype)
     if accuracy_order > 2:
-        h2 = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=2 * eps, both_directions=True, dtype=dtype)
+        h2 = _step_sizes(x, 2 * eps, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, both_directions=True, dtype=dtype)
+
+    # define function for evaluation
+    def f_x_h(h, *h_indices):
+        return _f_x_h(f, x, h, *h_indices)
 
     # init values
     n = len(x)
@@ -135,18 +153,7 @@ def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use
 
     # create df array
     df_shape = (n, n) + f_x.shape
-    df = np.empty(df_shape)
-
-    def f_x_h(h, *h_indices):
-        # calculate x
-        x_h = x.copy()
-        for h_index in h_indices:
-            x_h[h_index[0]] += h[h_index]
-        # eval f
-        f_x_h = f(x_h)
-        f_x_h = np.asanyarray(f_x_h)
-        # return
-        return f_x_h
+    df = np.empty(df_shape, dtype=dtype)
 
     # calculate f for changes in a single component
     f_single_h_shape = h.shape + f_x.shape
@@ -154,11 +161,11 @@ def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use
     for i, h_i in np.ndenumerate(h):
         f_single_h[i] = f_x_h(h, i)
 
-    # calculate values
+    # calculate df
     if accuracy_order == 1:
         for i in range(n):
             for j in range(i + 1):
-                df[i, j] = (f_x_h(h, (i,), (j,)) + f_x) - (f_single_h[i, 0] + f_single_h[j, 0])
+                df[i, j] = (f_x_h(h, (i,), (j,)) + f_x) - (f_single_h[i] + f_single_h[j])
                 df[i, j] /= np.abs(h[i]).mean() * np.abs(h[j]).mean()
     elif accuracy_order == 2:
         for i in range(n):
@@ -177,6 +184,8 @@ def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use
             # off diagonal values
             for j in range(i):
                 df[i, j] = np.nan
+    else:
+        assert False
 
     # make symmetric
     for i in range(n):
