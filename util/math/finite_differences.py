@@ -104,3 +104,57 @@ def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_
             df[i] /= np.sum(np.abs(h_i))
 
     return df
+
+
+def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_always_typical_x=True):
+    # convert x
+    x = np.asanyarray(x)
+
+    # calculate step size
+    dtype = np.float64
+    if eps is None:
+        eps = np.spacing(1)**(1 / 3)
+    h = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=eps, both_directions=False, dtype=dtype)
+
+    # init values
+    n = len(x)
+
+    # calculate f(x)
+    if f_x is None:
+        f_x = f(x)
+    f_x = np.asanyarray(f_x)
+
+    # create df array
+    df_shape = (n, n) + f_x.shape
+    df = np.empty(df_shape)
+
+    def f_x_h(h, *h_indices):
+        # calculate x
+        x_h = x.copy()
+        for h_index in h_indices:
+            x_h[h_index[0]] += h[h_index]
+        # eval f
+        f_x_h = f(x_h)
+        f_x_h = np.asanyarray(f_x_h)
+        # return
+        return f_x_h
+
+    # calculate f for changes in a single component
+    f_single_h_shape = h.shape + f_x.shape
+    f_single_h = np.empty(f_single_h_shape)
+    for i, h_i in np.ndenumerate(h):
+        f_single_h[i] = f_x_h(h, i)
+
+    # calculate values
+    for i in range(n):
+        for j in range(i + 1):
+            df[i, j] = (f_x_h(h, (i,), (j,)) + f_x) - (f_single_h[i, 0] + f_single_h[j, 0])
+            df[i, j] /= np.abs(h[i]).mean() * np.abs(h[j]).mean()
+
+    # make symmetric
+    for i in range(n):
+        for j in range(i):
+            df[j, i] = df[i, j]
+
+    # return
+    return df
