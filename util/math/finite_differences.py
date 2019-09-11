@@ -106,15 +106,24 @@ def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_
     return df
 
 
-def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_always_typical_x=True):
+def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_always_typical_x=True, accuracy_order=2):
+    assert accuracy_order in (1, 2)
+
     # convert x
     x = np.asanyarray(x)
 
     # calculate step size
     dtype = np.float64
     if eps is None:
-        eps = np.spacing(1)**(1 / 3)
-    h = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=eps, both_directions=False, dtype=dtype)
+        if accuracy_order == 1:
+            eps = np.spacing(1)**(1 / 3)
+        elif accuracy_order == 2:
+            eps = np.spacing(1)**(1 / 4)
+        else:
+            assert False
+    h = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=eps, both_directions=accuracy_order >= 2, dtype=dtype)
+    if accuracy_order > 2:
+        h2 = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=2 * eps, both_directions=True, dtype=dtype)
 
     # init values
     n = len(x)
@@ -146,10 +155,22 @@ def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use
         f_single_h[i] = f_x_h(h, i)
 
     # calculate values
-    for i in range(n):
-        for j in range(i + 1):
-            df[i, j] = (f_x_h(h, (i,), (j,)) + f_x) - (f_single_h[i, 0] + f_single_h[j, 0])
-            df[i, j] /= np.abs(h[i]).mean() * np.abs(h[j]).mean()
+    if accuracy_order == 1:
+        for i in range(n):
+            for j in range(i + 1):
+                df[i, j] = (f_x_h(h, (i,), (j,)) + f_x) - (f_single_h[i, 0] + f_single_h[j, 0])
+                df[i, j] /= np.abs(h[i]).mean() * np.abs(h[j]).mean()
+    elif accuracy_order == 2:
+        for i in range(n):
+            # diagonal values
+            df[i, i] = (f_single_h[i, 0] + f_single_h[i, 1]) - 2 * f_x
+            df[i, i] /= np.abs(h[i]).mean()**2
+            # off diagonal values
+            for j in range(i):
+                df[i, j] = (2 * f_x + f_x_h(h, (i, 0), (j, 0)) + f_x_h(h, (i, 1), (j, 1))) - (f_single_h[i, 0] + f_single_h[i, 1] + f_single_h[j, 0] + f_single_h[j, 1])
+                df[i, j] /= 2 * np.abs(h[i]).mean() * np.abs(h[j]).mean()
+    else:
+        assert False
 
     # make symmetric
     for i in range(n):
