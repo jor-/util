@@ -107,7 +107,7 @@ def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_
 
 
 def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_always_typical_x=True, accuracy_order=2):
-    assert accuracy_order in (1, 2)
+    assert accuracy_order in (1, 2, 4)
 
     # convert x
     x = np.asanyarray(x)
@@ -119,8 +119,8 @@ def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use
             eps = np.spacing(1)**(1 / 3)
         elif accuracy_order == 2:
             eps = np.spacing(1)**(1 / 4)
-        else:
-            assert False
+        elif accuracy_order == 4:
+            eps = np.spacing(1)**(1 / 6)
     h = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=eps, both_directions=accuracy_order >= 2, dtype=dtype)
     if accuracy_order > 2:
         h2 = _step_sizes(x, typical_x=typical_x, use_always_typical_x=use_always_typical_x, bounds=bounds, eps=2 * eps, both_directions=True, dtype=dtype)
@@ -169,8 +169,14 @@ def second_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use
             for j in range(i):
                 df[i, j] = (2 * f_x + f_x_h(h, (i, 0), (j, 0)) + f_x_h(h, (i, 1), (j, 1))) - (f_single_h[i, 0] + f_single_h[i, 1] + f_single_h[j, 0] + f_single_h[j, 1])
                 df[i, j] /= 2 * np.abs(h[i]).mean() * np.abs(h[j]).mean()
-    else:
-        assert False
+    elif accuracy_order == 4:
+        for i in range(n):
+            # diagonal values
+            df[i, i] = (16 * (f_x_h(h, (i, 0)) + f_x_h(h, (i, 1)))) - (30 * f_x + f_x_h(h2, (i, 0)) + f_x_h(h2, (i, 1)))
+            df[i, i] /= 12 * np.abs(h[i]).mean()**2
+            # off diagonal values
+            for j in range(i):
+                df[i, j] = np.nan
 
     # make symmetric
     for i in range(n):
