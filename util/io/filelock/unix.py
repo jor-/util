@@ -62,16 +62,26 @@ class FileLock:
             open_flags = os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_SYNC
             open_mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH
             # open
-            try:
-                self._fd = os.open(self.lockfile, open_flags, mode=open_mode)
-            except OSError as e:
-                if e.errno == errno.ESTALE:
-                    util.logging.warning('{}: {}. Retrying to open lock file'.format(self, e))
-                    self._open_lockfile()
+            opened = False
+            stale_count = 0
+            stale_count_max = 10
+            while not opened:
+                try:
+                    self._fd = os.open(self.lockfile, open_flags, mode=open_mode)
+                except OSError as e:
+                    if e.errno == errno.ESTALE:
+                        if stale_count < stale_count_max:
+                            util.logging.warning('{}: {}. Retrying to open lock file'.format(self, e))
+                            time.sleep(10 * stale_count)
+                            stale_count += 1
+                        else:
+                            util.logging.error('{}: {}. Lock file can not be opened'.format(self, e))
+                            raise
+                    else:
+                        raise
                 else:
-                    raise
-            else:
-                util.logging.debug('{}: Lock file {} opened.'.format(self, self.lockfile))
+                    util.logging.debug('{}: Lock file {} opened.'.format(self, self.lockfile))
+                    opened = True
 
         assert self._fd is not None
 
