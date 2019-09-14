@@ -189,19 +189,22 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
                         # choose locator
                         tick_locator = plt.LogLocator(base=tick_base, subs=(tick_base / 10,))
-                    else:
-                        tick_locator = None
 
-                    data_min_i = np.nanmin(data_i)
-                    data_max_i = np.nanmax(data_i)
-                    if data_min_i < data_max_i:
-                        contour_plot = plt.contour(data_i, locator=tick_locator, colors='k', linestyles=['dashed', 'solid'], linewidths=0.5, norm=norm)
+                        # choose label format
                         if np.abs(tick_base_exp) >= contour_power_limit:
                             label_fmt = '%.0e'
                         elif tick_base_exp < 0:
                             label_fmt = '%1.{:d}f'.format(np.abs(tick_base_exp))
                         else:
                             label_fmt = '%d'
+                    else:
+                        tick_locator = None
+                        label_fmt = '%1.3f'
+
+                    data_min_i = np.nanmin(data_i)
+                    data_max_i = np.nanmax(data_i)
+                    if data_min_i < data_max_i:
+                        contour_plot = plt.contour(data_i.transpose(), origin='lower', locator=tick_locator, colors='k', linestyles=['dashed', 'solid'], linewidths=0.5, norm=norm)
                         axes.clabel(contour_plot, contour_plot.levels[1::2], fontsize=8, fmt=label_fmt, colors=str(contours_text_brightness))
 
             util.plot.auxiliary.generic(current_file, plot_function, **kwargs)
