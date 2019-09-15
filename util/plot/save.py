@@ -135,6 +135,8 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                     v_min_i = v_min
                 if v_max is None:
                     v_max_i = util.plot.auxiliary.v_max(data_i)
+                    if v_min is not None:
+                        v_max_i = max(v_max_i, v_min)
                 else:
                     v_max_i = v_max
                 if use_log_scale:
