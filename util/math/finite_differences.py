@@ -61,7 +61,7 @@ def _step_sizes(x, eps, typical_x=None, use_always_typical_x=True, bounds=None, 
     return h
 
 
-def _f_x_h(f, x, h, *h_indices, dtype=np.float):
+def _f_x_h(f, x, h, *h_indices, dtype=np.float64):
     # calculate x
     x_h = x.copy()
     for h_index in h_indices:
@@ -108,7 +108,7 @@ def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_
     for i in range(n):
         if accuracy_order == 1:
             df[i] = f_x_h((i,)) - f_x
-            df[i] /= np.sign(h[i]) * h[i]
+            df[i] /= h[i]
         elif accuracy_order == 2:
             f_x_h_0 = f_x_h((i, 0))
             f_x_h_1 = f_x_h((i, 1))
@@ -118,7 +118,6 @@ def first_derivative(f, x, f_x=None, typical_x=None, bounds=None, eps=None, use_
             df[i] /= np.sum(np.abs(h[i]), dtype=dtype)
         else:
             assert False
-        df[i] = df[i]
 
     return df
 
