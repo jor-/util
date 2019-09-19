@@ -16,7 +16,8 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             tick_power_limit_fix=None, tick_power_limit_fix_x=None, tick_power_limit_fix_y=None,
             tick_number=None, tick_number_x=None, tick_number_y=None,
             x_min=None, x_max=None, y_min=None, y_max=None,
-            overwrite=True, make_read_only=True, dpi=800, backend=None):
+            overwrite=True, make_read_only=True, dpi=800, backend=None,
+            invert_x_axis=False, invert_y_axis=False):
 
     # check if file should be saved
     if check_file(file, overwrite=overwrite):
@@ -55,6 +56,9 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
 
         # set axis limits
         set_axis_limits(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
+
+        # invert axis
+        invert_axis(x_axis=invert_x_axis, y_axis=invert_y_axis)
 
         # save and close
         save_and_close_fig(fig, file, transparent=transparent, make_read_only=make_read_only, overwrite=overwrite, dpi=dpi)
@@ -221,3 +225,13 @@ def v_min(data, percentile=1, significant_digits=2):
 
 def v_max(data, percentile=99, significant_digits=2):
     return _v_min_max(data, percentile, significant_digits=significant_digits)
+
+
+def invert_axis(x_axis=False, y_axis=False, axes=None):
+    if x_axis or y_axis:
+        if axes is None:
+            axes = plt.gca()
+        if x_axis:
+            axes.invert_xaxis()
+        if y_axis:
+            axes.invert_yaxis()
