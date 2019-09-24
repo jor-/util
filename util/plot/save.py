@@ -45,6 +45,8 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
         data = data.reshape((1,) + original_shape + (1,))
     elif original_dim == 3:
         data = data.reshape((1,) + original_shape)
+    elif original_dim > 4:
+        raise ValueError(f'Dim of data has to be between 2 and 4, but its dim is {original_dim}.')
 
     # shape of data
     t_len = data.shape[0]
