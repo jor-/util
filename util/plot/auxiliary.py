@@ -165,6 +165,7 @@ def set_tick_power_limit_fix(power_limit, axis='both', axes=None):
 
 def set_number_of_ticks(number, axis='both', axes=None):
     if number is not None:
+        number = int(number)
         # set axes
         axes = _get_axes_list(axes=axes)
         # set axis
@@ -172,7 +173,7 @@ def set_number_of_ticks(number, axis='both', axes=None):
             axis = 'both'
         # apply tick number
         for axes_i in axes:
-            axes_i.locator_params(tight=True, axis=axis, nbins=number)
+            axes_i.locator_params(tight=True, axis=axis, nbins=number + 1, min_n_ticks=number, integer=False)
 
 
 def set_axis_limits(x_min=None, x_max=None, y_min=None, y_max=None):
