@@ -17,7 +17,7 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             tick_number=None, tick_number_x=None, tick_number_y=None,
             x_min=None, x_max=None, y_min=None, y_max=None,
             overwrite=True, make_read_only=True, dpi=800, backend=None,
-            invert_x_axis=False, invert_y_axis=False):
+            invert_x_axis=False, invert_y_axis=False, transform_x=None, transform_y=None):
 
     # check if file should be saved
     if check_file(file, overwrite=overwrite):
@@ -33,6 +33,9 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
 
         # make plot
         plot_function(fig)
+
+        # get axes
+        axes = fig.gca()
 
         # power limits
         set_tick_power_limit_scientific(tick_power_limit_scientific, axis='both')
@@ -58,7 +61,10 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
         set_axis_limits(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
 
         # invert axis
-        invert_axis(x_axis=invert_x_axis, y_axis=invert_y_axis)
+        invert_axis(x_axis=invert_x_axis, y_axis=invert_y_axis, axes=axes)
+
+        # transform tick labels
+        transform_tick_labels(transform_x=transform_x, transform_y=transform_y, axes=axes)
 
         # save and close
         save_and_close_fig(fig, file, transparent=transparent, make_read_only=make_read_only, overwrite=overwrite, dpi=dpi)
@@ -235,3 +241,19 @@ def invert_axis(x_axis=False, y_axis=False, axes=None):
             axes.invert_xaxis()
         if y_axis:
             axes.invert_yaxis()
+
+
+def transform_tick_labels(transform_x=None, transform_y=None, axes=None):
+    if transform_x or transform_y:
+        if axes is None:
+            axes = plt.gca()
+
+        if transform_x:
+            x_ticks = axes.get_xticks()
+            x_tick_lables = transform_x(x_ticks)
+            axes.set_xticklabels(x_tick_lables)
+
+        if transform_y:
+            y_ticks = axes.get_yticks()
+            y_tick_lables = transform_y(y_ticks)
+            axes.set_yticklabels(y_tick_lables)
