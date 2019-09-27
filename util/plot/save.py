@@ -16,7 +16,7 @@ import util.logging
 def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
          use_log_scale=False, v_min=None, v_max=None,
          contours=False, contours_text_brightness=0.5, contour_power_limit=3,
-         colorbar=True, colormap=None,
+         colorbar=True, colormap=None, show_axes=False,
          **kwargs):
     # prepare data
     data = np.asanyarray(data)
@@ -163,7 +163,8 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 axes_image = plt.imshow(data_i.transpose(), origin='lower', aspect='equal', cmap=colormap, vmin=v_min_i, vmax=v_max_i, norm=norm)
 
                 # disable axis labels
-                axes.axis('off')
+                if not show_axes:
+                    axes.axis('off')
 
                 # plot add_colorbar
                 util.plot.auxiliary.add_colorbar(axes_image, colorbar=colorbar)
