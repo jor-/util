@@ -87,7 +87,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
 
     # set colormap
     if colormap is None:
-        colormap = plt.cm.plasma
+        colormap = plt.cm.viridis
     colormap.set_bad(color='w', alpha=0.0)
 
     # plot each depth
