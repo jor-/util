@@ -17,7 +17,8 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             tick_number=None, tick_number_x=None, tick_number_y=None,
             x_min=None, x_max=None, y_min=None, y_max=None,
             overwrite=True, make_read_only=True, dpi=800, backend=None,
-            invert_x_axis=False, invert_y_axis=False, transform_x=None, transform_y=None):
+            invert_x_axis=False, invert_y_axis=False, transform_x=None, transform_y=None,
+            colorbar=False, colorbar_tick_number=None, colorbar_tick_step_size=None):
 
     # check if file should be saved
     if check_file(file, overwrite=overwrite):
@@ -65,6 +66,9 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
 
         # transform tick labels
         transform_tick_labels(transform_x=transform_x, transform_y=transform_y, axes=axes)
+
+        # add colorbar
+        add_colorbar(axes=axes, colorbar=colorbar, tick_number=colorbar_tick_number, tick_step_size=colorbar_tick_step_size)
 
         # save and close
         save_and_close_fig(fig, file, transparent=transparent, make_read_only=make_read_only, overwrite=overwrite, dpi=dpi)
@@ -194,16 +198,47 @@ def get_colors(n, colormap_name='gist_rainbow'):
     return colors
 
 
-def add_colorbar(axes_image, orientation='right', size='3%', pad='1.5%', colorbar=True, axes=None):
+def set_number_of_ticks_for_locator(locator, tick_number=None):
+    if tick_number is not None:
+        tick_number = int(tick_number)
+        # LinearLocator, LogLocator, SymmetricalLogLocator
+        try:
+            locator.set_params(numticks=tick_number)
+        except TypeError:
+            pass
+        # MaxNLocator
+        try:
+            locator.set_params(nbins=tick_number + 1)
+            locator.set_params(min_n_ticks=tick_number)
+        except TypeError:
+            pass
+
+
+def add_colorbar(axes_image=None, axes=None, colorbar=True,
+                 orientation='right', size='3%', pad='1.5%', tick_number=None, tick_step_size=None):
     # plot colorbar
     if colorbar:
         if axes is None:
             axes = plt.gca()
+        if axes_image is None:
+            axes_images = axes.get_images()
+            axes_image = axes_images[-1]
         # make place for colorbar with same height as plot
         axes_divider = mpl_toolkits.axes_grid1.axes_divider.make_axes_locatable(axes)
         cax = axes_divider.append_axes(orientation, size=size, pad=pad)
         # plot colorbar
         cb = plt.colorbar(axes_image, cax=cax)
+        # set ticks
+        if tick_number is not None and tick_step_size is not None:
+            raise ValueError('Please use only tick_number or tick_step_size, not both.')
+        if tick_number is not None:
+            set_number_of_ticks_for_locator(cb.locator, tick_number=tick_number)
+            cb.update_ticks()
+        if tick_step_size is not None:
+            tick_step_size = float(tick_step_size)
+            locator = matplotlib.ticker.MultipleLocator(base=tick_step_size)
+            cb.locator = locator
+            cb.update_ticks()
         return cb
     else:
         return None

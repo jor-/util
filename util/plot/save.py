@@ -166,9 +166,6 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                 if not show_axes:
                     axes.axis('off')
 
-                # plot add_colorbar
-                util.plot.auxiliary.add_colorbar(axes_image, colorbar=colorbar)
-
                 # plot contours
                 if contours:
                     if use_log_scale:
@@ -212,7 +209,7 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
                         contour_plot = plt.contour(data_i.transpose(), origin='lower', locator=tick_locator, colors='k', linestyles=['dashed', 'solid'], linewidths=0.5, norm=norm)
                         axes.clabel(contour_plot, contour_plot.levels[1::2], fontsize=8, fmt=label_fmt, colors=str(contours_text_brightness))
 
-            util.plot.auxiliary.generic(current_file, plot_function, **kwargs)
+            util.plot.auxiliary.generic(current_file, plot_function, colorbar=colorbar, **kwargs)
 
     util.logging.debug('Plot completed.')
 
@@ -401,9 +398,8 @@ def scatter(file, x, y, z=None, point_size=20, plot_3d=False,
                 ax.scatter(x, y, z, s=point_size)
             else:
                 axes_image = plt.scatter(x, y, c=z, s=point_size)
-                util.plot.auxiliary.add_colorbar(axes_image)
 
-    util.plot.auxiliary.generic(file, plot_function, **kwargs)
+    util.plot.auxiliary.generic(file, plot_function, colorbar=not plot_3d, **kwargs)
 
 
 def histogram(file, data,
@@ -580,10 +576,7 @@ def imshow_dataset_values(file, data, value_function, use_abs=False, colorbar=Tr
         ticks[mask] = positions_y[ticks[mask].astype(np.min_scalar_type(m))]
         axes.set_yticklabels(ticks_to_labels(ticks))
 
-        # make colorbar
-        util.plot.auxiliary.add_colorbar(axes_image, colorbar=colorbar)
-
-    util.plot.auxiliary.generic(file, plot_function, **kwargs)
+    util.plot.auxiliary.generic(file, plot_function, colorbar=colorbar, **kwargs)
 
 
 def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, colorbar=True, **kwargs):
@@ -599,10 +592,6 @@ def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, colorbar=True
         axes.set_xticks([])
         axes.set_yticks([])
 
-        # make colorbar
-        cb = util.plot.auxiliary.add_colorbar(axes_image, colorbar=colorbar)
-        cb.ax.tick_params(labelsize=font_size)
-
         # set power limits
         if axis_labels:
             util.plot.auxiliary.set_tick_power_limit_scientific(power_limit=3)
@@ -610,7 +599,7 @@ def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, colorbar=True
         else:
             plt.axis('off')
 
-    util.plot.auxiliary.generic(file, plot_function, **kwargs)
+    util.plot.auxiliary.generic(file, plot_function, colorbar=colorbar, **kwargs)
 
 
 def _draw_sparse_matrix_pattern(A, markersize=1, color='k', **kwargs):
