@@ -13,6 +13,7 @@ COMMANDS = {
     'time': 'TIME_FMT="\nStatistics for %C:\nElapsed time: %Es, Exit code: %x\nCPU: %Us user mode, %Ss kernel mode, %P workload\nMemory: %Mkb max, %W swap outs\nContex switches: %c involuntarily, %w voluntarily\nPage faults: %F major, %R minor\nFile system I/O: %I inputs, %O outputs"\ncommand time -f "$TIME_FMT" {command}',
     'sub': '/opt/pbs/default/bin/qsub',
     'stat': '/opt/pbs/default/bin/qstat',
+    'stat_args': ['-a'],
     'nodes': '/usr/local/bin/qnodes',
     'python': 'python3'
 }

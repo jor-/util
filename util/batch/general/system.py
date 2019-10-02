@@ -404,6 +404,13 @@ class BatchSystem():
         return self.command('stat')
 
     @property
+    def status_command_args(self):
+        try:
+            return self.command('stat_args')
+        except KeyError:
+            return []
+
+    @property
     def nodes_command(self):
         return self.command('nodes')
 
@@ -465,19 +472,15 @@ class BatchSystem():
             util.logging.debug('Started job has ID {}.'.format(job_id))
             return job_id
 
-    def job_state(self, job_id, return_output=True, status_command_args=None):
-        # input values
-        if status_command_args is None:
-            status_command_args = ()
-        else:
-            status_command_args = tuple(status_command_args)
+    def job_state(self, job_id, return_output=True):
+        # make command list
+        command_list = [self.status_command] + self.status_command_args + [job_id]
 
         # run status command
-        command = (self.status_command,) + status_command_args + (job_id,)
         try:
-            output = subprocess.check_output(command, stderr=subprocess.PIPE)
+            output = subprocess.check_output(command_list, stderr=subprocess.PIPE)
         except (subprocess.CalledProcessError, OSError) as e:
-            raise util.batch.general.system.CommandError(command, cause=e) from e
+            raise util.batch.general.system.CommandError(command_list, cause=e) from e
         else:
             util.logging.debug('Status command result: {}'.format(output))
             if return_output:

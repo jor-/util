@@ -32,7 +32,7 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             job_id = job_id[:-len(SUFFIX)]
 
         # call super
-        return super().job_state(job_id, return_output=return_output, status_command_args=('-a',))
+        return super().job_state(job_id, return_output=return_output)
 
     def is_job_running(self, job_id):
         try:
