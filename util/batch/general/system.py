@@ -324,14 +324,7 @@ class NodeSetupIncompleteError(Exception):
 
 class CommandError(Exception):
 
-    def __init__(self, command, cause=None, return_code=None, output=None, error_output=None):
-
-        # store parameters
-        self.command = command
-        self.cause = cause
-        self.return_code = return_code
-        self.output = output
-        self.error_output = error_output
+    def __init__(self, command, cause=None, return_code=None, output=None, error_output=None, message=None):
 
         # restore non-passed parameters from original exception
         if cause is not None:
@@ -341,8 +334,6 @@ class CommandError(Exception):
                     return_code = cause.returncode
                 except AttributeError:
                     pass
-                else:
-                    self.return_code = return_code
 
             if output is None:
                 try:
@@ -351,7 +342,7 @@ class CommandError(Exception):
                     pass
                 else:
                     if output is not None:
-                        self.output = output.decode('utf8')
+                        output = output.decode('utf8')
 
             if error_output is None:
                 try:
@@ -360,18 +351,39 @@ class CommandError(Exception):
                     pass
                 else:
                     if error_output is not None:
-                        self.error_output = error_output.decode('utf8')
+                        error_output = error_output.decode('utf8')
 
         # create message
-        message = 'Command {} could not be executed successfully.'.format(self.command)
-        if self.return_code is not None:
-            message = message + ' The return code was: {}.'.format(self.return_code)
-        if self.output is not None:
-            message = message + ' The output was: "{}".'.format(self.output)
-        if self.error_output is not None:
-            message = message + ' The error output was: "{}".'.format(self.error_output)
+        if message is None:
+            message = 'Command {} could not be executed successfully.'.format(command)
+            if return_code is not None:
+                message = message + ' The return code was: {}.'.format(return_code)
+            if output is not None:
+                message = message + ' The output was: "{}".'.format(output)
+            if error_output is not None:
+                message = message + ' The error output was: "{}".'.format(error_output)
+
+        # store parameters
+        self.command = command
+        self.cause = cause
+        self.return_code = return_code
+        self.output = output
+        self.error_output = error_output
         self.message = message
+
         super().__init__(message)
+
+
+class CommandInvalidOutputError(CommandError):
+    def __init__(self, command, output=None, message=None):
+
+        # create message
+        if message is None:
+            message = 'Command {} has invalid output.'.format(command)
+            if output is not None:
+                message = message + ' The output was: "{}".'.format(output)
+
+        super().__init__(command, output=output, message=message)
 
 
 class BatchSystem():
