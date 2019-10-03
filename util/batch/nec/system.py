@@ -52,13 +52,17 @@ class BatchSystem(util.batch.general.system.BatchSystem):
                         line_splitted = line.split(' ')
                         line_splitted = [line_part for line_part in line_splitted if len(line_part) > 0]
                         # line format: Batch class  Walltime [h]  Cores/node  RAM [gb]  Total [*]  Used [*]  Avail [*]  Run.jobs/user
-                        assert line_splitted[0] == node_kind
-                        assert len(line_splitted) == 8
-                        number_of_free_nodes = int(line_splitted[6])
+                        correct_output_format = line_splitted[0] == node_kind and len(line_splitted) == 8
+                        if correct_output_format:
+                            try:
+                                number_of_free_nodes = int(line_splitted[6])
+                            except ValueError:
+                                correct_output_format = False
+                            else:
+                                correct_output_format = number_of_free_nodes >= 0
 
-                        if number_of_free_nodes < 0:
-                            util.logging.warn('Number of free nodes in the following line is negative, setting free nodes to zero.\n{}'.format(line))
-                            number_of_free_nodes = 0
+                        if not correct_output_format:
+                            raise util.batch.general.system.CommandInvalidOutputError(nodes_command, output=output)
 
                         util.logging.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
                         free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
