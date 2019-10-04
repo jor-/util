@@ -46,29 +46,37 @@ class BatchSystem(util.batch.general.system.BatchSystem):
             lines = output.splitlines()
             state = {}
             for line in lines:
+                # split line
                 line = line.strip()
-                for node_kind in self.node_infos.kinds():
-                    if line.startswith(node_kind):
-                        line_splitted = line.split(' ')
-                        line_splitted = [line_part for line_part in line_splitted if len(line_part) > 0]
-                        # line format: Batch class  Walltime [h]  Cores/node  RAM [gb]  Total [*]  Used [*]  Avail [*]  Run.jobs/user
-                        correct_output_format = line_splitted[0] == node_kind and len(line_splitted) == 8
-                        if correct_output_format:
-                            try:
-                                number_of_free_nodes = int(line_splitted[6])
-                            except ValueError:
-                                correct_output_format = False
+                line_splitted = line.split(' ')
+                line_splitted = [line_part for line_part in line_splitted if len(line_part) > 0]
+                #
+                if len(line_splitted) > 0:
+                    for node_kind in self.node_infos.kinds():
+                        if line_splitted[0] == node_kind:
+                            # check correct output
+                            # line format: Batch class  Walltime [h]  Cores/node  RAM [gb]  Total [*]  Used [*]  Avail [*]  Run.jobs/user
+                            if len(line_splitted) == 8:
+                                try:
+                                    number_of_free_nodes = int(line_splitted[6])
+                                except ValueError:
+                                    correct_output_format = False
+                                else:
+                                    correct_output_format = number_of_free_nodes >= 0
                             else:
-                                correct_output_format = number_of_free_nodes >= 0
-
-                        if not correct_output_format:
-                            raise util.batch.general.system.CommandInvalidOutputError(nodes_command, output=output)
-
-                        util.logging.debug('Extracting nodes states from line "{}": node kind {} with {} free nodes.'.format(line, node_kind, number_of_free_nodes))
-                        free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
-                        free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
-
-                        state[node_kind] = (free_cpus, free_memory)
+                                correct_output_format = False
+                            if not correct_output_format:
+                                raise util.batch.general.system.CommandInvalidOutputError(nodes_command, output=output)
+                            # calculate state
+                            util.logging.debug(f'Extracting nodes states from line "{line}": node kind {node_kind} with {number_of_free_nodes} free nodes.')
+                            free_cpus = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.cpus(node_kind)
+                            free_memory = np.ones(number_of_free_nodes, dtype=np.uint32) * self.node_infos.memory(node_kind)
+                            state[node_kind] = (free_cpus, free_memory)
+            # check state
+            for node_kind in self.node_infos.kinds():
+                if node_kind not in state:
+                    util.logging.warning(f'No nodes state found for node kind {node_kind}.')
+            # return state
             return util.batch.general.system.NodesState(state)
 
 
