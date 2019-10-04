@@ -37,9 +37,8 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def is_job_running(self, job_id):
         try:
             self.job_state(job_id, return_output=False)
-        except subprocess.CalledProcessError as e:
-            cause = e.cause
-            if cause is None or not isinstance(cause, subprocess.CalledProcessError) or cause.returncode == 255:   # 255 => cannot connect to server
+        except util.batch.general.system.CommandError as e:
+            if e.returncode == 255:   # 255 => cannot connect to server
                 raise
             else:
                 return False
@@ -49,9 +48,9 @@ class BatchSystem(util.batch.general.system.BatchSystem):
     def is_job_finished(self, job_id):
         try:
             self.job_state(job_id, return_output=False)
-        except subprocess.CalledProcessError as e:
+        except util.batch.general.system.CommandError as e:
             cause = e.cause
-            if cause is None or not isinstance(cause, subprocess.CalledProcessError) or cause.returncode == 255:   # 255 => cannot connect to server
+            if e.returncode == 255:   # 255 => cannot connect to server
                 raise
             else:
                 return e.returncode == 35 or e.returncode == 153
