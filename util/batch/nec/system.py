@@ -30,8 +30,15 @@ class BatchSystem(util.batch.general.system.BatchSystem):
         return job_id
 
     def is_job_running(self, job_id):
-        output = self.job_state(job_id, return_output=True)
-        is_running = job_id in output and 'RequestID' in output
+        try:
+            output = self.job_state(job_id, return_output=True)
+        except util.batch.general.system.CommandError as e:
+            if e.returncode == 1 and e.error_output.startswith("NQShname2mid: [BSV ENMAPDB] Machine-id isn't registered in nmap database."):   # old job ids
+                return False
+            else:
+                raise
+        else:
+            is_running = job_id in output and 'RequestID' in output
         util.logging.debug(f'Job {job_id} running state is {is_running} due to output: {output}.')
         return is_running
 
