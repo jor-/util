@@ -667,10 +667,6 @@ class BatchSystem():
     def _nodes_state(self):
         raise NotImplementedError()
 
-    @abc.abstractmethod
-    def is_job_running(self, job_id):
-        raise NotImplementedError()
-
 
 BATCH_SYSTEM = BatchSystem({}, ())
 
@@ -936,7 +932,7 @@ class Job():
             with open(self.options['/job/id_file'], 'w') as id_file:
                 id_file.write(job_id)
 
-    def is_started(self):
+    def is_submitted(self):
         try:
             self.options['/job/id']
         except KeyError:
@@ -946,7 +942,6 @@ class Job():
 
     def is_finished(self, check_exit_code=True):
         finished_file = pathlib.Path(self.finished_file)
-        output_file = pathlib.Path(self.output_file)
 
         # if finished file exists, check exit code and output file
         if finished_file.exists():
@@ -956,6 +951,7 @@ class Job():
                 if exit_code != 0:
                     raise JobExitCodeError(self)
             # check if output file exists
+            output_file = pathlib.Path(self.output_file)
             if output_file.exists():
                 return True
             else:
@@ -965,32 +961,9 @@ class Job():
                 else:
                     return False
 
-        # if finished file does not exist, check if running
-        elif self.is_started():
-            try:
-                running = self.batch_system.is_job_running(self.id)
-            except CommandError as e:
-                util.logging.exception(e.message)
-                util.logging.warn(f'Could not determine whether job is running by using batch system. Assuming job {self.id} in {self.output_dir} is running.')
-            else:
-                if not running:
-                    time.sleep(60)
-                    if finished_file.exists():
-                        return self.is_finished(check_exit_code=check_exit_code)
-                    elif output_file.exists():
-                        output = self.output
-                        if self.exceeded_walltime_error_message is not None and self.exceeded_walltime_error_message in output:
-                            raise JobExceededWalltimeError(self)
-                        else:
-                            raise JobError(self, f'The job is not finished but it is not running! The finished file {finished_file} is missing', output)
-                    else:
-                        raise JobError(self, f'The job is not finished but it is not running! The finished file {finished_file} and the output file {output_file} are missing')
-
-        # if not not started or running, return false
-        return False
-
-    def is_running(self):
-        return self.is_started() and not self.is_finished(check_exit_code=False)
+        # if finished file does not exist,
+        else:
+            return False
 
     def wait_until_finished(self, check_exit_code=True, pause_seconds=None, pause_seconds_min=5, pause_seconds_max=60, pause_seconds_increment_cycle=50):
         adaptive = pause_seconds is None
@@ -1099,7 +1072,7 @@ class Job():
                     if not ignore:
                         raise util.batch.universal.system.JobError(self, f'There was a line in the job output machting keyword {error_keyword}: {line}', include_output=True)
 
-    def check_integrity(self, force_to_be_started=False, force_to_be_readonly=False):
+    def check_integrity(self, force_to_be_submitted=False, force_to_be_readonly=False):
         # check if options entires exist
         self.option_file
         self.output_file
@@ -1115,38 +1088,20 @@ class Job():
             if finished_file_time_since_creation_in_seconds >= util.batch.general.constants.MAX_WAIT_FOR_OUTPUT_FILE_SECONDS:
                 raise JobError(self, 'Output file is missing!')
 
-        # check started state
-        is_started = self.is_started()
-        if force_to_be_started and not is_started:
+        # check submitted state
+        is_submitted = self.is_submitted()
+        if force_to_be_submitted and not is_submitted:
             raise JobError(self, 'Job should be started!')
-
-        # check running state
-        is_running = self.is_running()
-        if is_running and not is_started:
-            raise JobError(self, 'Job is running but was not started!')
-        if is_started:
+        if is_submitted:
             job_id = self.id
-            try:
-                is_running_batch_system = self.batch_system.is_job_running(job_id)
-            except Exception:
-                pass
-            else:
-                if is_running != is_running_batch_system:
-                    raise JobError(self, 'Its is not clear if the job is running!')
 
         # check finished state
-        should_be_finished = is_started and not is_running
-        is_finished = self.is_finished(check_exit_code=should_be_finished)
-        if is_finished and not is_started:
+        is_finished = self.is_finished(check_exit_code=True)
+        if is_finished and not is_submitted:
             raise JobError(self, 'Job is finished but was not started!')
-        if should_be_finished != is_finished:
-            if should_be_finished:
-                raise JobError(self, 'The job should finished but it is not!')
-            else:
-                raise JobError(self, 'The job is finished but it is should not!')
 
         # check errors in output file
-        if is_started and os.path.exists(self.output_file) or is_finished:
+        if is_submitted and os.path.exists(self.output_file):
             self.check_output_file()
 
         # check read only
@@ -1165,16 +1120,13 @@ class Job():
             if not should_exists and exists:
                 raise JobError(self, 'File {} should not exist.'.format(file))
 
-        if is_started:
+        if is_submitted:
             check_if_file_exists(self.option_file)
             check_if_file_exists(self.id_file)
         if is_finished:
             check_if_file_exists(self.output_file)
             check_if_file_exists(self.finished_file)
             check_if_file_exists(self.unfinished_file, should_exists=False)
-        if is_running:
-            check_if_file_exists(self.finished_file, should_exists=False)
-            check_if_file_exists(self.unfinished_file)
 
 
 class JobError(Exception):
@@ -1185,7 +1137,7 @@ class JobError(Exception):
 
             # construct error message
             output_dir = job.output_dir
-            if job.is_started():
+            if job.is_submitted():
                 job_id = job.id
                 error_message = 'An error accured in job {} stored at {}: {}'.format(job_id, output_dir, error_message)
             else:
