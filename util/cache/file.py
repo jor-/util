@@ -47,10 +47,10 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
                 function_name = function.__name__
                 cache_file_function_name = '{function_name}_cache_file'.format(function_name=function_name)
 
-        def wrapper(*args, **kargs):
+        def wrapper(*args, **kwargs):
             # calculate cache file
             if cache_file_function_defined:
-                cache_file = cache_file_function(*args, **kargs)
+                cache_file = cache_file_function(*args, **kwargs)
             else:
                 cache_file = None
                 try:
@@ -63,7 +63,7 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
                     except AttributeError:
                         util.logging.warn('Cache file {} is not defined in {}. Using no cache!'.format(cache_file_function_name, self))
                     else:
-                        cache_file = cache_file_function_by_name(*args[1:], **kargs)
+                        cache_file = cache_file_function_by_name(*args[1:], **kwargs)
 
             # if cache file is defined, use cache
             if cache_file is not None and load_function is not None:
@@ -82,7 +82,7 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
 
                 # if cache file is not loadable, calculate value and save as cached value
                 if calculate_value:
-                    value = function(*args, **kargs)
+                    value = function(*args, **kwargs)
                     save(cache_file, value, save_function)
 
             # if cache file not defined, calculate value without cache
@@ -91,7 +91,7 @@ def decorator(cache_file_function=None, load_function=None, save_function=None):
                     util.logging.debug('Cache is not used because load function is None.')
                 elif cache_file is None:
                     util.logging.debug('Cache is not used because cache file is None.')
-                value = function(*args, **kargs)
+                value = function(*args, **kwargs)
 
             return value
 

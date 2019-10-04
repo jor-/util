@@ -475,9 +475,9 @@ class OptionsWithListeners(OptionsBase):
 
     NON_OPTION_NAMES = OptionsBase.NON_OPTION_NAMES + ('_listeners',)
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         self._listeners = {}
-        super().__init__(**kargs)
+        super().__init__(**kwargs)
 
     # get and set options method
 
@@ -574,8 +574,8 @@ class OptionsWithListenersAndDependencies(OptionsWithListeners):
 
     DEPENDENT_VALUE_CHANGED_METHOD_NAME = '{}_depending_value_changed'
 
-    def __init__(self, dependencies=None, **kargs):
-        super().__init__(**kargs)
+    def __init__(self, dependencies=None, **kwargs):
+        super().__init__(**kwargs)
 
         if dependencies is not None:
             for dependent_option, independent_option in dependencies.items():

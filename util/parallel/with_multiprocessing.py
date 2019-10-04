@@ -112,15 +112,15 @@ def starmap_parallel(function, values, number_of_processes=None, chunksize=1):
 
 # shared arguments
 
-def create_array_with_shared_kargs(shape, function, number_of_processes=None, chunksize=1, **kargs):
-    util.logging.debug(f'Creating array with shape {shape} with multiprocessing pool with {number_of_processes} processes and chunksize {chunksize} and {len(kargs)} shared kargs.')
+def create_array_with_shared_kwargs(shape, function, number_of_processes=None, chunksize=1, **kwargs):
+    util.logging.debug(f'Creating array with shape {shape} with multiprocessing pool with {number_of_processes} processes and chunksize {chunksize} and {len(kwargs)} shared kwargs.')
 
     # prepare indices
     indices = np.ndindex(*shape)
 
     # execute in parallel
-    with GlobalKargs(**kargs):
-        results = map_parallel(eval_with_global_kargs, indices, number_of_processes=number_of_processes, chunksize=chunksize)
+    with GlobalKargs(**kwargs):
+        results = map_parallel(eval_with_global_kwargs, indices, number_of_processes=number_of_processes, chunksize=chunksize)
         array = np.array(tuple(results))
 
     # create array
@@ -165,39 +165,39 @@ class MultipleUseError(Exception):
 
 
 class GlobalKargs:
-    def __init__(self, f, **kargs):
-        # store kargs
+    def __init__(self, f, **kwargs):
+        # store kwargs
         self.f = f
-        self.kargs = kargs
+        self.kwargs = kwargs
 
         # init global variable
-        global _global_kargs
+        global _global_kwargs
         try:
-            _global_kargs
+            _global_kwargs
         except NameError:
-            _global_kargs = None
+            _global_kwargs = None
 
     def __enter__(self):
-        util.logging.debug('Storing {} global kargs of types {}.'.format(len(self.kargs), tuple(map(type, self.kargs))))
+        util.logging.debug('Storing {} global kwargs of types {}.'.format(len(self.kwargs), tuple(map(type, self.kwargs))))
 
         # store global variable
-        global _global_kargs
-        global _global_kargs_f
-        if _global_kargs is None:
-            _global_kargs = self.kargs
-            _global_kargs_f = self.f
+        global _global_kwargs
+        global _global_kwargs_f
+        if _global_kwargs is None:
+            _global_kwargs = self.kwargs
+            _global_kwargs_f = self.f
         else:
-            raise MultipleUseError(_global_kargs)
+            raise MultipleUseError(_global_kwargs)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        util.logging.debug('Deleting global kargs.')
+        util.logging.debug('Deleting global kwargs.')
 
         # del global variable
         if exc_type is not MultipleUseError:
-            global _global_kargs
-            global _global_kargs_f
-            _global_kargs = None
-            _global_kargs_f = None
+            global _global_kwargs
+            global _global_kwargs_f
+            _global_kwargs = None
+            _global_kwargs_f = None
 
 
 class GlobalArgs:
@@ -236,9 +236,9 @@ class GlobalArgs:
             _global_args_f = None
 
 
-def eval_with_global_kargs(i, f):
-    global _global_kargs
-    return f(i, **_global_kargs)
+def eval_with_global_kwargs(i, f):
+    global _global_kwargs
+    return f(i, **_global_kwargs)
 
 
 def eval_with_global_args(i):
