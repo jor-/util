@@ -349,7 +349,7 @@ def line(file, x, y,
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
-def fill_between(file, x, y1, y2=0, color='b', xticks=None, **kwargs):
+def fill_between(file, x, y1, y2=0, color='b', step=None, xticks=None, **kwargs):
     # set x_min and x_max
     x = np.asanyarray(x)
     try:
@@ -363,16 +363,16 @@ def fill_between(file, x, y1, y2=0, color='b', xticks=None, **kwargs):
 
     # plot
     def plot_function(fig):
-        plt.fill_between(x, y1, y2, color=color)
+        plt.fill_between(x, y1, y2, color=color, step=step)
         if xticks is not None:
             plt.xticks(xticks)
 
     util.plot.auxiliary.generic(file, plot_function, **kwargs)
 
 
-def fill_between_x(file, y, x1, x2=0, color='b', xticks=None, **kwargs):
+def fill_between_x(file, y, x1, x2=0, color='b', step=None, xticks=None, **kwargs):
     def plot_function(fig):
-        plt.fill_betweenx(y, x1, x2=x2, color=color)
+        plt.fill_betweenx(y, x1, x2=x2, color=color, step=step)
         if xticks is not None:
             plt.xticks(xticks)
 
