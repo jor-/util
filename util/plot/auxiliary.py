@@ -15,6 +15,7 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             tick_power_limit_scientific=None, tick_power_limit_scientific_x=None, tick_power_limit_scientific_y=None,
             tick_power_limit_fix=None, tick_power_limit_fix_x=None, tick_power_limit_fix_y=None,
             tick_number=None, tick_number_x=None, tick_number_y=None,
+            tick_interger_only_x=False, tick_interger_only_y=False,
             x_min=None, x_max=None, y_min=None, y_max=None,
             overwrite=True, make_read_only=True, dpi=800, backend=None,
             invert_x_axis=False, invert_y_axis=False, transform_x=None, transform_y=None,
@@ -50,6 +51,10 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
         set_number_of_ticks(tick_number, axis='both')
         set_number_of_ticks(tick_number_x, axis='x')
         set_number_of_ticks(tick_number_y, axis='y')
+
+        # set integer only for ticks
+        ticks_set_integer_only(tick_interger_only_x, axis='x')
+        ticks_set_integer_only(tick_interger_only_y, axis='y')
 
         # set caption
         if caption is not None:
@@ -178,7 +183,20 @@ def set_number_of_ticks(number, axis='both', axes=None):
             axis = 'both'
         # apply tick number
         for axes_i in axes:
-            axes_i.locator_params(tight=True, axis=axis, nbins=number + 1, min_n_ticks=number, integer=False)
+            axes_i.locator_params(axis=axis, tight=True, nbins=number + 1, min_n_ticks=number)
+
+
+def ticks_set_integer_only(integer_only, axis='both', axes=None):
+    integer_only = bool(integer_only)
+    if integer_only:
+        # set axes
+        axes = _get_axes_list(axes=axes)
+        # set axis
+        if axis is None:
+            axis = 'both'
+        # apply tick number
+        for axes_i in axes:
+            axes_i.locator_params(axis=axis, integer=integer_only)
 
 
 def set_axis_limits(x_min=None, x_max=None, y_min=None, y_max=None):
