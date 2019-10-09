@@ -48,9 +48,9 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
         set_tick_power_limit_fix(tick_power_limit_fix_y, axis='y')
 
         # set number of ticks
-        set_number_of_ticks(tick_number, axis='both')
-        set_number_of_ticks(tick_number_x, axis='x')
-        set_number_of_ticks(tick_number_y, axis='y')
+        ticks_set_number(tick_number, axis='both')
+        ticks_set_number(tick_number_x, axis='x')
+        ticks_set_number(tick_number_y, axis='y')
 
         # set integer only for ticks
         ticks_set_integer_only(tick_interger_only_x, axis='x')
@@ -173,7 +173,7 @@ def set_tick_power_limit_fix(power_limit, axis='both', axes=None):
                 axes_i.xaxis.set_major_formatter(f)
 
 
-def set_number_of_ticks(number, axis='both', axes=None):
+def ticks_set_number(number, axis='both', axes=None):
     if number is not None:
         number = int(number)
         # set axes
@@ -216,7 +216,7 @@ def get_colors(n, colormap_name='gist_rainbow'):
     return colors
 
 
-def set_number_of_ticks_for_locator(locator, tick_number=None):
+def ticks_set_number_for_locator(locator, tick_number=None):
     if tick_number is not None:
         tick_number = int(tick_number)
         # LinearLocator, LogLocator, SymmetricalLogLocator
@@ -250,7 +250,7 @@ def add_colorbar(axes_image=None, axes=None, colorbar=True,
         if tick_number is not None and tick_step_size is not None:
             raise ValueError('Please use only tick_number or tick_step_size, not both.')
         if tick_number is not None:
-            set_number_of_ticks_for_locator(cb.locator, tick_number=tick_number)
+            ticks_set_number_for_locator(cb.locator, tick_number=tick_number)
             cb.update_ticks()
         if tick_step_size is not None:
             tick_step_size = float(tick_step_size)
