@@ -660,6 +660,10 @@ class BatchSystem():
     # abstract methods
 
     @abc.abstractmethod
+    def is_job_running(self, job_id):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def _get_job_id_from_submit_output(self, submit_output):
         raise NotImplementedError()
 
@@ -940,10 +944,14 @@ class Job():
         else:
             return True
 
+    def is_running(self):
+        return self.batch_system.is_job_running(self.id)
+
     def is_finished(self, check_exit_code=True):
         finished_file = pathlib.Path(self.finished_file)
+        output_file = pathlib.Path(self.output_file)
 
-        # if finished file exists, check exit code and output file
+        # job finished
         if finished_file.exists():
             # check exit code
             if check_exit_code:
@@ -951,7 +959,6 @@ class Job():
                 if exit_code != 0:
                     raise JobExitCodeError(self)
             # check if output file exists
-            output_file = pathlib.Path(self.output_file)
             if output_file.exists():
                 return True
             else:
@@ -961,7 +968,11 @@ class Job():
                 else:
                     return False
 
-        # if finished file does not exist,
+        # job cancelled
+        elif output_file.exists() and not self.is_running():
+            raise JobCancelledError(self)
+
+        # job queued or running
         else:
             return False
 
@@ -1172,11 +1183,17 @@ class JobExitCodeError(JobError):
         super().__init__(error_message=error_message, job=job, include_output=True)
 
 
-class JobExceededWalltimeError(JobError):
+class JobCancelledError(JobError):
+    def __init__(self, job):
+        error_message = f'The job was cancelled.'
+        super().__init__(error_message=error_message, job=job)
+
+
+class JobExceededWalltimeError(JobCancelledError):
     def __init__(self, job):
         self.walltime = job.walltime_hours
         error_message = f'The job exceeded walltime {self.walltime}.'
-        super().__init__(error_message=error_message, job=job)
+        JobError.__init__(error_message=error_message, job=job)
 
 
 class JobMissingOptionError(JobError):
