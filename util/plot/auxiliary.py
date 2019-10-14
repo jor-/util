@@ -111,6 +111,8 @@ def set_global_font_size(font_size=None, weight='bold'):
     if weight is not None:
         util.logging.debug(f'Setting global font weight {weight}.')
         matplotlib.rcParams.update({'font.weight': weight})
+        if weight == 'bold':
+            matplotlib.rcParams['text.latex.preamble'] = ['\\boldmath']
 
 
 def _get_axes_list(axes=None):
