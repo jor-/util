@@ -103,14 +103,14 @@ def save_and_close_fig(fig, file, transparent=True, make_read_only=True, overwri
     util.logging.debug('Plot saved to {}.'.format(file))
 
 
-def set_global_font_size(font_size):
+def set_global_font_size(font_size=None, weight='bold'):
     if font_size is not None:
         util.logging.debug(f'Setting global font size to {font_size}.')
         font_size = int(font_size)
-        font = {'family': 'sans-serif',
-                'weight': 'bold',
-                'size': font_size}
-        matplotlib.rc('font', **font)
+        matplotlib.rcParams.update({'font.size': font_size})
+    if weight is not None:
+        util.logging.debug(f'Setting global font weight {weight}.')
+        matplotlib.rcParams.update({'font.weight': weight})
 
 
 def _get_axes_list(axes=None):
