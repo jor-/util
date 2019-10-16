@@ -308,10 +308,10 @@ def ticks_transform_labels(tick_transform_x=None, tick_transform_y=None, axes=No
 
         if tick_transform_x:
             x_ticks = axes.get_xticks()
-            x_tick_lables = tick_transform_x(x_ticks)
+            x_tick_lables = [tick_transform_x(tick) for tick in x_ticks]
             axes.set_xticklabels(x_tick_lables)
 
         if tick_transform_y:
             y_ticks = axes.get_yticks()
-            y_tick_lables = tick_transform_y(y_ticks)
+            y_tick_lables = [tick_transform_y(tick) for tick in y_ticks]
             axes.set_yticklabels(y_tick_lables)
