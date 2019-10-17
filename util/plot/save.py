@@ -579,25 +579,44 @@ def imshow_dataset_values(file, data, value_function, use_abs=False, colorbar=Tr
     util.plot.auxiliary.generic(file, plot_function, colorbar=colorbar, **kwargs)
 
 
-def dense_matrix_pattern(file, A, markersize=1, axis_labels=False, colorbar=True, **kwargs):
+def dense_matrix_pattern(file, A, markersize=1, colorbar=True, x_tick_lables=None, y_tick_lables=None, axis_labels=False, **kwargs):
     def plot_function(fig):
         util.logging.debug(f'Plotting values for matrix {A!r} to file {file}.')
 
         # plot matrix values
         v_abs_max = np.abs(A).max()
-        axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', vmin=-v_abs_max, vmax=v_abs_max)
+        axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', aspect='equal', vmin=-v_abs_max, vmax=v_abs_max)
 
-        # disable ticks
+        # configure tick labels
         axes = plt.gca()
-        axes.set_xticks([])
-        axes.set_yticks([])
+        if x_tick_lables is not None:
+            n = A.shape[0]
+            m = len(x_tick_lables)
+            if n != m:
+                raise ValueError(f'{n} tick labels for x axis are needed but {m} were given.')
+            axes.set_xticks(np.arange(n))
+            axes.set_xticklabels(x_tick_lables)
+            axes.tick_params(axis='x', which='both', length=0)
+            axes.xaxis.tick_top()
 
-        # set power limits
-        if axis_labels:
-            util.plot.auxiliary.set_tick_power_limit_scientific(power_limit=3)
-        # disable axis labels
-        else:
-            plt.axis('off')
+        if y_tick_lables is not None:
+            n = A.shape[1]
+            m = len(y_tick_lables)
+            if n != m:
+                raise ValueError(f'{n} tick labels for y axis are needed but {m} were given.')
+            axes.set_yticks(np.arange(n))
+            axes.set_yticklabels(y_tick_lables)
+            axes.tick_params(axis='y', which='both', length=0)
+
+        if x_tick_lables is None and y_tick_labels is None:
+            # set power limits
+            if axis_labels:
+                util.plot.auxiliary.set_tick_power_limit_scientific(power_limit=3)
+            # disable axis labels
+            else:
+                axes.set_xticks([])
+                axes.set_yticks([])
+                plt.axis('off')
 
     util.plot.auxiliary.generic(file, plot_function, colorbar=colorbar, **kwargs)
 
