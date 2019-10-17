@@ -618,6 +618,10 @@ def dense_matrix_pattern(file, A, markersize=1, colorbar=True, x_tick_lables=Non
                 axes.set_yticks([])
                 plt.axis('off')
 
+        # set axes limits
+        plt.xlim(left=-0.5, right=A.shape[0] - 0.5)
+        plt.ylim(top=-0.5, bottom=A.shape[1] - 0.5)
+
     util.plot.auxiliary.generic(file, plot_function, colorbar=colorbar, **kwargs)
 
 
