@@ -133,6 +133,8 @@ def set_tick_power_limit_scientific(power_limit, axis='both', axes=None):
         if axis is None:
             axis = 'both'
         # set power limits
+        if isinstance(power_limit, str):
+            power_limit = int(power_limit)
         try:
             length = len(power_limit)
         except TypeError:
