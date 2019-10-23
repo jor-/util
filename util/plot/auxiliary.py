@@ -20,7 +20,7 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             x_min=None, x_max=None, y_min=None, y_max=None,
             overwrite=True, make_read_only=True, dpi=800, backend=None,
             invert_x_axis=False, invert_y_axis=False,
-            colorbar=False, colorbar_tick_number=None, colorbar_tick_step_size=None):
+            colorbar=False, colorbar_tick_number=None, colorbar_tick_step_size=None, colorbar_tick_transform=None):
 
     # check if file should be saved
     if check_file(file, overwrite=overwrite):
@@ -74,7 +74,7 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
         ticks_transform_labels(tick_transform_x=tick_transform_x, tick_transform_y=tick_transform_y, axes=axes)
 
         # add colorbar
-        add_colorbar(axes=axes, colorbar=colorbar, tick_number=colorbar_tick_number, tick_step_size=colorbar_tick_step_size)
+        add_colorbar(axes=axes, colorbar=colorbar, tick_number=colorbar_tick_number, tick_step_size=colorbar_tick_step_size, tick_transform=colorbar_tick_transform)
 
         # save and close
         save_and_close_fig(fig, file, transparent=transparent, make_read_only=make_read_only, overwrite=overwrite, dpi=dpi)
@@ -236,7 +236,8 @@ def ticks_set_number_for_locator(locator, tick_number=None):
 
 
 def add_colorbar(axes_image=None, axes=None, colorbar=True,
-                 orientation='right', size='3%', pad='1.5%', tick_number=None, tick_step_size=None):
+                 orientation='right', size='3%', pad='1.5%',
+                 tick_number=None, tick_step_size=None, tick_transform=None):
     # plot colorbar
     if colorbar:
         if axes is None:
@@ -260,6 +261,10 @@ def add_colorbar(axes_image=None, axes=None, colorbar=True,
             locator = matplotlib.ticker.MultipleLocator(base=tick_step_size)
             cb.locator = locator
             cb.update_ticks()
+        if tick_transform is not None:
+            ticks = cb.ax.get_yticks()
+            tick_lables = [tick_transform(tick) for tick in ticks]
+            cb.ax.set_yticklabels(tick_lables)
         return cb
     else:
         return None
