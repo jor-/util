@@ -20,7 +20,8 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             x_min=None, x_max=None, y_min=None, y_max=None,
             overwrite=True, make_read_only=True, dpi=800, backend=None,
             invert_x_axis=False, invert_y_axis=False,
-            colorbar=False, colorbar_tick_number=None, colorbar_tick_step_size=None, colorbar_tick_transform=None):
+            colorbar=False, colorbar_tick_number=None, colorbar_tick_step_size=None,
+            colorbar_tick_transform=None, colorbar_tick_power_limit_scientific=None):
 
     # check if file should be saved
     if check_file(file, overwrite=overwrite):
@@ -74,7 +75,13 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
         ticks_transform_labels(tick_transform_x=tick_transform_x, tick_transform_y=tick_transform_y, axes=axes)
 
         # add colorbar
-        add_colorbar(axes=axes, colorbar=colorbar, tick_number=colorbar_tick_number, tick_step_size=colorbar_tick_step_size, tick_transform=colorbar_tick_transform)
+        if colorbar_tick_number is None:
+            colorbar_tick_number = tick_number
+        if colorbar_tick_power_limit_scientific is None:
+            colorbar_tick_power_limit_scientific = tick_power_limit_scientific
+        add_colorbar(axes=axes, colorbar=colorbar,
+                     tick_number=colorbar_tick_number, tick_step_size=colorbar_tick_step_size,
+                     tick_transform=colorbar_tick_transform, tick_power_limit_scientific=colorbar_tick_power_limit_scientific)
 
         # save and close
         save_and_close_fig(fig, file, transparent=transparent, make_read_only=make_read_only, overwrite=overwrite, dpi=dpi)
@@ -125,6 +132,19 @@ def _get_axes_list(axes=None):
     return axes
 
 
+def _parse_scientific_power_limit(power_limit):
+    if isinstance(power_limit, str):
+        power_limit = int(power_limit)
+    try:
+        length = len(power_limit)
+    except TypeError:
+        power_limit = (-power_limit, power_limit)
+    else:
+        if length != 2:
+            raise ValueError(f'power_limit has to be a tuple with two values but it is {power_limit}.')
+    return power_limit
+
+
 def set_tick_power_limit_scientific(power_limit, axis='both', axes=None):
     if power_limit is not None:
         # set axes
@@ -132,16 +152,8 @@ def set_tick_power_limit_scientific(power_limit, axis='both', axes=None):
         # set axis
         if axis is None:
             axis = 'both'
-        # set power limits
-        if isinstance(power_limit, str):
-            power_limit = int(power_limit)
-        try:
-            length = len(power_limit)
-        except TypeError:
-            power_limit = (-power_limit, power_limit)
-        else:
-            if length != 2:
-                raise ValueError(f'power_limit has to be a tuple with two values but it is {power_limit}.')
+        # parse power limits
+        power_limit = _parse_scientific_power_limit(power_limit)
         # apply power limit
         util.logging.debug(f'Setting tick power limit scientific for axis {axis} to {power_limit}.')
         for axes_i in axes:
@@ -239,7 +251,7 @@ def ticks_set_number_for_locator(locator, tick_number=None):
 
 def add_colorbar(axes_image=None, axes=None, colorbar=True,
                  orientation='right', size='3%', pad='1.5%',
-                 tick_number=None, tick_step_size=None, tick_transform=None):
+                 tick_number=None, tick_step_size=None, tick_transform=None, tick_power_limit_scientific=None):
     # plot colorbar
     if colorbar:
         if axes is None:
@@ -267,6 +279,10 @@ def add_colorbar(axes_image=None, axes=None, colorbar=True,
             ticks = cb.ax.get_yticks()
             tick_lables = [tick_transform(tick) for tick in ticks]
             cb.ax.set_yticklabels(tick_lables)
+        if tick_power_limit_scientific is not None:
+            tick_power_limit_scientific = _parse_scientific_power_limit(tick_power_limit_scientific)
+            cb.formatter.set_powerlimits(tick_power_limit_scientific)
+            cb.update_ticks()
         return cb
     else:
         return None
