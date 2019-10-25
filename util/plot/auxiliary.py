@@ -338,3 +338,27 @@ def ticks_transform_labels(tick_transform_x=None, tick_transform_y=None, axes=No
             y_ticks = axes.get_yticks()
             y_tick_lables = [tick_transform_y(tick) for tick in y_ticks]
             axes.set_yticklabels(y_tick_lables)
+
+
+def tick_transform_function_exponent_notation(data, v_max=None):
+    # calculate factor
+    if v_max is not None:
+        v_max_for_tick_factor = v_max
+    else:
+        v_max_for_tick_factor = util.plot.auxiliary.v_max(data)
+    tick_exponent = int(np.floor(np.log10(v_max_for_tick_factor)))
+    if tick_exponent >= 0:
+        tick_exponent_str = f'e\\!\\!{tick_exponent}$'
+    else:
+        tick_exponent_str = f'e\\!\\!-\\!\\!{-tick_exponent}$'
+    tick_factor = 10**tick_exponent
+
+    # create transform function
+    def tick_transform(tick):
+        tick /= tick_factor
+        tick = int(np.round(tick, decimals=0))
+        tick_label = f'${tick}{tick_exponent_str}'
+        return tick_label
+
+    # return
+    return tick_transform
