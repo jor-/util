@@ -275,6 +275,8 @@ def add_colorbar(axes_image=None, axes=None, colorbar=True,
             locator = matplotlib.ticker.MultipleLocator(base=tick_step_size)
             cb.locator = locator
             cb.update_ticks()
+        if tick_transform is not None and tick_power_limit_scientific is not None:
+            raise ValueError('Please use only tick_transform or tick_power_limit_scientific, not both.')
         if tick_transform is not None:
             ticks = cb.ax.get_yticks()
             tick_lables = [tick_transform(tick) for tick in ticks]
