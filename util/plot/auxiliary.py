@@ -342,7 +342,7 @@ def ticks_transform_labels(tick_transform_x=None, tick_transform_y=None, axes=No
             axes.set_yticklabels(y_tick_lables)
 
 
-def tick_transform_function_exponent_notation(data, v_max=None):
+def tick_transform_function_exponent_notation(data, v_max=None, decimals=None):
     # calculate factor
     if v_max is not None:
         v_max_for_tick_factor = v_max
@@ -355,10 +355,19 @@ def tick_transform_function_exponent_notation(data, v_max=None):
         tick_exponent_str = f'e\\!\\!-\\!\\!{-tick_exponent}$'
     tick_factor = 10**tick_exponent
 
+    # choose decimals
+    if decimals is None:
+        if v_max_for_tick_factor <= 2 * tick_factor:
+            decimals = 1
+        else:
+            decimals = 0
+
     # create transform function
     def tick_transform(tick):
         tick /= tick_factor
-        tick = int(np.round(tick, decimals=0))
+        tick = np.round(tick, decimals=decimals)
+        if decimals == 0:
+            tick = int(tick)
         tick_label = f'${tick}{tick_exponent_str}'
         return tick_label
 
