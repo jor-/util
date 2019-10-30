@@ -1,10 +1,12 @@
+import math
+
 import numpy as np
 
 import util.logging
 
 
 def max_dtype(a, b):
-    util.logging.debug('Calculating max dtype of {} and {}.'.format(a,b))
+    util.logging.debug('Calculating max dtype of {} and {}.'.format(a, b))
 
     if isinstance(a, np.floating):
         if isinstance(b, np.integer):
@@ -15,7 +17,6 @@ def max_dtype(a, b):
             else:
                 return b
 
-
     if isinstance(a, np.integer):
         if isinstance(b, np.integer):
             if np.iinfo(a).max > np.iinfo(b).max:
@@ -25,11 +26,10 @@ def max_dtype(a, b):
         if isinstance(b, np.floating):
             return b
 
-    raise ValueError('Dtype {} and {} are not comparable.'.format(a,b))
+    raise ValueError('Dtype {} and {} are not comparable.'.format(a, b))
 
 
-
-def min_int_dtype(*values, unsigned=False):    
+def min_int_dtype(*values, unsigned=False):
     # get max value
     if len(values) > 0:
         max_value = max(values)
@@ -43,10 +43,16 @@ def min_int_dtype(*values, unsigned=False):
         int_dtypes = (np.int8, np.int16, np.int32, np.int64)
     i = 0
     while np.iinfo(int_dtypes[i]).max < max_value:
-        i = i+1
+        i = i + 1
     dtype = int_dtypes[i]
-    
-    # return 
+
+    # return
     util.logging.debug('Minimal int dtype (unsigned={}) for values {} is {}.'.format(unsigned, values, dtype))
     return dtype
 
+
+def fnanmean(a):
+    a = a[~ np.isnan(a)]
+    sum = math.fsum(a)
+    mean = sum / len(a)
+    return mean
