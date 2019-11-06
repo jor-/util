@@ -345,7 +345,7 @@ def ticks_transform_labels(tick_transform_x=None, tick_transform_y=None, axes=No
 def tick_transform_function_exponent_notation(data, v_max=None, decimals=None):
     # calculate factor
     if v_max is not None:
-        v_max_for_tick_factor = v_max
+        v_max_for_tick_factor = float(v_max)
     else:
         v_max_for_tick_factor = util.plot.auxiliary.v_max(data)
     tick_exponent = int(np.floor(np.log10(v_max_for_tick_factor)))
@@ -361,6 +361,8 @@ def tick_transform_function_exponent_notation(data, v_max=None, decimals=None):
             decimals = 1
         else:
             decimals = 0
+    else:
+        decimals = int(decimals)
 
     # create transform function
     def tick_transform(tick):
