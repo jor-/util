@@ -2,7 +2,7 @@
 UTIL
 ====
 
-This is a collection of Python modules containing auxiliary functions used in several other projects.
+This is a collection of helpful Python functions used in several other projects.
 
 
 Release info
@@ -78,7 +78,7 @@ https://github.com/jor-/util
 Copyright
 =========
 
-Copyright (C) 2011-2018  Joscha Reimer jor@informatik.uni-kiel.de
+Copyright (C) 2011-2019  Joscha Reimer jor@informatik.uni-kiel.de
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
