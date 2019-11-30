@@ -1,6 +1,6 @@
-====
-UTIL
-====
+=======
+UTILLIB
+=======
 
 This is a collection of helpful Python functions used in several other projects.
 
@@ -13,45 +13,45 @@ There are several ways to obtain and install this package.
 Conda
 -----
 
-.. image:: https://img.shields.io/conda/v/jore/util.svg
-    :target: https://anaconda.org/jore/util
+.. image:: https://img.shields.io/conda/v/jore/utillib.svg
+    :target: https://anaconda.org/jore/utillib
     :alt: Conda version
-.. image:: https://anaconda.org/jore/util/badges/latest_release_date.svg
-    :target: https://anaconda.org/jore/util
+.. image:: https://anaconda.org/jore/utillib/badges/latest_release_date.svg
+    :target: https://anaconda.org/jore/utillib
     :alt: Conda last updated
-.. image:: https://anaconda.org/jore/util/badges/platforms.svg
-    :target: https://anaconda.org/jore/util
+.. image:: https://anaconda.org/jore/utillib/badges/platforms.svg
+    :target: https://anaconda.org/jore/utillib
     :alt: Conda platforms
-.. image:: https://anaconda.org/jore/util/badges/license.svg
-    :target: https://anaconda.org/jore/util
+.. image:: https://anaconda.org/jore/utillib/badges/license.svg
+    :target: https://anaconda.org/jore/utillib
     :alt: Conda licence
 
 
 To install this package with *conda* run:
 
-    ``conda install -c jore util``
+    ``conda install -c jore utillib``
 
-https://anaconda.org/jore/util
+https://anaconda.org/jore/utillib
 
 
 pip
 ---
 
-.. image:: https://img.shields.io/pypi/v/util.svg
-    :target: https://pypi.python.org/pypi/util
+.. image:: https://img.shields.io/pypi/v/utillib.svg
+    :target: https://pypi.python.org/pypi/utillib
     :alt: PyPI version
-.. image:: https://img.shields.io/pypi/format/util.svg
-    :target: https://pypi.python.org/pypi/util
+.. image:: https://img.shields.io/pypi/format/utillib.svg
+    :target: https://pypi.python.org/pypi/utillib
     :alt: PyPI format
-.. image:: https://img.shields.io/pypi/l/util.svg
-    :target: https://pypi.python.org/pypi/util
+.. image:: https://img.shields.io/pypi/l/utillib.svg
+    :target: https://pypi.python.org/pypi/utillib
     :alt: PyPI licence
 
 To install this package with *pip* run:
 
-    ``pip install 'util'``
+    ``pip install 'utillib'``
 
-https://pypi.python.org/pypi/util
+https://pypi.python.org/pypi/utillib
 
 
 GitHub
