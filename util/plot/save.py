@@ -608,7 +608,7 @@ def dense_matrix_pattern(file, A, markersize=1, colorbar=True, x_tick_lables=Non
             axes.set_yticklabels(y_tick_lables)
             axes.tick_params(axis='y', which='both', length=0)
 
-        if x_tick_lables is None and y_tick_labels is None:
+        if x_tick_lables is None and y_tick_lables is None:
             # set power limits
             if axis_labels:
                 util.plot.auxiliary.set_tick_power_limit_scientific(power_limit=3)
