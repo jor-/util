@@ -1,4 +1,5 @@
 import pathlib
+import warnings
 
 import numpy as np
 
@@ -22,7 +23,10 @@ def generic(file, plot_function, font_size=20, transparent=True, caption=None, u
             invert_x_axis=False, invert_y_axis=False,
             colorbar=False, colorbar_tick_number=None, colorbar_tick_step_size=None,
             colorbar_tick_transform=None, colorbar_tick_power_limit_scientific=None,
-            y_axis_move_scientific_notation_left=False):
+            y_axis_move_scientific_notation_left=False,
+            replace_bad_characters_in_file=True):
+
+    file = replace_bad_characters(file, replace=replace_bad_characters_in_file)
 
     # check if file should be saved
     if check_file(file, overwrite=overwrite):
@@ -447,3 +451,17 @@ def y_axis_move_scientific_notation(limit_scientific_notation, offs=0, dig=0, si
 
     # Return the locs
     return locs
+
+
+def replace_bad_characters(filename, replace=True):
+    if replace:
+        file = pathlib.Path(filename)
+        filename_without_ext = str(file.parent.joinpath(file.stem))
+        ext = file.suffix
+        for bad_char, replacement_char in [('.', '_'), ('(', '['), (')', ']')]:
+            if bad_char in filename_without_ext:
+                warnings.warn(f'A "{bad_char}" is in the filename {filename} which should be avoided. Replacing "{bad_char}" by "{replacement_char}".')
+                filename_without_ext = filename_without_ext.replace(bad_char, replacement_char)
+            assert bad_char not in filename_without_ext
+        filename = f'{filename_without_ext}{ext}'
+    return filename
