@@ -18,6 +18,11 @@ def data(file, data, land_value=np.nan, no_data_value=np.inf, land_brightness=0,
          contours=False, contours_text_brightness=0.5, contour_power_limit=3,
          colorbar=True, colormap=None, show_axes=False,
          **kwargs):
+
+    # check input
+    land_brightness = float(land_brightness)
+    assert 0 <= land_brightness <= 1
+
     # prepare data
     data = np.asanyarray(data)
 
