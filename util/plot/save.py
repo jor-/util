@@ -584,13 +584,13 @@ def imshow_dataset_values(file, data, value_function, use_abs=False, colorbar=Tr
     util.plot.auxiliary.generic(file, plot_function, colorbar=colorbar, **kwargs)
 
 
-def dense_matrix_pattern(file, A, markersize=1, colorbar=True, x_tick_lables=None, y_tick_lables=None, axis_labels=False, **kwargs):
+def dense_matrix_pattern(file, A, markersize=1, colorbar=True, x_tick_lables=None, y_tick_lables=None, axis_labels=False, cmap=plt.cm.bwr, **kwargs):
     def plot_function(fig):
         util.logging.debug(f'Plotting values for matrix {A!r} to file {file}.')
 
         # plot matrix values
         v_abs_max = np.abs(A).max()
-        axes_image = plt.imshow(A, cmap=plt.cm.bwr, interpolation='nearest', aspect='equal', vmin=-v_abs_max, vmax=v_abs_max)
+        axes_image = plt.imshow(A, cmap=cmap, interpolation='nearest', aspect='equal', vmin=-v_abs_max, vmax=v_abs_max)
 
         # configure tick labels
         axes = plt.gca()
